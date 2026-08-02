@@ -173,7 +173,11 @@
     "submit_error": "Something went wrong. Please try again.",
     "same_day_surcharge": "Same day surcharge",
     "no_online_payment": "No Online Payment",
-    "no_online_payment_desc": "Pay at our shop after inspecting the products. No deposit required."
+    "no_online_payment_desc": "Pay at our shop after inspecting the products. No deposit required.",
+    "pay_now": "Complete your payment",
+    "pay_momo_instructions": "Tap below to open MTN Mobile Money — choose 1, confirm DENISE and the amount, then enter your MoMo PIN.",
+    "pay_dial": "Pay with MoMo:",
+    "pay_iphone_hint": "On iPhone? Dial this code manually:"
   },
   "status": {
     "PENDING": "Pending",
