@@ -14,6 +14,7 @@ import { reservationsApi } from '../lib/api';
 import { Reservation, FulfillmentType, PaymentMethod, DeliveryType } from '../types';
 import { generateTimeSlots, getMinReservationDate } from '../lib/utils';
 import FabricEstimator from '../components/reservation/FabricEstimator';
+import Seo from '../components/Seo';
 import { RWANDA_PROVINCES, getDistrictsForProvince, getDeliveryFee } from '../lib/rwanda';
 import { cn } from '../lib/utils';
 
@@ -300,6 +301,11 @@ const ReservationPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <Seo
+        path="/reservation"
+        title="Reserve or Order Online — DENISE Textile Kigali"
+        description="Reserve products and visit our Kigali shop, or buy online with delivery anywhere in Rwanda. Curtains, fabrics and traditional attire from DENISE."
+      />
       <div className="max-w-5xl mx-auto">
         <h1 className="font-serif text-3xl font-bold mb-1">{t('reservation.title')}</h1>
         <p className="text-muted-foreground mb-6">{t('reservation.subtitle')}</p>

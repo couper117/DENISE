@@ -6,6 +6,7 @@ import type { AxiosError } from 'axios';
 import { User, Phone, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../../lib/api';
 import { useAuthStore } from '../../store';
+import Seo from '../../components/Seo';
 
 const Register = () => {
   const { t } = useTranslation();
@@ -36,6 +37,13 @@ const Register = () => {
   };
 
   return (
+    <>
+    <Seo
+      path="/register"
+      title="Create Account — DENISE Textile"
+      description="Create a DENISE Textile account to reserve and order online."
+      noindex
+    />
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
@@ -117,6 +125,7 @@ const Register = () => {
         </form>
       </div>
     </div>
+    </>
   );
 };
 

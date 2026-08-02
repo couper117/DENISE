@@ -12,6 +12,7 @@ import { useCartStore } from '../store';
 import { Product, ProductReview, FulfillmentType } from '../types';
 import ProductCard from '../components/products/ProductCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import Seo from '../components/Seo';
 import { cn } from '../lib/utils';
 
 const PURCHASE_OPTIONS: {
@@ -154,8 +155,36 @@ const ProductDetail = () => {
   const displayPrice = product.salePrice ?? product.price;
   const hasDiscount = product.salePrice && product.price && product.salePrice < product.price;
 
+  const seoImage = product.images?.find((i) => i.isPrimary)?.url || product.images?.[0]?.url;
+
   return (
     <div className="container mx-auto px-4 py-8">
+      <Seo
+        path={`/products/${product.slug}`}
+        title={`${product.name} — DENISE Textile Rwanda`}
+        description={product.description ? product.description.slice(0, 155) : `Buy ${product.name} at DENISE Textile Kigali. Order online with delivery across Rwanda.`}
+        image={seoImage}
+        type="product"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: product.name,
+          image: seoImage || [],
+          description: product.description || product.name,
+          brand: { '@type': 'Brand', name: 'DENISE Textile' },
+          ...(product.price
+            ? {
+                offers: {
+                  '@type': 'Offer',
+                  price: product.price,
+                  priceCurrency: product.currency || 'RWF',
+                  availability: 'https://schema.org/InStock',
+                  url: `https://deniseshop.com/products/${product.slug}`,
+                },
+              }
+            : {}),
+        }}
+      />
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 flex-wrap">
         <Link to="/" className="hover:text-primary">Home</Link>

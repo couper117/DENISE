@@ -6,6 +6,7 @@ import {
   BUSINESS_PHONE, BUSINESS_PHONE_CLEAN, BUSINESS_EMAIL,
   BUSINESS_HOURS, WHATSAPP_LINK,
 } from '../lib/config';
+import Seo from '../components/Seo';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -25,6 +26,11 @@ const Contact = () => {
 
   return (
     <div className="container mx-auto px-4 py-12">
+      <Seo
+        path="/contact"
+        title="Contact DENISE Textile — Kigali, Rwanda"
+        description="Contact DENISE Textile in Kigali. WhatsApp, call or visit. Curtains, fabrics and traditional Rwandan attire."
+      />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
         <h1 className="font-serif text-4xl font-bold mb-3">{t('contact.title')}</h1>
         <p className="text-muted-foreground max-w-lg mx-auto">{t('contact.subtitle')}</p>

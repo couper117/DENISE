@@ -7,6 +7,7 @@ import { blogsApi } from '../lib/api';
 import { Blog } from '../types';
 import { formatDate, truncate } from '../lib/utils';
 import { ProductGridSkeleton } from '../components/ui/SkeletonCard';
+import Seo from '../components/Seo';
 
 const BlogPage = () => {
   const { t } = useTranslation();
@@ -22,6 +23,11 @@ const BlogPage = () => {
 
   return (
     <div className="container mx-auto px-4 py-12">
+      <Seo
+        path="/blog"
+        title="Blog — Interior Design & Rwandan Textile Tips | DENISE"
+        description="Interior design ideas, curtain guides, and Rwandan traditional attire inspiration from DENISE Textile, Kigali."
+      />
       <div className="text-center mb-10">
         <h1 className="font-serif text-4xl font-bold mb-3">{t('blog.title')}</h1>
         <p className="text-muted-foreground">{t('blog.subtitle')}</p>

@@ -8,6 +8,7 @@ import { productsApi, categoriesApi } from '../lib/api';
 import { Product, Category } from '../types';
 import ProductCard from '../components/products/ProductCard';
 import { ProductGridSkeleton } from '../components/ui/SkeletonCard';
+import Seo from '../components/Seo';
 
 const SORT_OPTIONS = [
   { value: 'createdAt-desc', label: 'Newest First' },
@@ -72,6 +73,11 @@ const Products = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <Seo
+        path="/products"
+        title="Shop Curtains, Fabrics & Traditional Attire — DENISE Rwanda"
+        description="Browse curtains (amarido), voile, blackout & velvet curtains, fabrics, imikenyero, imishanana and imyenda gakondo. Buy online with delivery across Rwanda or reserve for pickup in Kigali."
+      />
       {/* Header */}
       <div className="mb-8">
         <h1 className="font-serif text-3xl font-bold mb-2">{t('products.title')}</h1>

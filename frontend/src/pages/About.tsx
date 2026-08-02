@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Award, Users, MapPin, Heart } from 'lucide-react';
+import Seo from '../components/Seo';
 
 const About = () => {
   const { t } = useTranslation();
@@ -14,6 +15,11 @@ const About = () => {
 
   return (
     <div>
+      <Seo
+        path="/about"
+        title="About DENISE Textile — New Textile Social Company, Kigali"
+        description="DENISE Textile (New Textile Social Company Limited) is Kigali's home for curtains, fabrics and traditional Rwandan attire. Learn our story."
+      />
       {/* Hero */}
       <section className="relative py-20 bg-gradient-to-br from-primary/10 to-brand-gold/10">
         <div className="container mx-auto px-4 text-center">

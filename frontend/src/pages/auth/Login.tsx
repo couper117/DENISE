@@ -6,6 +6,7 @@ import { Phone, Lock, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../../lib/api';
 import { useAuthStore } from '../../store';
 import { User } from '../../types';
+import Seo from '../../components/Seo';
 
 const Login = () => {
   const { t } = useTranslation();
@@ -35,6 +36,13 @@ const Login = () => {
   };
 
   return (
+    <>
+    <Seo
+      path="/login"
+      title="Login — DENISE Textile"
+      description="Log in to your DENISE Textile account."
+      noindex
+    />
     <div className="min-h-screen flex items-center justify-center bg-muted/30 px-4 py-12">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
@@ -93,6 +101,7 @@ const Login = () => {
         </p>
       </div>
     </div>
+    </>
   );
 };
 

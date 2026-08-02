@@ -10,6 +10,7 @@ import { productsApi, adminApi } from '../lib/api';
 import { Product, Testimonial } from '../types';
 import ProductCard from '../components/products/ProductCard';
 import { ProductGridSkeleton } from '../components/ui/SkeletonCard';
+import Seo from '../components/Seo';
 import {
   BUSINESS_PHONE, BUSINESS_PHONE_CLEAN, WHATSAPP_LINK,
   BUSINESS_LAT, BUSINESS_LNG,
@@ -92,6 +93,11 @@ const Home = () => {
 
   return (
     <div>
+      <Seo
+        path="/"
+        title="DENISE Textile Rwanda — Curtains, Amarido & Imyenda Gakondo in Kigali | deniseshop.com"
+        description="DENISE (New Textile Social Company) — shop curtains (amarido), fabrics, imikenyero, imishanana and traditional Rwandan attire online. Delivery across Rwanda or visit our Kigali store."
+      />
       {/* ================= Hero ================= */}
       <section className="relative min-h-[82vh] flex items-center bg-brand-dark overflow-hidden">
         {/* Bolts of fabric, then layered scrims for contrast. Chosen because it

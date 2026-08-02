@@ -6,6 +6,7 @@ import { blogsApi } from '../lib/api';
 import { Blog } from '../types';
 import { formatDate } from '../lib/utils';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import Seo from '../components/Seo';
 
 const BlogPost = () => {
   const { t } = useTranslation();
@@ -20,8 +21,17 @@ const BlogPost = () => {
   if (isLoading) return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
   if (!data) return <div className="text-center py-20">{t('blog.not_found')} <Link to="/blog" className="text-primary">{t('blog.back')}</Link></div>;
 
+  const post = data;
+
   return (
     <div className="container mx-auto px-4 py-12 max-w-3xl">
+      <Seo
+        path={`/blog/${post.slug}`}
+        title={`${post.title} — DENISE Textile Blog`}
+        description={post.excerpt || (post.content ? post.content.slice(0, 155) : 'DENISE Textile blog')}
+        image={post.imageUrl}
+        type="article"
+      />
       <Link to="/blog" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors">
         <ChevronLeft size={14} /> {t('blog.back')}
       </Link>

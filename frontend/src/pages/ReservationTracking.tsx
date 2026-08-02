@@ -11,6 +11,7 @@ import { reservationsApi } from '../lib/api';
 import { Reservation, FulfillmentType } from '../types';
 import { formatDate, getStatusColor, getStatusLabel } from '../lib/utils';
 import { WHATSAPP_LINK } from '../lib/config';
+import Seo from '../components/Seo';
 import QRCode from 'qrcode.react';
 
 // Status pipeline per fulfillment type
@@ -120,6 +121,11 @@ const ReservationTracking = () => {
 
   return (
     <div className="container mx-auto px-4 py-12 max-w-2xl">
+      <Seo
+        path="/track"
+        title="Track Your Order — DENISE Textile Rwanda"
+        description="Track your DENISE Textile reservation or delivery by reference number."
+      />
       <div className="text-center mb-10">
         <h1 className="font-serif text-3xl font-bold mb-2">{t('reservation.track_title')}</h1>
         <p className="text-muted-foreground">
