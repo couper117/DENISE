@@ -183,15 +183,33 @@ Access the admin panel at `/admin` after logging in with an admin account.
    ```
 7. Deploy — the `vercel.json` handles SPA routing and cache headers automatically.
 
-### Backend — Railway (Recommended)
+### Database — Aiven for PostgreSQL
+
+Aiven is a **managed database** host — it runs PostgreSQL, not the Node/Express
+server. The API is deployed separately (Railway, below) and connects to Aiven.
+
+1. In the [Aiven console](https://console.aiven.io), create an **Aiven for PostgreSQL** service.
+2. From the service **Overview**, copy the **Service URI** — it looks like
+   `postgresql://avnadmin:PASSWORD@pg-xxxx.aivencloud.com:PORT/defaultdb?sslmode=require`.
+   Keep the `?sslmode=require` — Aiven rejects non-SSL connections.
+3. Use that URI as `DATABASE_URL` on the API host (next section). Migrations run
+   automatically on deploy via `prisma migrate deploy`.
+   - To seed once, run it locally against Aiven:
+     `DATABASE_URL="<aiven-uri>" npm run db:seed`
+   - If you later enable Aiven **connection pooling** (PgBouncer), set `DATABASE_URL`
+     to the pooled URI and add `DIRECT_URL` (primary URI) for migrations.
+
+### Backend API — Railway (Recommended)
+
+Railway runs the Express server; the database lives on Aiven (above).
 
 1. Push `backend/` to GitHub (or use monorepo)
-2. Create new project in [Railway](https://railway.app)
-3. Add a **PostgreSQL** plugin — Railway auto-sets `DATABASE_URL`
-4. Set **Root Directory** to `backend`
-5. Add environment variables (all from `.env.example`, except `DATABASE_URL`)
-6. Railway uses `railway.json` config — the start command runs `prisma migrate deploy` then starts the server.
-7. Note the Railway URL and set as `VITE_API_URL` in your Vercel project.
+2. Create a new project in [Railway](https://railway.app)
+3. Set **Root Directory** to `backend`
+4. Add environment variables from `.env.example`, and set `DATABASE_URL` to your
+   **Aiven** Service URI (do **not** add a Railway PostgreSQL plugin)
+5. Railway uses `railway.json` — the start command runs `prisma migrate deploy` then starts the server.
+6. Note the Railway URL and set it as `VITE_API_URL` in your Vercel project.
 
 ### Backend — Render (Alternative)
 
