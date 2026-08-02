@@ -1,0 +1,534 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  CUSTOMER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  PREPARING
+  PROCESSING
+  PACKED
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  DELIVERED
+  COMPLETED
+  CANCELLED
+}
+
+enum FulfillmentType {
+  RESERVATION
+  PICKUP
+  DELIVERY
+}
+
+enum PaymentMethod {
+  MTN_MOMO
+  AIRTEL_MONEY
+  VISA
+  MASTERCARD
+  AMEX
+  BANK_TRANSFER
+  FLUTTERWAVE
+  PAYPAL
+  STRIPE
+  PAY_AT_SHOP
+}
+
+enum PaymentStatus {
+  AWAITING
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum DeliveryType {
+  SAME_DAY
+  NEXT_DAY
+  SCHEDULED
+}
+
+enum NotificationChannel {
+  EMAIL
+  SMS
+  WHATSAPP
+  PUSH
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum MeasurementOption {
+  KNOW_MEASUREMENTS
+  HELP_AT_SHOP
+  WALK_IN_CONSULTATION
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id                String    @id @default(uuid())
+  email             String?   @unique
+  phone             String    @unique
+  password          String
+  firstName         String
+  lastName          String
+  role              Role      @default(CUSTOMER)
+  isActive          Boolean   @default(true)
+  isEmailVerified   Boolean   @default(false)
+  isPhoneVerified   Boolean   @default(false)
+  preferredLanguage String    @default("en")
+  darkMode          Boolean   @default(false)
+  avatarUrl         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  refreshTokens     RefreshToken[]
+  reservations      Reservation[]
+  wishlist          WishlistItem[]
+  notifications     Notification[]
+  activityLogs      ActivityLog[]
+  reviews           ProductReview[]
+
+  @@index([email])
+  @@index([phone])
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Category {
+  id          String     @id @default(uuid())
+  name        String
+  slug        String     @unique
+  description String?
+  imageUrl    String?
+  isActive    Boolean    @default(true)
+  sortOrder   Int        @default(0)
+  parentId    String?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  parent      Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryToCategory")
+  products    Product[]
+  translations CategoryTranslation[]
+
+  @@index([slug])
+}
+
+model CategoryTranslation {
+  id           String   @id @default(uuid())
+  categoryId   String
+  language     String
+  name         String
+  description  String?
+
+  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, language])
+}
+
+model Product {
+  id              String    @id @default(uuid())
+  name            String
+  slug            String    @unique
+  description     String?
+  specifications  String?
+  material        String?
+  priceRange      String?
+  price           Float?
+  salePrice       Float?
+  pricePerMeter   Float?
+  currency        String    @default("RWF")
+  isAvailable     Boolean   @default(true)
+  isFeatured      Boolean   @default(false)
+  isNewArrival    Boolean   @default(false)
+  isOnPromotion   Boolean   @default(false)
+  promotionText   String?
+  canBeDelivered  Boolean   @default(true)
+  canBuyOnline    Boolean   @default(true)
+  categoryId      String
+  sortOrder       Int       @default(0)
+  viewCount       Int       @default(0)
+  reservationCount Int      @default(0)
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  category        Category  @relation(fields: [categoryId], references: [id])
+  images          ProductImage[]
+  colors          ProductColor[]
+  inventory       Inventory?
+  reservationItems ReservationItem[]
+  wishlistItems   WishlistItem[]
+  translations    ProductTranslation[]
+  reviews         ProductReview[]
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([isFeatured])
+  @@index([isNewArrival])
+}
+
+model ProductTranslation {
+  id              String   @id @default(uuid())
+  productId       String
+  language        String
+  name            String
+  description     String?
+  specifications  String?
+
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, language])
+}
+
+model ProductImage {
+  id          String   @id @default(uuid())
+  productId   String
+  url         String
+  publicId    String?
+  altText     String?
+  isPrimary   Boolean  @default(false)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ProductColor {
+  id        String   @id @default(uuid())
+  productId String
+  name      String
+  hexCode   String?
+  imageUrl  String?
+
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+}
+
+model ProductReview {
+  id           String   @id @default(uuid())
+  productId    String
+  userId       String?
+  customerName String
+  rating       Int
+  title        String?
+  message      String
+  isApproved   Boolean  @default(false)
+  isVerified   Boolean  @default(false)
+  helpfulCount Int      @default(0)
+  createdAt    DateTime @default(now())
+
+  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user         User?    @relation(fields: [userId], references: [id])
+
+  @@index([productId])
+  @@index([isApproved])
+}
+
+model Inventory {
+  id              String   @id @default(uuid())
+  productId       String   @unique
+  stockCount      Int      @default(0)
+  metersAvailable Float?
+  lowStockAlert   Int      @default(5)
+  isTracked       Boolean  @default(true)
+  updatedAt       DateTime @updatedAt
+
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model DeliveryAddress {
+  id            String        @id @default(uuid())
+  province      String
+  district      String
+  sector        String?
+  cell          String?
+  village       String?
+  streetAddress String?
+  latitude      Float?
+  longitude     Float?
+  createdAt     DateTime      @default(now())
+
+  reservations  Reservation[]
+}
+
+model DeliveryZone {
+  id            String   @id @default(uuid())
+  province      String
+  district      String?
+  baseFee       Float
+  currency      String   @default("RWF")
+  isActive      Boolean  @default(true)
+  estimatedDays Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([province, district])
+}
+
+model Payment {
+  id              String        @id @default(uuid())
+  reservationId   String
+  method          PaymentMethod
+  amount          Float
+  currency        String        @default("RWF")
+  status          PaymentStatus @default(PENDING)
+  reference       String?       @unique
+  gatewayResponse Json?
+  phoneNumber     String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  reservation     Reservation   @relation(fields: [reservationId], references: [id])
+
+  @@index([reservationId])
+  @@index([reference])
+}
+
+model Reservation {
+  id                  String            @id @default(uuid())
+  reservationNumber   String            @unique
+  qrCode              String?
+  userId              String?
+  customerName        String
+  customerPhone       String
+  customerEmail       String?
+  preferredLanguage   String            @default("en")
+  fulfillmentType     FulfillmentType   @default(RESERVATION)
+  visitDate           DateTime?
+  visitTime           String?
+  notes               String?
+  measurementOption   MeasurementOption @default(HELP_AT_SHOP)
+  status              ReservationStatus @default(PENDING)
+  totalAmount         Float?
+  deliveryFee         Float?
+  paymentStatus       PaymentStatus     @default(AWAITING)
+  deliveryAddressId   String?
+  deliveryType        DeliveryType?
+  adminNotes          String?
+  cancelReason        String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  user                User?             @relation(fields: [userId], references: [id])
+  deliveryAddress     DeliveryAddress?  @relation(fields: [deliveryAddressId], references: [id])
+  items               ReservationItem[]
+  notifications       Notification[]
+  payments            Payment[]
+
+  @@index([reservationNumber])
+  @@index([customerPhone])
+  @@index([status])
+  @@index([visitDate])
+  @@index([fulfillmentType])
+}
+
+model ReservationItem {
+  id              String      @id @default(uuid())
+  reservationId   String
+  productId       String
+  quantity        Int?
+  metersRequired  Float?
+  windowWidth     Float?
+  windowHeight    Float?
+  unitPrice       Float?
+  totalPrice      Float?
+  notes           String?
+  createdAt       DateTime    @default(now())
+
+  reservation     Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  product         Product     @relation(fields: [productId], references: [id])
+
+  @@index([reservationId])
+  @@index([productId])
+}
+
+model WishlistItem {
+  id        String   @id @default(uuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+}
+
+model Blog {
+  id              String   @id @default(uuid())
+  title           String
+  slug            String   @unique
+  content         String
+  excerpt         String?
+  imageUrl        String?
+  imagePublicId   String?
+  authorName      String
+  isPublished     Boolean  @default(false)
+  publishedAt     DateTime?
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  viewCount       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  translations    BlogTranslation[]
+
+  @@index([slug])
+  @@index([isPublished])
+}
+
+model BlogTranslation {
+  id       String @id @default(uuid())
+  blogId   String
+  language String
+  title    String
+  content  String
+  excerpt  String?
+
+  blog     Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@unique([blogId, language])
+}
+
+model Testimonial {
+  id          String   @id @default(uuid())
+  customerName String
+  message     String
+  rating      Int      @default(5)
+  imageUrl    String?
+  isApproved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  translations TestimonialTranslation[]
+}
+
+model TestimonialTranslation {
+  id            String      @id @default(uuid())
+  testimonialId String
+  language      String
+  message       String
+
+  testimonial   Testimonial @relation(fields: [testimonialId], references: [id], onDelete: Cascade)
+
+  @@unique([testimonialId, language])
+}
+
+model Notification {
+  id            String              @id @default(uuid())
+  userId        String?
+  reservationId String?
+  channel       NotificationChannel
+  status        NotificationStatus  @default(PENDING)
+  subject       String?
+  body          String
+  recipient     String
+  sentAt        DateTime?
+  error         String?
+  createdAt     DateTime            @default(now())
+
+  user          User?               @relation(fields: [userId], references: [id])
+  reservation   Reservation?        @relation(fields: [reservationId], references: [id])
+
+  @@index([userId])
+  @@index([reservationId])
+  @@index([status])
+}
+
+model SiteContent {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  language  String   @default("en")
+  updatedAt DateTime @updatedAt
+
+  @@index([key])
+  @@index([language])
+}
+
+model FAQ {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  language  String   @default("en")
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Banner {
+  id            String   @id @default(uuid())
+  title         String
+  subtitle      String?
+  imageUrl      String
+  imagePublicId String?
+  linkUrl       String?
+  linkText      String?
+  isActive      Boolean  @default(true)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  details   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model SEOSettings {
+  id              String   @id @default(uuid())
+  page            String   @unique
+  metaTitle       String?
+  metaDescription String?
+  metaKeywords    String?
+  ogTitle         String?
+  ogDescription   String?
+  ogImage         String?
+  updatedAt       DateTime @updatedAt
+}

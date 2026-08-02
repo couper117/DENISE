@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 10 5% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 10 5% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 10 5% 10%;
+    --primary: 0 72% 32%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 50% 47%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 30 20% 95%;
+    --muted-foreground: 30 10% 45%;
+    --accent: 30 20% 93%;
+    --accent-foreground: 10 5% 10%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 20% 88%;
+    --input: 30 20% 88%;
+    --ring: 0 72% 32%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 10 10% 8%;
+    --foreground: 30 15% 95%;
+    --card: 10 10% 11%;
+    --card-foreground: 30 15% 95%;
+    --popover: 10 10% 11%;
+    --popover-foreground: 30 15% 95%;
+    --primary: 0 65% 45%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 40 40% 40%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 10 8% 18%;
+    --muted-foreground: 30 10% 60%;
+    --accent: 10 8% 18%;
+    --accent-foreground: 30 15% 95%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 10 8% 20%;
+    --input: 10 8% 20%;
+    --ring: 0 65% 45%;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  html { scroll-behavior: smooth; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+
+  .skeleton {
+    @apply relative overflow-hidden bg-muted;
+    &::after {
+      @apply absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent;
+      content: '';
+      animation: shimmer 2s infinite;
+      transform: translateX(-100%);
+    }
+  }
+
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { @apply bg-muted; }
+::-webkit-scrollbar-thumb { @apply bg-primary/40 rounded-full; }
+::-webkit-scrollbar-thumb:hover { @apply bg-primary/60; }
+
+/* Print styles */
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+}

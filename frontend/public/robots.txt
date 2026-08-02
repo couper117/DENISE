@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://deniseshop.com/sitemap.xml
+
+Disallow: /admin/
+Disallow: /account/
+Disallow: /api/
