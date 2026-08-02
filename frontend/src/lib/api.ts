@@ -1,15 +1,30 @@
-import axios, { AxiosError } from 'axios';
-import { useAuthStore } from '../store';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
+import { clearAuthSession, useAuthStore } from '../store';
 
 const API_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const api = axios.create({
   baseURL: API_URL,
-  withCredentials: true,
+  // The current backend accepts refresh tokens in the JSON body, not a cookie.
+  withCredentials: false,
   headers: { 'Content-Type': 'application/json' },
 });
 
+interface RetriableRequestConfig extends InternalAxiosRequestConfig {
+  _retry?: boolean;
+  skipAuthRefresh?: boolean;
+}
+
+interface RefreshResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
+let refreshPromise: Promise<RefreshResponse> | null = null;
+let sessionExpiryHandled = false;
+
 api.interceptors.request.use((config) => {
+  if (config.url === '/auth/login' || config.url === '/auth/register') sessionExpiryHandled = false;
   const token = useAuthStore.getState().accessToken;
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
@@ -18,22 +33,42 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (res) => res,
   async (error: AxiosError) => {
-    const original = error.config as typeof error.config & { _retry?: boolean };
+    const original = error.config as RetriableRequestConfig | undefined;
+    const isRefreshRequest = original?.url?.includes('/auth/refresh');
 
-    if (error.response?.status === 401 && !original._retry) {
+    if (error.response?.status === 401 && original && !original._retry && !original.skipAuthRefresh && !isRefreshRequest) {
       original._retry = true;
       const refreshToken = useAuthStore.getState().refreshToken;
 
       if (refreshToken) {
         try {
-          const { data } = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
-          useAuthStore.getState().setTokens(data.data.accessToken, data.data.refreshToken);
-          original.headers!['Authorization'] = `Bearer ${data.data.accessToken}`;
+          if (!refreshPromise) {
+            refreshPromise = api.post('/auth/refresh', { refreshToken }, { skipAuthRefresh: true } as RetriableRequestConfig)
+              .then(({ data }) => {
+                const tokens = data.data as RefreshResponse;
+                useAuthStore.getState().setTokens(tokens.accessToken, tokens.refreshToken);
+                sessionExpiryHandled = false;
+                return tokens;
+              })
+              .finally(() => {
+                refreshPromise = null;
+              });
+          }
+
+          const tokens = await refreshPromise;
+          original.headers.Authorization = `Bearer ${tokens.accessToken}`;
           return api(original);
         } catch {
-          useAuthStore.getState().logout();
-          window.location.href = '/login';
+          if (!sessionExpiryHandled) {
+            sessionExpiryHandled = true;
+            clearAuthSession();
+            if (window.location.pathname !== '/login') window.location.assign('/login');
+          }
         }
+      } else if (!sessionExpiryHandled) {
+        sessionExpiryHandled = true;
+        clearAuthSession();
+        if (window.location.pathname !== '/login') window.location.assign('/login');
       }
     }
 

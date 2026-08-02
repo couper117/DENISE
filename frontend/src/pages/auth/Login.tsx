@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, Location, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { Phone, Lock, Eye, EyeOff } from 'lucide-react';
@@ -15,14 +15,17 @@ const Login = () => {
   const [showPass, setShowPass] = useState(false);
   const [form, setForm] = useState({ phone: '', password: '' });
 
-  const from = (location.state as { from?: string })?.from || '/';
+  const from = (location.state as { from?: Location })?.from;
+  const redirectTo = from && from.pathname !== '/login'
+    ? `${from.pathname}${from.search}${from.hash}`
+    : '/';
 
   const loginMutation = useMutation({
     mutationFn: () => authApi.login(form).then((r) => r.data.data),
     onSuccess: (data: { user: User; accessToken: string; refreshToken: string }) => {
       setUser(data.user);
       setTokens(data.accessToken, data.refreshToken);
-      navigate(from);
+      navigate(redirectTo, { replace: true });
     },
   });
 
@@ -56,7 +59,9 @@ const Login = () => {
           <div>
             <div className="flex justify-between mb-1.5">
               <label className="text-sm font-medium">{t('auth.password')}</label>
-              <Link to="/forgot-password" className="text-xs text-primary hover:underline">{t('auth.forgot_password')}</Link>
+              <span className="text-xs text-muted-foreground" title="Password recovery is not available yet.">
+                {t('auth.forgot_password')} (unavailable)
+              </span>
             </div>
             <div className="relative">
               <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />

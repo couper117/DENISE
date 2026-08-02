@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useThemeStore, useAuthStore } from './store';
 import { Toaster } from './components/ui/Toaster';
 import Layout from './components/layout/Layout';
@@ -37,7 +37,8 @@ const AdminContent = lazy(() => import('./pages/admin/AdminContent'));
 
 const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) => {
   const { isAuthenticated, user } = useAuthStore();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  const location = useLocation();
+  if (!isAuthenticated) return <Navigate to="/login" replace state={{ from: location }} />;
   if (adminOnly && user?.role !== 'ADMIN' && user?.role !== 'SUPER_ADMIN') return <Navigate to="/" replace />;
   return <>{children}</>;
 };
