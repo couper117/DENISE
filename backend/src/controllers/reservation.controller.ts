@@ -6,6 +6,22 @@ import { notifyReservationCreated, notifyStatusUpdate } from '../services/notifi
 import { AuthenticatedRequest } from '../types';
 import logger from '../utils/logger';
 
+type ItemInput = {
+  productId: string;
+  quantity?: number;
+  metersRequired?: number;
+  windowWidth?: number;
+  windowHeight?: number;
+  unitPrice?: number;
+  totalPrice?: number;
+  notes?: string;
+};
+
+const PAYMENT_METHODS = [
+  'MTN_MOMO', 'AIRTEL_MONEY', 'VISA', 'MASTERCARD', 'AMEX',
+  'BANK_TRANSFER', 'FLUTTERWAVE', 'PAYPAL', 'STRIPE', 'PAY_AT_SHOP',
+];
+
 export const createReservation = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const {
@@ -47,72 +63,141 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       if (deliveryType === 'SAME_DAY') deliveryFeeAmount = (deliveryFeeAmount || 0) + 1000;
     }
 
-    const reservation = await prisma.reservation.create({
-      data: {
-        reservationNumber,
-        qrCode,
-        userId: req.user?.id || null,
-        customerName,
-        customerPhone,
-        customerEmail: customerEmail || null,
-        preferredLanguage: preferredLanguage || 'en',
-        fulfillmentType: mode,
-        visitDate: mode === 'RESERVATION' && visitDate ? new Date(visitDate) : null,
-        visitTime: mode === 'RESERVATION' ? visitTime || null : null,
-        notes: notes || null,
-        measurementOption: measurementOption || 'HELP_AT_SHOP',
-        deliveryAddressId: deliveryAddressId || null,
-        deliveryType: mode === 'DELIVERY' ? (deliveryType || 'NEXT_DAY') : null,
-        deliveryFee: deliveryFeeAmount,
-        paymentStatus: mode === 'RESERVATION' ? 'AWAITING' : 'PENDING',
-        items: items && items.length > 0 ? {
-          create: items.map((item: {
-            productId: string;
-            quantity?: number;
-            metersRequired?: number;
-            windowWidth?: number;
-            windowHeight?: number;
-            unitPrice?: number;
-            totalPrice?: number;
-            notes?: string;
-          }) => ({
-            productId: item.productId,
-            quantity: item.quantity || null,
-            metersRequired: item.metersRequired || null,
-            windowWidth: item.windowWidth || null,
-            windowHeight: item.windowHeight || null,
-            unitPrice: item.unitPrice || null,
-            totalPrice: item.totalPrice || null,
-            notes: item.notes || null,
-          })),
-        } : undefined,
-      },
-      include: {
-        items: { include: { product: { include: { images: { where: { isPrimary: true }, take: 1 } } } } },
-        deliveryAddress: true,
-      },
+    // ── Fetch products (with inventory) referenced by the cart ──────────────
+    const itemList: ItemInput[] = Array.isArray(items) ? items : [];
+    const productIds = [...new Set(itemList.map((i) => i.productId).filter(Boolean))];
+    const products = productIds.length
+      ? await prisma.product.findMany({ where: { id: { in: productIds } }, include: { inventory: true } })
+      : [];
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    // Every cart item must reference a real product
+    if (itemList.some((i) => !productMap.has(i.productId))) {
+      res.status(400).json({ success: false, message: 'One or more products in the cart no longer exist' });
+      return;
+    }
+
+    // ── Price every line server-side (never trust client-sent totals) ──────
+    let goodsTotal = 0;
+    const preparedItems = itemList.map((item) => {
+      const product = productMap.get(item.productId)!;
+      const qty = item.quantity ?? null;
+      const meters = item.metersRequired ?? null;
+      let unitPrice: number | null = null;
+      let lineTotal = 0;
+      if (meters != null && product.pricePerMeter != null) {
+        unitPrice = product.pricePerMeter;
+        lineTotal = product.pricePerMeter * meters;
+      } else if (qty != null) {
+        unitPrice = product.salePrice ?? product.price ?? null;
+        lineTotal = (unitPrice ?? 0) * qty;
+      } else if (item.totalPrice != null) {
+        // Price-on-request items already quoted by staff
+        lineTotal = item.totalPrice;
+      }
+      goodsTotal += lineTotal;
+      return { item, product, qty, meters, unitPrice, lineTotal };
     });
 
-    // Create payment record for online-payment orders
-    if ((mode === 'PICKUP' || mode === 'DELIVERY') && paymentMethod && paymentMethod !== 'PAY_AT_SHOP') {
-      await prisma.payment.create({
-        data: {
-          reservationId: reservation.id,
-          method: paymentMethod,
-          amount: deliveryFeeAmount || 0,
-          currency: 'RWF',
-          status: 'PENDING',
-          phoneNumber: mobileMoneyPhone || null,
-        },
-      }).catch((e) => logger.error('Payment record creation failed:', e));
+    // ── Stock availability check (before writing anything) ─────────────────
+    for (const p of preparedItems) {
+      const inv = p.product.inventory;
+      if (!inv?.isTracked) continue;
+      if (p.qty != null && inv.stockCount < p.qty) {
+        res.status(409).json({ success: false, message: `Insufficient stock for "${p.product.name}"` });
+        return;
+      }
+      if (p.meters != null && inv.metersAvailable != null && inv.metersAvailable < p.meters) {
+        res.status(409).json({ success: false, message: `Insufficient fabric length for "${p.product.name}"` });
+        return;
+      }
     }
 
-    if (items && items.length > 0) {
-      await prisma.product.updateMany({
-        where: { id: { in: items.map((i: { productId: string }) => i.productId) } },
-        data: { reservationCount: { increment: 1 } },
-      });
+    // Validate the payment method up-front so online orders don't fail mid-transaction
+    const isOnlinePayment = (mode === 'PICKUP' || mode === 'DELIVERY') && paymentMethod && paymentMethod !== 'PAY_AT_SHOP';
+    if (isOnlinePayment && !PAYMENT_METHODS.includes(paymentMethod)) {
+      res.status(400).json({ success: false, message: 'Invalid payment method' });
+      return;
     }
+
+    const totalAmount = Math.round(goodsTotal) + (deliveryFeeAmount || 0);
+
+    // ── Persist reservation, payment and stock changes atomically ──────────
+    const reservation = await prisma.$transaction(async (tx) => {
+      const created = await tx.reservation.create({
+        data: {
+          reservationNumber,
+          qrCode,
+          userId: req.user?.id || null,
+          customerName,
+          customerPhone,
+          customerEmail: customerEmail || null,
+          preferredLanguage: preferredLanguage || 'en',
+          fulfillmentType: mode,
+          visitDate: mode === 'RESERVATION' && visitDate ? new Date(visitDate) : null,
+          visitTime: mode === 'RESERVATION' ? visitTime || null : null,
+          notes: notes || null,
+          measurementOption: measurementOption || 'HELP_AT_SHOP',
+          deliveryAddressId: deliveryAddressId || null,
+          deliveryType: mode === 'DELIVERY' ? (deliveryType || 'NEXT_DAY') : null,
+          deliveryFee: deliveryFeeAmount,
+          totalAmount: totalAmount > 0 ? totalAmount : null,
+          paymentStatus: mode === 'RESERVATION' ? 'AWAITING' : 'PENDING',
+          items: preparedItems.length > 0 ? {
+            create: preparedItems.map((p) => ({
+              productId: p.item.productId,
+              quantity: p.qty,
+              metersRequired: p.meters,
+              windowWidth: p.item.windowWidth || null,
+              windowHeight: p.item.windowHeight || null,
+              unitPrice: p.unitPrice,
+              totalPrice: p.lineTotal || null,
+              notes: p.item.notes || null,
+            })),
+          } : undefined,
+        },
+        include: {
+          items: { include: { product: { include: { images: { where: { isPrimary: true }, take: 1 } } } } },
+          deliveryAddress: true,
+        },
+      });
+
+      // Payment record bills the FULL amount owed (goods + delivery), not just delivery
+      if (isOnlinePayment) {
+        await tx.payment.create({
+          data: {
+            reservationId: created.id,
+            method: paymentMethod,
+            amount: totalAmount,
+            currency: 'RWF',
+            status: 'PENDING',
+            phoneNumber: mobileMoneyPhone || null,
+            reference: `PAY-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+          },
+        });
+      }
+
+      // Decrement stock for tracked products
+      for (const p of preparedItems) {
+        const inv = p.product.inventory;
+        if (!inv?.isTracked) continue;
+        const invUpdate: { stockCount?: { decrement: number }; metersAvailable?: { decrement: number } } = {};
+        if (p.qty != null) invUpdate.stockCount = { decrement: p.qty };
+        if (p.meters != null && inv.metersAvailable != null) invUpdate.metersAvailable = { decrement: p.meters };
+        if (Object.keys(invUpdate).length > 0) {
+          await tx.inventory.update({ where: { productId: p.item.productId }, data: invUpdate });
+        }
+      }
+
+      if (productIds.length > 0) {
+        await tx.product.updateMany({
+          where: { id: { in: productIds } },
+          data: { reservationCount: { increment: 1 } },
+        });
+      }
+
+      return created;
+    });
 
     const formattedDate = visitDate
       ? new Date(visitDate).toLocaleDateString('en-RW', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })

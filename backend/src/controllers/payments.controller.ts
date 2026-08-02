@@ -1,26 +1,53 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { DELIVERY_FEES } from '../utils/delivery';
+import { AuthenticatedRequest } from '../types';
 import logger from '../utils/logger';
 
-export const initiatePayment = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { reservationId, method, amount, currency = 'RWF', phoneNumber } = req.body;
+const PAYMENT_METHODS = [
+  'MTN_MOMO', 'AIRTEL_MONEY', 'VISA', 'MASTERCARD', 'AMEX',
+  'BANK_TRANSFER', 'FLUTTERWAVE', 'PAYPAL', 'STRIPE', 'PAY_AT_SHOP',
+];
 
-    if (!reservationId || !method || !amount) {
-      res.status(400).json({ success: false, message: 'reservationId, method and amount are required' });
+export const initiatePayment = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { reservationId, method, phoneNumber } = req.body;
+
+    if (!reservationId || !method) {
+      res.status(400).json({ success: false, message: 'reservationId and method are required' });
+      return;
+    }
+    if (!PAYMENT_METHODS.includes(method)) {
+      res.status(400).json({ success: false, message: 'Invalid payment method' });
       return;
     }
 
-    const reservation = await prisma.reservation.findUnique({ where: { id: reservationId } });
+    const reservation = await prisma.reservation.findUnique({
+      where: { id: reservationId },
+      include: { items: true },
+    });
     if (!reservation) { res.status(404).json({ success: false, message: 'Reservation not found' }); return; }
+
+    // Ownership: a reservation tied to an account can only be paid by its owner (or an admin)
+    if (reservation.userId && reservation.userId !== req.user?.id && req.user?.role === 'CUSTOMER') {
+      res.status(403).json({ success: false, message: 'Not authorized' });
+      return;
+    }
+
+    // Amount is derived server-side — never trusted from the client
+    const goodsTotal = reservation.items.reduce((sum, it) => sum + (it.totalPrice ?? 0), 0);
+    const amountOwed = reservation.totalAmount ?? Math.round(goodsTotal) + (reservation.deliveryFee ?? 0);
+    if (amountOwed <= 0) {
+      res.status(400).json({ success: false, message: 'This reservation has no online-payable amount' });
+      return;
+    }
 
     const payment = await prisma.payment.create({
       data: {
         reservationId,
         method,
-        amount: Number(amount),
-        currency,
+        amount: amountOwed,
+        currency: 'RWF',
         status: 'PENDING',
         phoneNumber: phoneNumber || null,
         reference: `PAY-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
@@ -34,6 +61,7 @@ export const initiatePayment = async (req: Request, res: Response): Promise<void
       data: {
         paymentId: payment.id,
         reference: payment.reference,
+        amount: payment.amount,
         status: payment.status,
         redirectUrl: null,
       },
@@ -65,7 +93,9 @@ export const getDeliveryFees = async (_req: Request, res: Response): Promise<voi
     const dbZones = await prisma.deliveryZone.findMany({ where: { isActive: true } });
     res.json({
       success: true,
-      data: dbZones.length > 0 ? dbZones : DELIVERY_FEES,
+      data: dbZones.length > 0
+        ? dbZones
+        : Object.entries(DELIVERY_FEES).map(([province, fee]) => ({ province, baseFee: fee, currency: 'RWF' })),
     });
   } catch (error) {
     logger.error('GetDeliveryFees error:', error);
