@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
+import { fileToImage } from '../utils/uploads';
 import logger from '../utils/logger';
 
 export const getDashboardStats = async (_req: Request, res: Response): Promise<void> => {
@@ -180,9 +181,9 @@ export const manageBanners = async (req: Request, res: Response): Promise<void> 
 export const createBanner = async (req: Request, res: Response): Promise<void> => {
   try {
     const { title, subtitle, linkUrl, linkText, sortOrder } = req.body;
-    const file = req.file as Express.Multer.File & { path?: string; filename?: string };
+    const img = req.file ? fileToImage(req, req.file) : null;
     const banner = await prisma.banner.create({
-      data: { title, subtitle, linkUrl, linkText, imageUrl: file?.path || '', imagePublicId: file?.filename || null, sortOrder: parseInt(sortOrder || '0') },
+      data: { title, subtitle, linkUrl, linkText, imageUrl: img?.url || '', imagePublicId: img?.publicId || null, sortOrder: parseInt(sortOrder || '0') },
     });
     res.status(201).json({ success: true, data: banner });
   } catch (error) {

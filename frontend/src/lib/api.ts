@@ -86,6 +86,7 @@ export const productsApi = {
   update: (id: string, data: Record<string, unknown>) => api.put(`/products/${id}`, data),
   delete: (id: string) => api.delete(`/products/${id}`),
   addImages: (id: string, data: FormData) => api.post(`/products/${id}/images`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  deleteImage: (imageId: string) => api.delete(`/products/images/${imageId}`),
 };
 
 // Categories

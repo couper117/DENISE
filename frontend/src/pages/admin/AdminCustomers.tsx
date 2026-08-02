@@ -40,7 +40,8 @@ const AdminCustomers = () => {
 
       {isLoading ? <LoadingSpinner /> : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[720px]">
             <thead className="bg-muted/50 border-b border-border">
               <tr>
                 {[t('admin.customers.col_customer'), t('admin.customers.col_phone'), t('admin.customers.col_email'), t('admin.customers.col_reservations'), t('admin.customers.col_joined'), t('admin.status'), t('admin.actions')].map((h) => (
@@ -78,6 +79,7 @@ const AdminCustomers = () => {
               ))}
             </tbody>
           </table>
+          </div>
           {customers.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               <Users size={32} className="mx-auto mb-2 opacity-30" />

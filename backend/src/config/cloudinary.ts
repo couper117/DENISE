@@ -7,6 +7,12 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// When Cloudinary isn't configured we fall back to local disk storage so image
+// uploads still work out-of-the-box (see upload.middleware.ts / utils/uploads.ts).
+export const isCloudinaryConfigured = Boolean(
+  process.env.CLOUDINARY_CLOUD_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_API_SECRET
+);
+
 export const productImageStorage = new CloudinaryStorage({
   cloudinary,
   params: {

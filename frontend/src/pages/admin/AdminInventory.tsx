@@ -29,7 +29,8 @@ const AdminInventory = () => {
 
       {isLoading ? <LoadingSpinner /> : (
         <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-muted/50 border-b border-border">
               <tr>
                 {[t('admin.inventory.col_product'), t('admin.inventory.col_category'), t('admin.inventory.col_stock'), t('admin.inventory.col_meters'), t('admin.inventory.col_alert'), t('admin.actions')].map((h) => (
@@ -82,6 +83,7 @@ const AdminInventory = () => {
               ))}
             </tbody>
           </table>
+          </div>
           {inventory.length === 0 && (
             <div className="text-center py-12 text-muted-foreground">
               <Warehouse size={32} className="mx-auto mb-2 opacity-30" />

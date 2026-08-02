@@ -421,7 +421,19 @@
       "available": "Available",
       "unavailable": "Unavailable",
       "delete_confirm": "Delete this product?",
-      "no_products": "No products found"
+      "no_products": "No products found",
+      "edit_title": "Edit Product",
+      "price": "Price (RWF)",
+      "price_hint": "Numeric price — used to bill online orders",
+      "price_per_meter": "Price per meter (RWF)",
+      "stock": "Stock quantity",
+      "images": "Images",
+      "add_images": "Add photos",
+      "upload_hint": "JPEG, PNG or WebP · up to 5MB each · use your camera or gallery",
+      "primary": "Primary",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "available_label": "Available for sale"
     },
     "reservations": {
       "title": "Orders & Reservations",

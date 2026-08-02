@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { generateSlug, getPaginationParams, buildPaginationResponse } from '../utils/helpers';
-import cloudinary from '../config/cloudinary';
+import { filesToImages, destroyImage } from '../utils/uploads';
 import logger from '../utils/logger';
 
 export const getProducts = async (req: Request, res: Response): Promise<void> => {
@@ -122,26 +122,28 @@ export const getNewArrivals = async (_req: Request, res: Response): Promise<void
 
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, description, specifications, material, priceRange, categoryId, isFeatured, isNewArrival, isOnPromotion, promotionText, metaTitle, metaDescription, metaKeywords, colors, stockCount, metersAvailable } = req.body;
+    const { name, description, specifications, material, priceRange, price, salePrice, pricePerMeter, categoryId, isFeatured, isNewArrival, isOnPromotion, promotionText, metaTitle, metaDescription, metaKeywords, colors, stockCount, metersAvailable } = req.body;
 
     const slug = generateSlug(name);
     const existingSlug = await prisma.product.findUnique({ where: { slug } });
     const finalSlug = existingSlug ? `${slug}-${Date.now()}` : slug;
 
-    const files = req.files as Express.Multer.File[];
+    const files = (req.files as Express.Multer.File[]) || [];
+    const num = (v: unknown) => (v === undefined || v === '' || v === null ? null : parseFloat(String(v)));
 
     const product = await prisma.product.create({
       data: {
         name, slug: finalSlug, description, specifications, material, priceRange,
+        price: num(price), salePrice: num(salePrice), pricePerMeter: num(pricePerMeter),
         categoryId, isFeatured: isFeatured === 'true', isNewArrival: isNewArrival === 'true',
         isOnPromotion: isOnPromotion === 'true', promotionText, metaTitle, metaDescription, metaKeywords,
         images: {
-          create: files?.map((file: Express.Multer.File & { path?: string; filename?: string }, i: number) => ({
-            url: file.path || '',
-            publicId: file.filename || '',
+          create: filesToImages(req, files).map((img, i) => ({
+            url: img.url,
+            publicId: img.publicId,
             isPrimary: i === 0,
             sortOrder: i,
-          })) || [],
+          })),
         },
         colors: colors ? { create: JSON.parse(colors).map((c: { name: string; hexCode?: string }) => ({ name: c.name, hexCode: c.hexCode })) } : undefined,
         inventory: { create: { stockCount: parseInt(stockCount || '0'), metersAvailable: metersAvailable ? parseFloat(metersAvailable) : null } },
@@ -166,12 +168,18 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
     const boolIfPresent = (v: unknown): boolean | undefined =>
       v === undefined ? undefined : v === 'true' || v === true;
 
+    const numIfPresent = (v: unknown): number | null | undefined =>
+      v === undefined ? undefined : v === '' || v === null ? null : parseFloat(String(v));
+
     const data: Record<string, unknown> = {
       name: updates.name,
       description: updates.description,
       specifications: updates.specifications,
       material: updates.material,
       priceRange: updates.priceRange,
+      price: numIfPresent(updates.price),
+      salePrice: numIfPresent(updates.salePrice),
+      pricePerMeter: numIfPresent(updates.pricePerMeter),
       categoryId: updates.categoryId,
       isFeatured: boolIfPresent(updates.isFeatured),
       isNewArrival: boolIfPresent(updates.isNewArrival),
@@ -235,7 +243,7 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
     if (!product) { res.status(404).json({ success: false, message: 'Product not found' }); return; }
 
     for (const image of product.images) {
-      if (image.publicId) { await cloudinary.uploader.destroy(image.publicId).catch(() => {}); }
+      await destroyImage(image.publicId);
     }
 
     await prisma.product.delete({ where: { id } });
@@ -254,10 +262,10 @@ export const addProductImages = async (req: Request, res: Response): Promise<voi
     const existingCount = await prisma.productImage.count({ where: { productId: id } });
 
     const images = await prisma.productImage.createMany({
-      data: files.map((file: Express.Multer.File & { path?: string; filename?: string }, i: number) => ({
+      data: filesToImages(req, files).map((img, i) => ({
         productId: id,
-        url: file.path || '',
-        publicId: file.filename || '',
+        url: img.url,
+        publicId: img.publicId,
         isPrimary: existingCount === 0 && i === 0,
         sortOrder: existingCount + i,
       })),
@@ -275,7 +283,7 @@ export const deleteProductImage = async (req: Request, res: Response): Promise<v
     const { imageId } = req.params;
     const image = await prisma.productImage.findUnique({ where: { id: imageId } });
     if (!image) { res.status(404).json({ success: false, message: 'Image not found' }); return; }
-    if (image.publicId) { await cloudinary.uploader.destroy(image.publicId).catch(() => {}); }
+    await destroyImage(image.publicId);
     await prisma.productImage.delete({ where: { id: imageId } });
     res.json({ success: true, message: 'Image deleted' });
   } catch (error) {

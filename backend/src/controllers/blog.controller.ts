@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import prisma from '../config/database';
 import { generateSlug, getPaginationParams, buildPaginationResponse } from '../utils/helpers';
+import { fileToImage } from '../utils/uploads';
 import { AuthenticatedRequest } from '../types';
 import logger from '../utils/logger';
 
@@ -41,10 +42,10 @@ export const getBlogBySlug = async (req: Request, res: Response): Promise<void> 
 export const createBlog = async (req: Request, res: Response): Promise<void> => {
   try {
     const { title, content, excerpt, authorName, isPublished, metaTitle, metaDescription, metaKeywords } = req.body;
-    const file = req.file as Express.Multer.File & { path?: string; filename?: string };
+    const img = req.file ? fileToImage(req, req.file) : null;
     const slug = generateSlug(title);
     const blog = await prisma.blog.create({
-      data: { title, slug, content, excerpt, authorName, isPublished: isPublished === 'true', publishedAt: isPublished === 'true' ? new Date() : null, imageUrl: file?.path || null, imagePublicId: file?.filename || null, metaTitle, metaDescription, metaKeywords },
+      data: { title, slug, content, excerpt, authorName, isPublished: isPublished === 'true', publishedAt: isPublished === 'true' ? new Date() : null, imageUrl: img?.url || null, imagePublicId: img?.publicId || null, metaTitle, metaDescription, metaKeywords },
     });
     res.status(201).json({ success: true, data: blog });
   } catch (error) {
@@ -57,7 +58,6 @@ export const updateBlog = async (req: Request, res: Response): Promise<void> => 
   try {
     const { id } = req.params;
     const body = req.body;
-    const file = req.file as Express.Multer.File & { path?: string; filename?: string };
 
     // Allowlist updatable fields — never spread req.body straight into Prisma
     const data: Record<string, unknown> = {};
@@ -70,7 +70,7 @@ export const updateBlog = async (req: Request, res: Response): Promise<void> => 
       data.isPublished = body.isPublished === 'true' || body.isPublished === true;
       if (data.isPublished) data.publishedAt = new Date();
     }
-    if (file) { data.imageUrl = file.path; data.imagePublicId = file.filename; }
+    if (req.file) { const img = fileToImage(req, req.file); data.imageUrl = img.url; data.imagePublicId = img.publicId; }
 
     const blog = await prisma.blog.update({ where: { id }, data });
     res.json({ success: true, data: blog });
