@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { createJSONStorage, persist } from 'zustand/middleware';
 import { User, CartItem, Product } from '../types';
 
 interface AuthState {
@@ -12,23 +12,40 @@ interface AuthState {
   logout: () => void;
 }
 
+type PersistedAuthState = Pick<AuthState, 'user' | 'refreshToken' | 'isAuthenticated'>;
+
+const emptyAuthState = {
+  user: null,
+  accessToken: null,
+  refreshToken: null,
+  isAuthenticated: false,
+};
+
+const authStorageKey = 'denise-auth';
+
 export const useAuthStore = create<AuthState>()(
-  persist(
+  persist<AuthState, [], [], PersistedAuthState>(
     (set) => ({
-      user: null,
-      accessToken: null,
-      refreshToken: null,
-      isAuthenticated: false,
+      ...emptyAuthState,
       setUser: (user) => set({ user, isAuthenticated: true }),
       setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken }),
-      logout: () => set({ user: null, accessToken: null, refreshToken: null, isAuthenticated: false }),
+      logout: () => set(emptyAuthState),
     }),
     {
-      name: 'denise-auth',
-      partialize: (state) => ({ user: state.user, accessToken: state.accessToken, refreshToken: state.refreshToken, isAuthenticated: state.isAuthenticated }),
+      name: authStorageKey,
+      // The current API requires the refresh token in the request body. Keep it
+      // only for the browser session; access tokens remain in memory.
+      storage: createJSONStorage<PersistedAuthState>(() => sessionStorage),
+      partialize: (state) => ({ user: state.user, refreshToken: state.refreshToken, isAuthenticated: state.isAuthenticated }),
     }
   )
 );
+
+export const clearAuthSession = () => {
+  useAuthStore.setState(emptyAuthState);
+  useAuthStore.persist.clearStorage();
+  localStorage.removeItem(authStorageKey);
+};
 
 interface CartState {
   items: CartItem[];

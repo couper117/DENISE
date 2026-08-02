@@ -127,7 +127,7 @@ cp .env.example .env
 Edit `.env`:
 
 ```env
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=/api
 VITE_APP_NAME=DENISE Textile
 VITE_GOOGLE_MAPS_API_KEY=optional
 VITE_GA_TRACKING_ID=optional

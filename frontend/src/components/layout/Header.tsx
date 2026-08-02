@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ShoppingBag, Heart, User, Menu, X, Sun, Moon, Globe, Search } from 'lucide-react';
+import { ShoppingBag, Heart, User, Menu, X, Sun, Moon, Globe, Search, LogOut } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuthStore, useCartStore, useThemeStore } from '../../store';
+import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { clearAuthSession, useAuthStore, useCartStore, useThemeStore } from '../../store';
+import { authApi } from '../../lib/api';
 import { cn } from '../../lib/utils';
 
 const LANGUAGES = [
@@ -16,7 +18,7 @@ const LANGUAGES = [
 
 const Header = () => {
   const { t, i18n } = useTranslation();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, refreshToken } = useAuthStore();
   const { itemCount } = useCartStore();
   const { isDark, toggleTheme, setLanguage } = useThemeStore();
   const navigate = useNavigate();
@@ -34,6 +36,13 @@ const Header = () => {
     i18n.changeLanguage(code);
     setLanguage(code);
     setLangMenuOpen(false);
+  };
+
+  const handleLogout = async () => {
+    await authApi.logout(refreshToken || '').catch(() => {});
+    clearAuthSession();
+    setMenuOpen(false);
+    navigate('/login');
   };
 
   const navLinks = [
@@ -126,21 +135,29 @@ const Header = () => {
 
             {/* Account */}
             {isAuthenticated ? (
-              <div className="relative group">
-                <button className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-accent transition-colors">
+              <DropdownMenu.Root>
+                <DropdownMenu.Trigger asChild>
+                  <button aria-label="Open account menu" className="flex items-center gap-2 px-3 py-1.5 rounded-md hover:bg-accent transition-colors">
                   <div className="w-7 h-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-xs font-bold">
                     {user?.firstName[0]}{user?.lastName[0]}
                   </div>
                 </button>
-                <div className="absolute right-0 top-10 bg-card border border-border rounded-lg shadow-lg py-1 w-44 z-50 hidden group-hover:block">
+                </DropdownMenu.Trigger>
+                <DropdownMenu.Portal>
+                  <DropdownMenu.Content align="end" sideOffset={8} className="bg-card border border-border rounded-lg shadow-lg py-1 w-44 z-50">
                   {user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' ? (
-                    <Link to="/admin" className="block px-4 py-2 text-sm hover:bg-accent">{t('header.admin_panel')}</Link>
+                    <DropdownMenu.Item asChild><Link to="/admin" className="block px-4 py-2 text-sm outline-none hover:bg-accent focus:bg-accent">{t('header.admin_panel')}</Link></DropdownMenu.Item>
                   ) : null}
-                  <Link to="/account/profile" className="block px-4 py-2 text-sm hover:bg-accent">{t('account.profile')}</Link>
-                  <Link to="/account/reservations" className="block px-4 py-2 text-sm hover:bg-accent">{t('account.reservations')}</Link>
-                  <Link to="/account/wishlist" className="block px-4 py-2 text-sm hover:bg-accent">{t('account.wishlist')}</Link>
-                </div>
-              </div>
+                  <DropdownMenu.Item asChild><Link to="/account/profile" className="block px-4 py-2 text-sm outline-none hover:bg-accent focus:bg-accent">{t('account.profile')}</Link></DropdownMenu.Item>
+                  <DropdownMenu.Item asChild><Link to="/account/reservations" className="block px-4 py-2 text-sm outline-none hover:bg-accent focus:bg-accent">{t('account.reservations')}</Link></DropdownMenu.Item>
+                  <DropdownMenu.Item asChild><Link to="/account/wishlist" className="block px-4 py-2 text-sm outline-none hover:bg-accent focus:bg-accent">{t('account.wishlist')}</Link></DropdownMenu.Item>
+                  <DropdownMenu.Separator className="my-1 h-px bg-border" />
+                  <DropdownMenu.Item onSelect={handleLogout} className="flex w-full items-center gap-2 px-4 py-2 text-sm text-destructive outline-none hover:bg-destructive/10 focus:bg-destructive/10 cursor-pointer">
+                    <LogOut size={15} /> {t('admin.logout')}
+                  </DropdownMenu.Item>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Portal>
+              </DropdownMenu.Root>
             ) : (
               <Link to="/login" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors">
                 <User size={15} />
