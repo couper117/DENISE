@@ -28,51 +28,51 @@ const LANGUAGES = [
 const FULFILLMENT_OPTIONS: {
   type: FulfillmentType;
   icon: string;
-  title: string;
-  desc: string;
-  badge: string;
+  titleKey: string;
+  descKey: string;
+  badgeKey: string;
   accent: string;
 }[] = [
   {
     type: 'RESERVATION',
     icon: '🏪',
-    title: 'Reserve & Visit Shop',
-    desc: 'Select products, schedule a visit, pay in person after inspection.',
-    badge: 'Free • No Payment Now',
+    titleKey: 'fulfillment.RESERVATION',
+    descKey: 'fulfillment.reserve_desc',
+    badgeKey: 'fulfillment.reserve_badge',
     accent: 'border-brand-green bg-green-50 dark:bg-green-950/20',
   },
   {
     type: 'PICKUP',
     icon: '📦',
-    title: 'Buy Online & Pick Up',
-    desc: 'Pay online now, collect your confirmed order from our Kigali store.',
-    badge: 'Pay Online • Same Day Ready',
+    titleKey: 'fulfillment.PICKUP',
+    descKey: 'fulfillment.pickup_desc',
+    badgeKey: 'fulfillment.pickup_badge',
     accent: 'border-blue-500 bg-blue-50 dark:bg-blue-950/20',
   },
   {
     type: 'DELIVERY',
     icon: '🚚',
-    title: 'Buy Online & Get Delivery',
-    desc: 'Pay online and we deliver anywhere in Rwanda.',
-    badge: 'Pay Online • Doorstep Delivery',
+    titleKey: 'fulfillment.DELIVERY',
+    descKey: 'fulfillment.delivery_desc',
+    badgeKey: 'fulfillment.delivery_badge',
     accent: 'border-purple-500 bg-purple-50 dark:bg-purple-950/20',
   },
 ];
 
-const PAYMENT_METHODS: { method: PaymentMethod; label: string; logo: string; group: string }[] = [
-  { method: 'MTN_MOMO', label: 'MTN Mobile Money', logo: '📱', group: 'Mobile Money' },
-  { method: 'AIRTEL_MONEY', label: 'Airtel Money', logo: '📱', group: 'Mobile Money' },
-  { method: 'VISA', label: 'Visa Card', logo: '💳', group: 'Credit / Debit Card' },
-  { method: 'MASTERCARD', label: 'Mastercard', logo: '💳', group: 'Credit / Debit Card' },
-  { method: 'FLUTTERWAVE', label: 'Flutterwave', logo: '🌊', group: 'Other' },
-  { method: 'BANK_TRANSFER', label: 'Bank Transfer', logo: '🏦', group: 'Other' },
-  { method: 'PAYPAL', label: 'PayPal', logo: '🅿️', group: 'Other' },
+const PAYMENT_METHODS: { method: PaymentMethod; logo: string; group: string }[] = [
+  { method: 'MTN_MOMO', logo: '📱', group: 'Mobile Money' },
+  { method: 'AIRTEL_MONEY', logo: '📱', group: 'Mobile Money' },
+  { method: 'VISA', logo: '💳', group: 'Credit / Debit Card' },
+  { method: 'MASTERCARD', logo: '💳', group: 'Credit / Debit Card' },
+  { method: 'FLUTTERWAVE', logo: '🌊', group: 'Other' },
+  { method: 'BANK_TRANSFER', logo: '🏦', group: 'Other' },
+  { method: 'PAYPAL', logo: '🅿️', group: 'Other' },
 ];
 
-const DELIVERY_TYPES: { type: DeliveryType; label: string; desc: string; extra: string }[] = [
-  { type: 'SAME_DAY', label: 'Same Day', desc: 'Order before 10 AM', extra: '+1,000 RWF' },
-  { type: 'NEXT_DAY', label: 'Next Day', desc: 'Standard delivery', extra: 'Included' },
-  { type: 'SCHEDULED', label: 'Scheduled', desc: 'Choose your date', extra: 'Included' },
+const DELIVERY_TYPES: { type: DeliveryType; labelKey: string; descKey: string; extraKey: string }[] = [
+  { type: 'SAME_DAY', labelKey: 'delivery.SAME_DAY', descKey: 'delivery.same_day_note', extraKey: 'delivery.extra_same_day' },
+  { type: 'NEXT_DAY', labelKey: 'delivery.NEXT_DAY', descKey: 'delivery.next_day_note', extraKey: 'delivery.extra_included' },
+  { type: 'SCHEDULED', labelKey: 'delivery.SCHEDULED', descKey: 'delivery.scheduled_note', extraKey: 'delivery.extra_included' },
 ];
 
 type Step = 'options' | 'cart' | 'form' | 'success';
@@ -135,6 +135,9 @@ const ReservationPage = () => {
 
   const isMobileMoney = form.paymentMethod === 'MTN_MOMO' || form.paymentMethod === 'AIRTEL_MONEY';
   const requiresPayment = fulfillmentType === 'PICKUP' || fulfillmentType === 'DELIVERY';
+
+  const selectedOption = FULFILLMENT_OPTIONS.find((o) => o.type === fulfillmentType);
+  const selectedTitle = t(selectedOption?.titleKey || 'fulfillment.RESERVATION');
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) =>
@@ -203,13 +206,13 @@ const ReservationPage = () => {
             <CheckCircle2 size={40} className="text-green-600" />
           </div>
           <h1 className="font-serif text-3xl font-bold mb-2">
-            {isDelivery ? 'Order Placed!' : isPickup ? 'Order Confirmed!' : t('reservation.success_title')}
+            {isDelivery ? t('reservation.order_placed') : isPickup ? t('reservation.order_confirmed') : t('reservation.success_title')}
           </h1>
           <p className="text-muted-foreground mb-8">
             {isDelivery
-              ? "Your order is confirmed. We'll notify you when it's on the way."
+              ? t('reservation.success_delivery')
               : isPickup
-              ? "Payment received. Your order will be ready for pickup soon."
+              ? t('reservation.success_pickup')
               : t('reservation.success_message')}
           </p>
 
@@ -223,7 +226,7 @@ const ReservationPage = () => {
                 <div className="p-4 bg-white rounded-xl border border-border">
                   <QRCode value={confirmedReservation.reservationNumber} size={140} />
                   <p className="text-xs text-center text-muted-foreground mt-2">
-                    {isPickup ? 'Show this to pick up your order' : 'Show this at the shop'}
+                    {isPickup ? t('reservation.show_pickup') : t('reservation.show_shop')}
                   </p>
                 </div>
               </div>
@@ -231,18 +234,18 @@ const ReservationPage = () => {
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Type:</span>
+                <span className="text-muted-foreground">{t('reservation.type_label')}:</span>
                 <span className="font-medium capitalize">
                   {confirmedReservation.fulfillmentType === 'DELIVERY'
-                    ? '🚚 Delivery'
+                    ? t('reservation.type_delivery')
                     : confirmedReservation.fulfillmentType === 'PICKUP'
-                    ? '📦 Pickup'
-                    : '🏪 Shop Visit'}
+                    ? t('reservation.type_pickup')
+                    : t('reservation.type_shop_visit')}
                 </span>
               </div>
               {confirmedReservation.visitDate && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Visit Date:</span>
+                  <span className="text-muted-foreground">{t('reservation.visit_date')}:</span>
                   <span className="font-medium">
                     {new Date(confirmedReservation.visitDate).toLocaleDateString('en-RW', {
                       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -252,7 +255,7 @@ const ReservationPage = () => {
               )}
               {confirmedReservation.deliveryAddress && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Deliver to:</span>
+                  <span className="text-muted-foreground">{t('reservation.deliver_to')}:</span>
                   <span className="font-medium text-right max-w-[60%]">
                     {confirmedReservation.deliveryAddress.district},{' '}
                     {confirmedReservation.deliveryAddress.province}
@@ -261,16 +264,16 @@ const ReservationPage = () => {
               )}
               {confirmedReservation.totalAmount && (
                 <div className="flex justify-between border-t border-border pt-2 mt-2">
-                  <span className="font-semibold">Total Paid:</span>
+                  <span className="font-semibold">{t('reservation.total_paid')}:</span>
                   <span className="font-bold text-primary">
-                    {confirmedReservation.totalAmount.toLocaleString()} RWF
+                    {confirmedReservation.totalAmount.toLocaleString()} {t('common.rwf')}
                   </span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Status:</span>
+                <span className="text-muted-foreground">{t('reservation.status')}:</span>
                 <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-                  Pending Confirmation
+                  {t('reservation.pending_confirmation')}
                 </span>
               </div>
             </div>
@@ -281,13 +284,13 @@ const ReservationPage = () => {
               to={`/track?ref=${confirmedReservation.reservationNumber}`}
               className="flex-1 text-center py-3 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors"
             >
-              Track Order
+              {t('reservation.track_order')}
             </Link>
             <Link
               to="/products"
               className="flex-1 text-center py-3 border border-border font-medium rounded-xl hover:bg-accent transition-colors"
             >
-              Continue Shopping
+              {t('reservation.continue_shopping')}
             </Link>
           </div>
         </motion.div>
@@ -304,7 +307,7 @@ const ReservationPage = () => {
         {/* Progress steps */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-1">
           {(['options', 'cart', 'form'] as const).map((s, i) => {
-            const labels = ['Delivery Method', 'Cart', 'Details'];
+            const labels = [t('reservation.step_method'), t('reservation.step_cart'), t('reservation.step_details')];
             const reached =
               step === 'options' ? i === 0 :
               step === 'cart' ? i <= 1 :
@@ -327,7 +330,7 @@ const ReservationPage = () => {
         {/* ── STEP 1: CHOOSE FULFILLMENT TYPE ── */}
         {step === 'options' && (
           <div>
-            <h2 className="font-serif text-xl font-semibold mb-6">How would you like to get your order?</h2>
+            <h2 className="font-serif text-xl font-semibold mb-6">{t('fulfillment.choose')}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               {FULFILLMENT_OPTIONS.map((opt) => (
                 <motion.button
@@ -342,10 +345,10 @@ const ReservationPage = () => {
                   )}
                 >
                   <div className="text-4xl mb-3">{opt.icon}</div>
-                  <h3 className="font-semibold text-base mb-2">{opt.title}</h3>
-                  <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{opt.desc}</p>
+                  <h3 className="font-semibold text-base mb-2">{t(opt.titleKey)}</h3>
+                  <p className="text-xs text-muted-foreground mb-4 leading-relaxed">{t(opt.descKey)}</p>
                   <span className="inline-block text-xs font-medium px-3 py-1 bg-primary/10 text-primary rounded-full">
-                    {opt.badge}
+                    {t(opt.badgeKey)}
                   </span>
                 </motion.button>
               ))}
@@ -356,7 +359,7 @@ const ReservationPage = () => {
                 onClick={() => setStep('cart')}
                 className="px-8 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors flex items-center gap-2"
               >
-                Continue with {FULFILLMENT_OPTIONS.find((o) => o.type === fulfillmentType)?.title}
+                {t('reservation.continue_with', { title: selectedTitle })}
                 <ChevronRight size={18} />
               </button>
             </div>
@@ -370,8 +373,8 @@ const ReservationPage = () => {
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-semibold text-lg">{t('reservation.cart_title')} ({items.length})</h2>
                 <span className="text-xs px-3 py-1 bg-primary/10 text-primary rounded-full font-medium">
-                  {FULFILLMENT_OPTIONS.find((o) => o.type === fulfillmentType)?.icon}{' '}
-                  {FULFILLMENT_OPTIONS.find((o) => o.type === fulfillmentType)?.title}
+                  {selectedOption?.icon}{' '}
+                  {selectedTitle}
                 </span>
               </div>
 
@@ -412,21 +415,21 @@ const ReservationPage = () => {
                             {fulfillmentType !== 'PICKUP' && (
                               <div className="grid grid-cols-2 gap-2 mt-2">
                                 <div>
-                                  <label className="text-xs text-muted-foreground">Quantity</label>
+                                  <label className="text-xs text-muted-foreground">{t('reservation.quantity')}</label>
                                   <input
                                     type="number" min="1"
                                     value={item.quantity || ''}
-                                    placeholder="e.g. 2"
+                                    placeholder={t('reservation.qty_placeholder')}
                                     onChange={(e) => updateItem(item.product.id, { quantity: e.target.value ? parseInt(e.target.value) : undefined })}
                                     className="w-full mt-0.5 px-2 py-1.5 bg-background border border-border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-muted-foreground">Meters (optional)</label>
+                                  <label className="text-xs text-muted-foreground">{t('reservation.meters_optional')}</label>
                                   <input
                                     type="number" min="0.1" step="0.1"
                                     value={item.metersRequired || ''}
-                                    placeholder="e.g. 3.5"
+                                    placeholder={t('reservation.meters_placeholder')}
                                     onChange={(e) => updateItem(item.product.id, { metersRequired: e.target.value ? parseFloat(e.target.value) : undefined })}
                                     className="w-full mt-0.5 px-2 py-1.5 bg-background border border-border rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-primary/30"
                                   />
@@ -451,16 +454,16 @@ const ReservationPage = () => {
             <div className="space-y-4">
               <FabricEstimator />
               <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="font-semibold mb-4">Order Summary</h3>
+                <h3 className="font-semibold mb-4">{t('reservation.order_summary')}</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Items:</span>
+                    <span className="text-muted-foreground">{t('reservation.items_label')}:</span>
                     <span>{items.length}</span>
                   </div>
                   {fulfillmentType === 'DELIVERY' && form.province && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Delivery fee:</span>
-                      <span>{totalDeliveryFee.toLocaleString()} RWF</span>
+                      <span className="text-muted-foreground">{t('delivery.fee')}:</span>
+                      <span>{totalDeliveryFee.toLocaleString()} {t('common.rwf')}</span>
                     </div>
                   )}
                 </div>
@@ -469,14 +472,14 @@ const ReservationPage = () => {
                     onClick={() => setStep('options')}
                     className="flex-1 py-3 border border-border text-sm rounded-xl hover:bg-accent transition-colors"
                   >
-                    ← Change Method
+                    ← {t('reservation.change_method')}
                   </button>
                   <button
                     disabled={items.length === 0}
                     onClick={() => setStep('form')}
                     className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
-                    Continue →
+                    {t('reservation.continue')} →
                   </button>
                 </div>
                 {items.length === 0 && fulfillmentType === 'RESERVATION' && (
@@ -484,7 +487,7 @@ const ReservationPage = () => {
                     onClick={() => setStep('form')}
                     className="w-full mt-2 py-2 border border-border text-sm rounded-xl hover:bg-accent transition-colors"
                   >
-                    Book consultation only
+                    {t('reservation.book_consultation')}
                   </button>
                 )}
               </div>
@@ -500,7 +503,7 @@ const ReservationPage = () => {
               {/* Contact */}
               <div className="bg-card border border-border rounded-xl p-6">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <User size={16} className="text-primary" /> Contact Information
+                  <User size={16} className="text-primary" /> {t('reservation.contact_info')}
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
@@ -508,7 +511,7 @@ const ReservationPage = () => {
                     <div className="relative">
                       <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <input required value={form.customerName} onChange={(e) => update('customerName', e.target.value)}
-                        placeholder="Jean-Pierre Habimana"
+                        placeholder={t('reservation.name_placeholder')}
                         className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                     </div>
                   </div>
@@ -544,7 +547,7 @@ const ReservationPage = () => {
               {fulfillmentType === 'RESERVATION' && (
                 <div className="bg-card border border-border rounded-xl p-6">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <Calendar size={16} className="text-primary" /> Schedule Your Visit
+                    <Calendar size={16} className="text-primary" /> {t('reservation.schedule_visit')}
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
@@ -562,7 +565,7 @@ const ReservationPage = () => {
                         <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <select required value={form.visitTime} onChange={(e) => update('visitTime', e.target.value)}
                           className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-                          <option value="">Select time</option>
+                          <option value="">{t('reservation.select_time')}</option>
                           {timeSlots.map((ts) => <option key={ts} value={ts}>{ts}</option>)}
                         </select>
                       </div>
@@ -575,7 +578,7 @@ const ReservationPage = () => {
               {fulfillmentType === 'DELIVERY' && (
                 <div className="bg-card border border-border rounded-xl p-6">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <MapPin size={16} className="text-primary" /> Delivery Address
+                    <MapPin size={16} className="text-primary" /> {t('delivery.address')}
                   </h3>
 
                   {/* Delivery type */}
@@ -592,16 +595,16 @@ const ReservationPage = () => {
                             : 'border-border hover:border-primary/40'
                         )}
                       >
-                        <div className="font-semibold mb-0.5">{dt.label}</div>
-                        <div className="text-muted-foreground">{dt.desc}</div>
-                        <div className="font-medium mt-1">{dt.extra}</div>
+                        <div className="font-semibold mb-0.5">{t(dt.labelKey)}</div>
+                        <div className="text-muted-foreground">{t(dt.descKey)}</div>
+                        <div className="font-medium mt-1">{t(dt.extraKey)}</div>
                       </button>
                     ))}
                   </div>
 
                   {form.deliveryType === 'SCHEDULED' && (
                     <div className="mb-4">
-                      <label className="text-sm font-medium block mb-1.5">Scheduled Date *</label>
+                      <label className="text-sm font-medium block mb-1.5">{t('reservation.scheduled_date')} *</label>
                       <input required type="date" min={minDate} value={form.scheduledDate}
                         onChange={(e) => update('scheduledDate', e.target.value)}
                         className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
@@ -610,41 +613,41 @@ const ReservationPage = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium block mb-1.5">Province *</label>
+                      <label className="text-sm font-medium block mb-1.5">{t('delivery.province')} *</label>
                       <select required value={form.province}
                         onChange={(e) => { update('province', e.target.value); update('district', ''); }}
                         className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-                        <option value="">Select Province</option>
+                        <option value="">{t('reservation.select_province')}</option>
                         {RWANDA_PROVINCES.map((p) => (
                           <option key={p.name} value={p.name}>{p.name}</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm font-medium block mb-1.5">District *</label>
+                      <label className="text-sm font-medium block mb-1.5">{t('delivery.district')} *</label>
                       <select required value={form.district} onChange={(e) => update('district', e.target.value)}
                         disabled={!form.province}
                         className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50">
-                        <option value="">Select District</option>
+                        <option value="">{t('reservation.select_district')}</option>
                         {districtOptions.map((d) => <option key={d} value={d}>{d}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm font-medium block mb-1.5">Sector</label>
+                      <label className="text-sm font-medium block mb-1.5">{t('delivery.sector')}</label>
                       <input value={form.sector} onChange={(e) => update('sector', e.target.value)}
-                        placeholder="e.g. Kimironko"
+                        placeholder={t('reservation.sector_placeholder')}
                         className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                     </div>
                     <div>
-                      <label className="text-sm font-medium block mb-1.5">Cell</label>
+                      <label className="text-sm font-medium block mb-1.5">{t('delivery.cell')}</label>
                       <input value={form.cell} onChange={(e) => update('cell', e.target.value)}
-                        placeholder="e.g. Bibare"
+                        placeholder={t('reservation.cell_placeholder')}
                         className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="text-sm font-medium block mb-1.5">Street Address / Landmark *</label>
+                      <label className="text-sm font-medium block mb-1.5">{t('delivery.street')} *</label>
                       <input required value={form.streetAddress} onChange={(e) => update('streetAddress', e.target.value)}
-                        placeholder="e.g. Near Kimironko Market, KG 11 Ave"
+                        placeholder={t('reservation.street_placeholder')}
                         className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                     </div>
                   </div>
@@ -653,10 +656,10 @@ const ReservationPage = () => {
                     <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-xl text-sm flex items-center justify-between">
                       <span className="text-muted-foreground flex items-center gap-2">
                         <Truck size={14} className="text-primary" />
-                        Delivery fee for {form.province}
+                        {t('delivery.fee_for', { province: form.province })}
                       </span>
                       <span className="font-bold text-primary">
-                        {totalDeliveryFee.toLocaleString()} RWF
+                        {totalDeliveryFee.toLocaleString()} {t('common.rwf')}
                       </span>
                     </div>
                   )}
@@ -667,13 +670,13 @@ const ReservationPage = () => {
               {requiresPayment && (
                 <div className="bg-card border border-border rounded-xl p-6">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <CreditCard size={16} className="text-primary" /> Payment Method *
+                    <CreditCard size={16} className="text-primary" /> {t('payment.method')} *
                   </h3>
 
                   {/* Group: Mobile Money */}
                   <div className="mb-4">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 font-medium">
-                      📱 Mobile Money
+                      📱 {t('payment.group_mobile_money')}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       {PAYMENT_METHODS.filter((m) => m.group === 'Mobile Money').map((m) => (
@@ -690,7 +693,7 @@ const ReservationPage = () => {
                             onChange={(e) => update('paymentMethod', e.target.value)}
                             className="accent-primary" />
                           <span className="text-xl">{m.logo}</span>
-                          <span className="text-sm font-medium">{m.label}</span>
+                          <span className="text-sm font-medium">{t(`payment.${m.method}`)}</span>
                         </label>
                       ))}
                     </div>
@@ -698,14 +701,14 @@ const ReservationPage = () => {
                       <div className="mt-3">
                         <label className="text-sm font-medium block mb-1.5">
                           <Smartphone size={13} className="inline mr-1" />
-                          Mobile Money Phone Number *
+                          {t('payment.mobile_money_phone')} *
                         </label>
                         <input required value={form.mobileMoneyPhone}
                           onChange={(e) => update('mobileMoneyPhone', e.target.value)}
                           placeholder="+250 780 000 000" type="tel"
                           className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                         <p className="text-xs text-muted-foreground mt-1">
-                          You will receive a payment prompt on this number.
+                          {t('payment.mobile_prompt')}
                         </p>
                       </div>
                     )}
@@ -714,7 +717,7 @@ const ReservationPage = () => {
                   {/* Group: Cards */}
                   <div className="mb-4">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 font-medium">
-                      💳 Credit / Debit Card
+                      💳 {t('payment.group_card')}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       {PAYMENT_METHODS.filter((m) => m.group === 'Credit / Debit Card').map((m) => (
@@ -731,7 +734,7 @@ const ReservationPage = () => {
                             onChange={(e) => update('paymentMethod', e.target.value)}
                             className="accent-primary" />
                           <span className="text-xl">{m.logo}</span>
-                          <span className="text-sm font-medium">{m.label}</span>
+                          <span className="text-sm font-medium">{t(`payment.${m.method}`)}</span>
                         </label>
                       ))}
                     </div>
@@ -740,7 +743,7 @@ const ReservationPage = () => {
                   {/* Group: Other */}
                   <div>
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 font-medium">
-                      🌐 Other Methods
+                      🌐 {t('payment.group_other')}
                     </p>
                     <div className="grid grid-cols-1 gap-2">
                       {PAYMENT_METHODS.filter((m) => m.group === 'Other').map((m) => (
@@ -757,7 +760,7 @@ const ReservationPage = () => {
                             onChange={(e) => update('paymentMethod', e.target.value)}
                             className="accent-primary" />
                           <span className="text-xl">{m.logo}</span>
-                          <span className="text-sm font-medium">{m.label}</span>
+                          <span className="text-sm font-medium">{t(`payment.${m.method}`)}</span>
                         </label>
                       ))}
                     </div>
@@ -765,7 +768,7 @@ const ReservationPage = () => {
 
                   <div className="mt-4 p-3 bg-muted/50 rounded-xl text-xs text-muted-foreground flex items-start gap-2">
                     <span>🔒</span>
-                    <span>Your payment information is secured with HTTPS encryption. We never store raw card details.</span>
+                    <span>{t('payment.secure')}</span>
                   </div>
                 </div>
               )}
@@ -776,9 +779,9 @@ const ReservationPage = () => {
                   <h3 className="font-semibold mb-4">{t('reservation.measurement_option')}</h3>
                   <div className="space-y-3">
                     {([
-                      { value: 'KNOW_MEASUREMENTS', label: t('reservation.know_measurements'), desc: "I'll provide my exact measurements" },
-                      { value: 'HELP_AT_SHOP', label: t('reservation.help_at_shop'), desc: 'Staff will help me measure at the shop' },
-                      { value: 'WALK_IN_CONSULTATION', label: t('reservation.walk_in'), desc: "I'm browsing and need recommendations" },
+                      { value: 'KNOW_MEASUREMENTS', label: t('reservation.know_measurements'), desc: t('reservation.know_desc') },
+                      { value: 'HELP_AT_SHOP', label: t('reservation.help_at_shop'), desc: t('reservation.help_desc') },
+                      { value: 'WALK_IN_CONSULTATION', label: t('reservation.walk_in'), desc: t('reservation.walk_desc') },
                     ] as const).map((opt) => (
                       <label key={opt.value}
                         className={cn(
@@ -808,8 +811,8 @@ const ReservationPage = () => {
                 <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)}
                   placeholder={
                     fulfillmentType === 'DELIVERY'
-                      ? 'e.g. Gate is green, call on arrival...'
-                      : 'e.g. I need curtains for 3 windows, beige walls...'
+                      ? t('reservation.notes_delivery_placeholder')
+                      : t('reservation.notes_placeholder')
                   }
                   rows={3}
                   className="w-full px-4 py-3 bg-background border border-border rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30"
@@ -819,43 +822,43 @@ const ReservationPage = () => {
               <div className="flex gap-3">
                 <button type="button" onClick={() => setStep('cart')}
                   className="px-6 py-3 border border-border rounded-xl font-medium hover:bg-accent transition-colors">
-                  ← Back
+                  ← {t('common.back')}
                 </button>
                 <button type="submit"
                   disabled={createMutation.isPending || (requiresPayment && !form.paymentMethod)}
                   className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-70">
                   {createMutation.isPending
-                    ? 'Processing...'
+                    ? t('reservation.processing')
                     : fulfillmentType === 'RESERVATION'
                     ? t('reservation.submit')
-                    : 'Place Order'}
+                    : t('reservation.place_order')}
                 </button>
               </div>
 
               {createMutation.error && (
-                <p className="text-sm text-destructive text-center">Something went wrong. Please try again.</p>
+                <p className="text-sm text-destructive text-center">{t('reservation.submit_error')}</p>
               )}
             </form>
 
             {/* Summary sidebar */}
             <div className="space-y-4">
               <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="font-semibold mb-4">Order Summary</h3>
+                <h3 className="font-semibold mb-4">{t('reservation.order_summary')}</h3>
                 <div className="space-y-2 text-sm mb-4">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Items:</span>
+                    <span className="text-muted-foreground">{t('reservation.items_label')}:</span>
                     <span>{items.length}</span>
                   </div>
                   {fulfillmentType === 'DELIVERY' && form.province && (
                     <>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">Delivery ({form.province}):</span>
-                        <span>{deliveryFee.toLocaleString()} RWF</span>
+                        <span className="text-muted-foreground">{t('delivery.fee')} ({form.province}):</span>
+                        <span>{deliveryFee.toLocaleString()} {t('common.rwf')}</span>
                       </div>
                       {extraDeliveryFee > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">Same day surcharge:</span>
-                          <span>+{extraDeliveryFee.toLocaleString()} RWF</span>
+                          <span className="text-muted-foreground">{t('reservation.same_day_surcharge')}:</span>
+                          <span>+{extraDeliveryFee.toLocaleString()} {t('common.rwf')}</span>
                         </div>
                       )}
                     </>
@@ -871,7 +874,7 @@ const ReservationPage = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium truncate">{item.product.name}</p>
                         {item.product.price && (
-                          <p className="text-xs text-primary">{item.product.price.toLocaleString()} RWF</p>
+                          <p className="text-xs text-primary">{item.product.price.toLocaleString()} {t('common.rwf')}</p>
                         )}
                       </div>
                     </div>
@@ -881,9 +884,9 @@ const ReservationPage = () => {
 
               {fulfillmentType === 'RESERVATION' && (
                 <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl p-4 text-sm">
-                  <p className="font-medium mb-1 text-green-800 dark:text-green-200">💡 No Online Payment</p>
+                  <p className="font-medium mb-1 text-green-800 dark:text-green-200">💡 {t('reservation.no_online_payment')}</p>
                   <p className="text-green-700 dark:text-green-300 text-xs">
-                    Pay at our shop after inspecting the products. No deposit required.
+                    {t('reservation.no_online_payment_desc')}
                   </p>
                 </div>
               )}

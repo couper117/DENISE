@@ -84,7 +84,9 @@
     "specifications": "Ibiranga Icuruzwa",
     "materials_info": "Ibikoresho n'Ubutunzi",
     "available_colors": "Amabara Ahari",
-    "zoom": "Kanda urebe neza"
+    "zoom": "Kanda urebe neza",
+    "materials": "Ibikoresho",
+    "colors": "Amabara"
   },
   "reservation": {
     "title": "Fata Icyiciro mu Iduka",
@@ -176,7 +178,11 @@
     "PREPARING": "Bitegurwa",
     "READY_FOR_PICKUP": "Biteguye Guterwa",
     "COMPLETED": "Byarangiye",
-    "CANCELLED": "Byahagaritswe"
+    "CANCELLED": "Byahagaritswe",
+    "PROCESSING": "Biri gutunganywa",
+    "PACKED": "Byapakiwe",
+    "OUT_FOR_DELIVERY": "Biri mu nzira",
+    "DELIVERED": "Byagejejwe"
   },
   "auth": {
     "login_title": "Murakaza Neza",

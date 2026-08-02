@@ -40,8 +40,13 @@ export const updateCategory = async (req: Request, res: Response): Promise<void>
   try {
     const { id } = req.params;
     const { name, description, isActive, sortOrder } = req.body;
-    const updates: Record<string, unknown> = { description, isActive, sortOrder: parseInt(sortOrder) };
-    if (name) { updates.name = name; updates.slug = generateSlug(name); }
+
+    // Only include fields the caller actually sent, so partial updates don't blank columns
+    const updates: Record<string, unknown> = {};
+    if (name !== undefined) { updates.name = name; updates.slug = generateSlug(name); }
+    if (description !== undefined) updates.description = description;
+    if (isActive !== undefined) updates.isActive = isActive === 'true' || isActive === true;
+    if (sortOrder !== undefined && !Number.isNaN(parseInt(sortOrder))) updates.sortOrder = parseInt(sortOrder);
 
     const category = await prisma.category.update({ where: { id }, data: updates });
     res.json({ success: true, data: category });

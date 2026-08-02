@@ -18,7 +18,10 @@ interface EmailOptions {
   text?: string;
 }
 
+const isEmailConfigured = (): boolean => Boolean(process.env.SMTP_HOST && process.env.SMTP_USER);
+
 export const sendEmail = async (options: EmailOptions): Promise<boolean> => {
+  if (!isEmailConfigured()) { logger.warn('SMTP not configured — email skipped'); return false; }
   try {
     await transporter.sendMail({
       from: process.env.SMTP_FROM,

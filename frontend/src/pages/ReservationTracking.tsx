@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 import { reservationsApi } from '../lib/api';
 import { Reservation, FulfillmentType } from '../types';
 import { formatDate, getStatusColor, getStatusLabel } from '../lib/utils';
+import { WHATSAPP_LINK } from '../lib/config';
 import QRCode from 'qrcode.react';
 
 // Status pipeline per fulfillment type
@@ -353,7 +354,7 @@ const ReservationTracking = () => {
           <div className="bg-muted/50 rounded-xl p-4 text-center text-sm">
             <p className="text-muted-foreground mb-2">Need help with your order?</p>
             <a
-              href="https://wa.me/250780000000"
+              href={WHATSAPP_LINK}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors text-sm"

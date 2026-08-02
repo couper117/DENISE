@@ -84,7 +84,9 @@
     "specifications": "Vipimo",
     "materials_info": "Vifaa na Matunzo",
     "available_colors": "Rangi Zinazopatikana",
-    "zoom": "Bonyeza kukuza"
+    "zoom": "Bonyeza kukuza",
+    "materials": "Nyenzo",
+    "colors": "Rangi"
   },
   "reservation": {
     "title": "Hifadhi Ziara Yako ya Duka",
@@ -176,7 +178,11 @@
     "PREPARING": "Inaandaliwa",
     "READY_FOR_PICKUP": "Tayari Kuchukuliwa",
     "COMPLETED": "Imekamilika",
-    "CANCELLED": "Imefutwa"
+    "CANCELLED": "Imefutwa",
+    "PROCESSING": "Inachakatwa",
+    "PACKED": "Imefungashwa",
+    "OUT_FOR_DELIVERY": "Inapelekwa",
+    "DELIVERED": "Imewasilishwa"
   },
   "auth": {
     "login_title": "Karibu Tena",

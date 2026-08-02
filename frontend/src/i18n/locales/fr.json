@@ -84,7 +84,9 @@
     "specifications": "Spécifications",
     "materials_info": "Matériaux et Entretien",
     "available_colors": "Couleurs Disponibles",
-    "zoom": "Cliquer pour zoomer"
+    "zoom": "Cliquer pour zoomer",
+    "materials": "Matières",
+    "colors": "Couleurs"
   },
   "reservation": {
     "title": "Réserver Votre Visite",
@@ -176,7 +178,11 @@
     "PREPARING": "En Préparation",
     "READY_FOR_PICKUP": "Prêt pour Retrait",
     "COMPLETED": "Terminé",
-    "CANCELLED": "Annulé"
+    "CANCELLED": "Annulé",
+    "PROCESSING": "En traitement",
+    "PACKED": "Emballé",
+    "OUT_FOR_DELIVERY": "En cours de livraison",
+    "DELIVERED": "Livré"
   },
   "auth": {
     "login_title": "Bienvenue",

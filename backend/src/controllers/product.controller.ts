@@ -27,12 +27,17 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
 
     const { skip, take } = getPaginationParams(Number(page), Number(limit));
 
+    // Whitelist sort inputs so arbitrary query params can't crash Prisma
+    const SORTABLE_FIELDS = ['createdAt', 'name', 'price', 'salePrice', 'viewCount', 'reservationCount', 'sortOrder'];
+    const sortField = SORTABLE_FIELDS.includes(String(sortBy)) ? String(sortBy) : 'createdAt';
+    const sortDir = String(sortOrder).toLowerCase() === 'asc' ? 'asc' : 'desc';
+
     const [products, total] = await Promise.all([
       prisma.product.findMany({
         where,
         skip,
         take,
-        orderBy: { [String(sortBy)]: sortOrder },
+        orderBy: { [sortField]: sortDir },
         include: {
           category: { select: { id: true, name: true, slug: true } },
           images: { where: { isPrimary: true }, take: 1 },
@@ -156,28 +161,63 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
     const { id } = req.params;
     const updates = req.body;
 
-    if (updates.name) {
-      updates.slug = generateSlug(updates.name);
+    // Only apply a boolean when the caller actually sent it, so partial
+    // updates don't silently flip omitted flags to false.
+    const boolIfPresent = (v: unknown): boolean | undefined =>
+      v === undefined ? undefined : v === 'true' || v === true;
+
+    const data: Record<string, unknown> = {
+      name: updates.name,
+      description: updates.description,
+      specifications: updates.specifications,
+      material: updates.material,
+      priceRange: updates.priceRange,
+      categoryId: updates.categoryId,
+      isFeatured: boolIfPresent(updates.isFeatured),
+      isNewArrival: boolIfPresent(updates.isNewArrival),
+      isAvailable: boolIfPresent(updates.isAvailable),
+      isOnPromotion: boolIfPresent(updates.isOnPromotion),
+      promotionText: updates.promotionText,
+      metaTitle: updates.metaTitle,
+      metaDescription: updates.metaDescription,
+      metaKeywords: updates.metaKeywords,
+    };
+
+    if (updates.name) data.slug = generateSlug(updates.name);
+
+    // Replace colours when provided (accepts a JSON string or an array)
+    if (updates.colors !== undefined) {
+      const colors = typeof updates.colors === 'string' ? JSON.parse(updates.colors) : updates.colors;
+      data.colors = {
+        deleteMany: {},
+        create: (colors as { name: string; hexCode?: string }[]).map((c) => ({ name: c.name, hexCode: c.hexCode })),
+      };
+    }
+
+    // Update stock/meters when provided (upsert covers products without an inventory row)
+    if (updates.stockCount !== undefined || updates.metersAvailable !== undefined) {
+      const invUpdate: Record<string, unknown> = {};
+      if (updates.stockCount !== undefined && !Number.isNaN(parseInt(updates.stockCount))) {
+        invUpdate.stockCount = parseInt(updates.stockCount);
+      }
+      if (updates.metersAvailable !== undefined) {
+        invUpdate.metersAvailable = updates.metersAvailable === '' || updates.metersAvailable === null
+          ? null : parseFloat(updates.metersAvailable);
+      }
+      data.inventory = {
+        upsert: {
+          create: {
+            stockCount: invUpdate.stockCount ?? 0,
+            metersAvailable: (invUpdate.metersAvailable as number | null) ?? null,
+          },
+          update: invUpdate,
+        },
+      };
     }
 
     const product = await prisma.product.update({
       where: { id },
-      data: {
-        name: updates.name,
-        description: updates.description,
-        specifications: updates.specifications,
-        material: updates.material,
-        priceRange: updates.priceRange,
-        categoryId: updates.categoryId,
-        isFeatured: updates.isFeatured === 'true' || updates.isFeatured === true,
-        isNewArrival: updates.isNewArrival === 'true' || updates.isNewArrival === true,
-        isAvailable: updates.isAvailable === 'true' || updates.isAvailable === true,
-        isOnPromotion: updates.isOnPromotion === 'true' || updates.isOnPromotion === true,
-        promotionText: updates.promotionText,
-        metaTitle: updates.metaTitle,
-        metaDescription: updates.metaDescription,
-        metaKeywords: updates.metaKeywords,
-      },
+      data,
       include: { images: true, colors: true, inventory: true, category: true },
     });
 

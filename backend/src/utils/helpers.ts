@@ -15,9 +15,11 @@ export const generateSlug = (text: string): string => {
     .replace(/^-+|-+$/g, '');
 };
 
-export const getPaginationParams = (page = 1, limit = 12) => {
-  const skip = (page - 1) * limit;
-  return { skip, take: limit };
+export const getPaginationParams = (page = 1, limit = 12, maxLimit = 100) => {
+  const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : 1;
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), maxLimit) : 12;
+  const skip = (safePage - 1) * safeLimit;
+  return { skip, take: safeLimit };
 };
 
 export const buildPaginationResponse = (total: number, page: number, limit: number) => ({

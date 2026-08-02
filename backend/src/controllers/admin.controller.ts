@@ -12,7 +12,7 @@ export const getDashboardStats = async (_req: Request, res: Response): Promise<v
     const [
       totalProducts, totalReservations, totalCustomers,
       dailyReservations, weeklyReservations, monthlyReservations,
-      pendingReservations, lowStockProducts, popularProducts,
+      pendingReservations, trackedInventory, popularProducts,
       reservationsByStatus, recentReservations,
     ] = await Promise.all([
       prisma.product.count({ where: { isAvailable: true } }),
@@ -22,11 +22,14 @@ export const getDashboardStats = async (_req: Request, res: Response): Promise<v
       prisma.reservation.count({ where: { createdAt: { gte: weekAgo } } }),
       prisma.reservation.count({ where: { createdAt: { gte: monthStart } } }),
       prisma.reservation.count({ where: { status: 'PENDING' } }),
-      prisma.inventory.findMany({ where: { isTracked: true, stockCount: { lte: 5 } }, include: { product: { select: { name: true, id: true } } } }),
+      prisma.inventory.findMany({ where: { isTracked: true }, include: { product: { select: { name: true, id: true } } } }),
       prisma.product.findMany({ orderBy: { reservationCount: 'desc' }, take: 5, select: { id: true, name: true, reservationCount: true } }),
       prisma.reservation.groupBy({ by: ['status'], _count: { status: true } }),
       prisma.reservation.findMany({ take: 10, orderBy: { createdAt: 'desc' }, select: { id: true, reservationNumber: true, customerName: true, customerPhone: true, status: true, visitDate: true, visitTime: true, createdAt: true } }),
     ]);
+
+    // Compare each item against its own lowStockAlert threshold (Prisma can't compare two columns in `where`)
+    const lowStockProducts = trackedInventory.filter((i) => i.stockCount <= i.lowStockAlert);
 
     res.json({
       success: true,
@@ -58,17 +61,19 @@ export const getCustomers = async (req: Request, res: Response): Promise<void> =
       ];
     }
 
-    const skip = (Number(page) - 1) * Number(limit);
+    const take = Math.min(Math.max(parseInt(String(limit)) || 20, 1), 100);
+    const pageNum = Math.max(parseInt(String(page)) || 1, 1);
+    const skip = (pageNum - 1) * take;
     const [customers, total] = await Promise.all([
       prisma.user.findMany({
-        where, skip, take: Number(limit),
+        where, skip, take,
         orderBy: { createdAt: 'desc' },
         select: { id: true, firstName: true, lastName: true, phone: true, email: true, isActive: true, createdAt: true, _count: { select: { reservations: true } } },
       }),
       prisma.user.count({ where }),
     ]);
 
-    res.json({ success: true, data: customers, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } });
+    res.json({ success: true, data: customers, pagination: { total, page: pageNum, limit: take, totalPages: Math.ceil(total / take) } });
   } catch (error) {
     logger.error('GetCustomers error:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch customers' });
@@ -117,7 +122,10 @@ export const getSiteContent = async (req: Request, res: Response): Promise<void>
 
 export const updateSEO = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page, ...seoData } = req.body;
+    const { page, metaTitle, metaDescription, metaKeywords, ogTitle, ogDescription, ogImage } = req.body;
+    if (!page) { res.status(400).json({ success: false, message: 'page is required' }); return; }
+    // Allowlist the fields that can be written — never spread req.body straight into Prisma
+    const seoData = { metaTitle, metaDescription, metaKeywords, ogTitle, ogDescription, ogImage };
     const seo = await prisma.sEOSettings.upsert({
       where: { page },
       update: seoData,
@@ -237,16 +245,18 @@ export const getReviewsAdmin = async (req: Request, res: Response): Promise<void
     const { approved, page = 1, limit = 20 } = req.query;
     const where: Record<string, unknown> = {};
     if (approved !== undefined) where.isApproved = approved === 'true';
-    const skip = (Number(page) - 1) * Number(limit);
+    const take = Math.min(Math.max(parseInt(String(limit)) || 20, 1), 100);
+    const pageNum = Math.max(parseInt(String(page)) || 1, 1);
+    const skip = (pageNum - 1) * take;
     const [reviews, total] = await Promise.all([
       prisma.productReview.findMany({
-        where, skip, take: Number(limit),
+        where, skip, take,
         orderBy: { createdAt: 'desc' },
         include: { product: { select: { name: true, slug: true } } },
       }),
       prisma.productReview.count({ where }),
     ]);
-    res.json({ success: true, data: reviews, pagination: { total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) } });
+    res.json({ success: true, data: reviews, pagination: { total, page: pageNum, limit: take, totalPages: Math.ceil(total / take) } });
   } catch (error) {
     logger.error('GetReviewsAdmin error:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch reviews' });

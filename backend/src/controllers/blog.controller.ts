@@ -56,12 +56,23 @@ export const createBlog = async (req: Request, res: Response): Promise<void> => 
 export const updateBlog = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const body = req.body;
     const file = req.file as Express.Multer.File & { path?: string; filename?: string };
-    if (updates.title) updates.slug = generateSlug(updates.title);
-    if (updates.isPublished === 'true' && !updates.publishedAt) updates.publishedAt = new Date();
-    if (file) { updates.imageUrl = file.path; updates.imagePublicId = file.filename; }
-    const blog = await prisma.blog.update({ where: { id }, data: updates });
+
+    // Allowlist updatable fields — never spread req.body straight into Prisma
+    const data: Record<string, unknown> = {};
+    const ALLOWED = ['title', 'content', 'excerpt', 'authorName', 'metaTitle', 'metaDescription', 'metaKeywords'] as const;
+    for (const field of ALLOWED) {
+      if (body[field] !== undefined) data[field] = body[field];
+    }
+    if (body.title) data.slug = generateSlug(body.title);
+    if (body.isPublished !== undefined) {
+      data.isPublished = body.isPublished === 'true' || body.isPublished === true;
+      if (data.isPublished) data.publishedAt = new Date();
+    }
+    if (file) { data.imageUrl = file.path; data.imagePublicId = file.filename; }
+
+    const blog = await prisma.blog.update({ where: { id }, data });
     res.json({ success: true, data: blog });
   } catch (error) {
     logger.error('UpdateBlog error:', error);
