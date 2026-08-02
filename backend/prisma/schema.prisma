@@ -253,9 +253,28 @@ model ProductReview {
 
   product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   user         User?    @relation(fields: [userId], references: [id])
+  helpfulVotes ReviewHelpfulVote[]
 
   @@index([productId])
   @@index([isApproved])
+}
+
+/// One row per "was this helpful" vote. The unique constraint is what enforces
+/// one vote per voter per review — doing it in the database rather than with a
+/// read-then-write in the handler also closes the race between concurrent votes.
+model ReviewHelpfulVote {
+  id        String        @id @default(uuid())
+  reviewId  String
+  /// "user:<uuid>" for a signed-in voter, "ip:<address>" for a guest. A single
+  /// non-null column because Postgres treats NULLs as distinct, so a nullable
+  /// userId would not be deduplicated by a unique index.
+  voterKey  String
+  createdAt DateTime      @default(now())
+
+  review    ProductReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, voterKey])
+  @@index([reviewId])
 }
 
 model Inventory {

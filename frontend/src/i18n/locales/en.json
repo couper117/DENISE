@@ -59,7 +59,10 @@
     "cat_fabrics_name": "Fabrics",
     "cat_fabrics_desc": "Quality fabrics for all needs",
     "cat_accessories_name": "Accessories",
-    "cat_accessories_desc": "Curtain rods & accessories"
+    "cat_accessories_desc": "Curtain rods & accessories",
+    "trust_reserve": "Free reservation, pay in store",
+    "trust_delivery": "Delivery across all Rwanda",
+    "trust_languages": "Served in 5 languages"
   },
   "products": {
     "title": "Our Products",

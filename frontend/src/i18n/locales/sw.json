@@ -59,7 +59,10 @@
     "cat_fabrics_name": "Vitambaa",
     "cat_fabrics_desc": "Vitambaa vya ubora kwa mahitaji yote",
     "cat_accessories_name": "Vifaa",
-    "cat_accessories_desc": "Nguzo na vifaa vya mapazia"
+    "cat_accessories_desc": "Nguzo na vifaa vya mapazia",
+    "trust_reserve": "Kuhifadhi ni bure, lipa dukani",
+    "trust_delivery": "Usafirishaji Rwanda nzima",
+    "trust_languages": "Huduma kwa lugha 5"
   },
   "products": {
     "title": "Bidhaa Zetu",

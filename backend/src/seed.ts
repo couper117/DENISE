@@ -7,8 +7,18 @@ const prisma = new PrismaClient();
 async function seed() {
   console.log('🌱 Seeding database...');
 
-  // Create admin user
-  const adminPassword = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'Admin@123456', 12);
+  // Create admin user.
+  // No default: a fallback password is published in the README and .env.example,
+  // so any deploy that forgot to set ADMIN_PASSWORD would ship with credentials
+  // an attacker can read from the repository.
+  const adminPasswordInput = process.env.ADMIN_PASSWORD;
+  if (!adminPasswordInput || adminPasswordInput.length < 12) {
+    throw new Error(
+      'ADMIN_PASSWORD must be set to at least 12 characters before seeding.\n' +
+        'Generate one with: node -e "console.log(require(\'crypto\').randomBytes(18).toString(\'base64url\'))"'
+    );
+  }
+  const adminPassword = await bcrypt.hash(adminPasswordInput, 12);
   const admin = await prisma.user.upsert({
     where: { phone: '+250780000001' },
     update: {},
@@ -127,9 +137,16 @@ async function seed() {
 
   console.log('✅ FAQs seeded');
   console.log('🎉 Database seeded successfully!');
-  console.log('\n📋 Admin credentials:');
+  console.log('\n📋 Admin sign-in:');
   console.log('  Phone: +250780000001');
-  console.log('  Password:', process.env.ADMIN_PASSWORD || 'Admin@123456');
+  // The password is not printed: seed output lands in CI logs, deploy consoles
+  // and scrollback. It is whatever ADMIN_PASSWORD was set to.
+  console.log('  Password: the value of ADMIN_PASSWORD');
 }
 
-seed().catch(console.error).finally(() => prisma.$disconnect());
+seed()
+  .catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(() => prisma.$disconnect());

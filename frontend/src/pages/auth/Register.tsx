@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
+import type { AxiosError } from 'axios';
 import { User, Phone, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../../lib/api';
 import { useAuthStore } from '../../store';
@@ -21,6 +22,13 @@ const Register = () => {
       navigate('/');
     },
   });
+
+  // The API answers a failed validation with 400 and
+  // { errors: [{ field, message }] } — see backend validate.middleware.
+  const serverErrors: string[] = (() => {
+    const response = (registerMutation.error as AxiosError<{ errors?: { message: string }[] }> | null)?.response;
+    return response?.data?.errors?.map((e) => e.message) ?? [];
+  })();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,7 +87,7 @@ const Register = () => {
               <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input required type={showPass ? 'text' : 'password'} minLength={8} value={form.password}
                 onChange={(e) => setForm(p => ({ ...p, password: e.target.value }))}
-                placeholder="Min 8 characters"
+                placeholder="Min 8 chars, with a capital and a number"
                 className="w-full pl-9 pr-10 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
               <button type="button" onClick={() => setShowPass(!showPass)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                 {showPass ? <EyeOff size={14} /> : <Eye size={14} />}
@@ -88,7 +96,14 @@ const Register = () => {
           </div>
 
           {registerMutation.error && (
-            <p className="text-sm text-destructive text-center">Registration failed. Phone or email may already be used.</p>
+            <div className="text-sm text-destructive text-center space-y-1">
+              {/* Surface the field-level messages the API returns, so a rejected
+                  password or phone format says which rule failed instead of the
+                  generic fallback. */}
+              {serverErrors.length > 0
+                ? serverErrors.map((message, i) => <p key={i}>{message}</p>)
+                : <p>Registration failed. Phone or email may already be used.</p>}
+            </div>
           )}
 
           <button type="submit" disabled={registerMutation.isPending}

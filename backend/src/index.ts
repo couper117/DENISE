@@ -7,6 +7,7 @@ import compression from 'compression';
 import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import { connectDB } from './config/database';
+import { validateEnv } from './config/env';
 import { generalLimiter } from './middleware/rateLimit.middleware';
 import authRoutes from './routes/auth.routes';
 import productRoutes from './routes/product.routes';
@@ -103,6 +104,10 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 const start = async () => {
+  // Before the socket opens, so a misconfigured deploy fails its health check
+  // instead of accepting traffic it cannot serve.
+  validateEnv();
+
   app.listen(PORT, () => {
     logger.info(`DENISE Textile API running on port ${PORT}`);
   });

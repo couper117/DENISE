@@ -86,8 +86,17 @@ export const toggleCustomerStatus = async (req: Request, res: Response): Promise
     const { id } = req.params;
     const user = await prisma.user.findUnique({ where: { id } });
     if (!user) { res.status(404).json({ success: false, message: 'User not found' }); return; }
+
+    const nowDisabled = user.isActive;
     await prisma.user.update({ where: { id }, data: { isActive: !user.isActive } });
-    res.json({ success: true, message: `User ${user.isActive ? 'disabled' : 'enabled'}` });
+
+    // Disabling only blocks new logins; already-issued refresh tokens stay valid
+    // for their full seven days, so they are revoked here as well.
+    if (nowDisabled) {
+      await prisma.refreshToken.deleteMany({ where: { userId: id } });
+    }
+
+    res.json({ success: true, message: `User ${nowDisabled ? 'disabled' : 'enabled'}` });
   } catch (error) {
     logger.error('ToggleCustomerStatus error:', error);
     res.status(500).json({ success: false, message: 'Failed to update customer status' });
