@@ -252,16 +252,40 @@ export const updateReservationStatus = async (req: Request, res: Response): Prom
   }
 };
 
+/** Compares phone numbers by digits alone, so formatting differences don't matter. */
+const samePhone = (a: string, b: string): boolean => {
+  const digits = (value: string) => value.replace(/\D/g, '');
+  const left = digits(a);
+  return left.length > 0 && left === digits(b);
+};
+
 export const cancelReservation = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { cancelReason } = req.body;
+    const { cancelReason, customerPhone } = req.body;
 
     const reservation = await prisma.reservation.findUnique({ where: { id } });
     if (!reservation) { res.status(404).json({ success: false, message: 'Reservation not found' }); return; }
 
-    if (reservation.userId && reservation.userId !== req.user?.id && req.user?.role === 'CUSTOMER') {
-      res.status(403).json({ success: false, message: 'Not authorized' });
+    // Authorisation is allowlist-based: the caller must positively match one of
+    // these three cases. The previous condition only rejected signed-in
+    // CUSTOMERs cancelling someone else's booking, which left two holes — guest
+    // reservations (userId null) were unprotected, and an anonymous caller
+    // failed the `role === 'CUSTOMER'` test and so skipped the check entirely.
+    const isAdmin = req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN';
+    const isOwner = !!reservation.userId && reservation.userId === req.user?.id;
+    // Guests hold no session, so the phone on the booking acts as the shared
+    // secret proving the caller is the person who made it.
+    const provedByPhone =
+      !reservation.userId && typeof customerPhone === 'string' && samePhone(customerPhone, reservation.customerPhone);
+
+    if (!isAdmin && !isOwner && !provedByPhone) {
+      res.status(403).json({
+        success: false,
+        message: reservation.userId
+          ? 'Not authorized'
+          : 'Confirm the phone number used for this reservation to cancel it',
+      });
       return;
     }
 

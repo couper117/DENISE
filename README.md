@@ -95,7 +95,9 @@ TWILIO_PHONE_NUMBER=+1234567890
 TWILIO_WHATSAPP_NUMBER=whatsapp:+14155238886
 
 ADMIN_EMAIL=admin@denise-textile.rw
-ADMIN_PASSWORD=Admin@123456
+# Required, min 12 chars — seeding fails if unset. Generate one:
+#   node -e "console.log(require('crypto').randomBytes(18).toString('base64url'))"
+ADMIN_PASSWORD=
 ```
 
 ### 3. Set up the database
@@ -112,6 +114,7 @@ npm run db:seed
 
 The seed creates:
 - **Admin user**: phone `+250780000001`, password from `ADMIN_PASSWORD` env
+  (required, min 12 characters — the seed aborts if it is unset and never prints the value)
 - 6 product categories
 - 3 sample products (curtains + traditional fabric)
 - 3 testimonials

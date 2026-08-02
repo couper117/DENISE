@@ -72,14 +72,35 @@ export const createReview = async (req: AuthenticatedRequest, res: Response): Pr
 };
 
 export const markReviewHelpful = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  const { id } = req.params;
+  // Signed-in voters are tracked by id; guests fall back to their address, which
+  // is the strongest identifier available without a session.
+  const voterKey = req.user?.id ? `user:${req.user.id}` : `ip:${req.ip || 'unknown'}`;
+
   try {
-    const { id } = req.params;
-    const review = await prisma.productReview.update({
-      where: { id },
-      data: { helpfulCount: { increment: 1 } },
+    // Recording the vote and bumping the counter share a transaction so the
+    // count can never drift from the number of rows. The unique index on
+    // (reviewId, voterKey) rejects a repeat vote before the increment runs.
+    const review = await prisma.$transaction(async (tx) => {
+      await tx.reviewHelpfulVote.create({ data: { reviewId: id, voterKey } });
+      return tx.productReview.update({ where: { id }, data: { helpfulCount: { increment: 1 } } });
     });
+
     res.json({ success: true, data: review });
   } catch (error) {
+    const code = (error as { code?: string }).code;
+
+    if (code === 'P2002') {
+      res.status(409).json({ success: false, message: 'You have already marked this review as helpful' });
+      return;
+    }
+    // P2003: the review referenced by the vote does not exist.
+    // P2025: the review row was not found by the update.
+    if (code === 'P2003' || code === 'P2025') {
+      res.status(404).json({ success: false, message: 'Review not found' });
+      return;
+    }
+
     logger.error('MarkReviewHelpful error:', error);
     res.status(500).json({ success: false, message: 'Failed to mark review as helpful' });
   }

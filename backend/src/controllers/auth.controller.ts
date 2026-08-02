@@ -93,6 +93,18 @@ export const refreshToken = async (req: Request, res: Response): Promise<void> =
     const user = await prisma.user.findUnique({ where: { id: decoded.id } });
     if (!user) { res.status(401).json({ success: false, message: 'User not found' }); return; }
 
+    // Re-checked on every refresh, not just at login: without this a disabled
+    // account keeps minting access tokens until its refresh token expires, up to
+    // seven days after an admin revoked it. Their stored tokens are dropped so
+    // the session cannot be resumed.
+    if (!user.isActive) {
+      await prisma.refreshToken.deleteMany({ where: { userId: user.id } });
+      res.status(403).json({ success: false, message: 'Account disabled' });
+      return;
+    }
+
+    // Built from the freshly-read user rather than the token, so a role change
+    // takes effect on the next refresh instead of persisting in the old claims.
     const tokenPayload = { id: user.id, phone: user.phone, email: user.email || undefined, role: user.role };
     const accessToken = generateAccessToken(tokenPayload);
     const newRefreshToken = generateRefreshToken(tokenPayload);
