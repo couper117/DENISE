@@ -19,6 +19,7 @@ import wishlistRoutes from './routes/wishlist.routes';
 import reviewsRoutes from './routes/reviews.routes';
 import paymentsRoutes from './routes/payments.routes';
 import deliveryRoutes from './routes/delivery.routes';
+import contentRoutes from './routes/content.routes';
 import logger from './utils/logger';
 
 const app = express();
@@ -97,6 +98,7 @@ app.use('/api/wishlist', wishlistRoutes);
 app.use('/api/reviews', reviewsRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/delivery', deliveryRoutes);
+app.use('/api', contentRoutes); // public: /api/testimonials, /api/faqs
 
 // Dynamic sitemap
 app.get('/sitemap.xml', (_req, res) => {

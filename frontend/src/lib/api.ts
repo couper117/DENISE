@@ -23,6 +23,19 @@ interface RefreshResponse {
 let refreshPromise: Promise<RefreshResponse> | null = null;
 let sessionExpiryHandled = false;
 
+// Clear the session on an unrecoverable 401. Only bounce to /login from pages
+// that actually require auth — a 401 from an optional call on a public page
+// (e.g. the home page) must NOT hijack the visitor to the login screen.
+const handleSessionExpiry = () => {
+  if (sessionExpiryHandled) return;
+  sessionExpiryHandled = true;
+  clearAuthSession();
+  const onProtectedRoute = /^\/(account|admin)(\/|$)/.test(window.location.pathname);
+  if (onProtectedRoute && window.location.pathname !== '/login') {
+    window.location.assign('/login');
+  }
+};
+
 api.interceptors.request.use((config) => {
   if (config.url === '/auth/login' || config.url === '/auth/register') sessionExpiryHandled = false;
   const token = useAuthStore.getState().accessToken;
@@ -59,16 +72,10 @@ api.interceptors.response.use(
           original.headers.Authorization = `Bearer ${tokens.accessToken}`;
           return api(original);
         } catch {
-          if (!sessionExpiryHandled) {
-            sessionExpiryHandled = true;
-            clearAuthSession();
-            if (window.location.pathname !== '/login') window.location.assign('/login');
-          }
+          handleSessionExpiry();
         }
-      } else if (!sessionExpiryHandled) {
-        sessionExpiryHandled = true;
-        clearAuthSession();
-        if (window.location.pathname !== '/login') window.location.assign('/login');
+      } else {
+        handleSessionExpiry();
       }
     }
 
@@ -143,6 +150,12 @@ export const deliveryApi = {
   getZones: () => api.get('/delivery/zones'),
   getFee: (province: string, district?: string) => api.get('/delivery/fee', { params: { province, district } }),
   track: (reservationNumber: string) => api.get(`/delivery/track/${reservationNumber}`),
+};
+
+// Public content (no auth) — used on the marketing site
+export const contentApi = {
+  getTestimonials: () => api.get('/testimonials'),
+  getFAQs: () => api.get('/faqs'),
 };
 
 // Admin

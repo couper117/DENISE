@@ -6,7 +6,7 @@ import {
   ArrowRight, Star, CheckCircle2, MapPin, Phone, MessageCircle,
   Blinds, Shirt, Layers, Package, Search, CalendarCheck, Store, PackageOpen,
 } from 'lucide-react';
-import { productsApi, adminApi } from '../lib/api';
+import { productsApi, contentApi } from '../lib/api';
 import { Product, Testimonial } from '../types';
 import ProductCard from '../components/products/ProductCard';
 import { ProductGridSkeleton } from '../components/ui/SkeletonCard';
@@ -67,7 +67,7 @@ const Home = () => {
 
   const { data: testimonials } = useQuery({
     queryKey: ['testimonials'],
-    queryFn: () => adminApi.getTestimonials().then((r) => r.data.data as Testimonial[]),
+    queryFn: () => contentApi.getTestimonials().then((r) => r.data.data as Testimonial[]),
     staleTime: 10 * 60 * 1000,
   });
 
