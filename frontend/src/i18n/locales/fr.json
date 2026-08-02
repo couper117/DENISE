@@ -59,7 +59,10 @@
     "cat_fabrics_name": "Tissus",
     "cat_fabrics_desc": "Tissus de qualité pour tous les besoins",
     "cat_accessories_name": "Accessoires",
-    "cat_accessories_desc": "Tringles et accessoires pour rideaux"
+    "cat_accessories_desc": "Tringles et accessoires pour rideaux",
+    "trust_reserve": "Réservation gratuite, paiement en boutique",
+    "trust_delivery": "Livraison partout au Rwanda",
+    "trust_languages": "Service en 5 langues"
   },
   "products": {
     "title": "Nos Produits",

@@ -59,7 +59,10 @@
     "cat_fabrics_name": "Bilamba",
     "cat_fabrics_desc": "Bilamba ya malamu mpo na makambo nyonso",
     "cat_accessories_name": "Bibongiseli",
-    "cat_accessories_desc": "Mibasiyo na bibongiseli ya bale rideau"
+    "cat_accessories_desc": "Mibasiyo na bibongiseli ya bale rideau",
+    "trust_reserve": "Kobomba ya ofele, futa na magazini",
+    "trust_delivery": "Kotinda na Rwanda mobimba",
+    "trust_languages": "Lisungi na minɔkɔ 5"
   },
   "products": {
     "title": "Biloko na Biso",

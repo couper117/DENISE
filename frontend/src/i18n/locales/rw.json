@@ -59,7 +59,10 @@
     "cat_fabrics_name": "Imyenda",
     "cat_fabrics_desc": "Imyenda myiza y'ubwoko bwose",
     "cat_accessories_name": "Ibikoresho",
-    "cat_accessories_desc": "Inkingi n'ibikoresho by'imivumo"
+    "cat_accessories_desc": "Inkingi n'ibikoresho by'imivumo",
+    "trust_reserve": "Kubika ni ubuntu, wishyura mu iduka",
+    "trust_delivery": "Twohereza mu Rwanda hose",
+    "trust_languages": "Serivisi mu ndimi 5"
   },
   "products": {
     "title": "Ibicuruzwa Byacu",
