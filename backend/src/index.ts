@@ -24,14 +24,33 @@ import logger from './utils/logger';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Build allowed origins list from env
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  process.env.FRONTEND_URL_ALT,
-  'http://localhost:5173',
-  'http://localhost:3000',
-  'http://localhost:4173',
-].filter(Boolean) as string[];
+// Build allowed origins list from env. Normalise (drop trailing slash) and, for
+// each configured site, allow BOTH the apex and the www host so a redirect
+// either way — or a stray trailing slash in the env var — doesn't break CORS.
+const normalizeOrigin = (o: string): string => o.trim().replace(/\/+$/, '');
+
+const expandOrigin = (o: string): string[] => {
+  const clean = normalizeOrigin(o);
+  try {
+    const u = new URL(clean);
+    const bareHost = u.host.replace(/^www\./, '');
+    return [`${u.protocol}//${bareHost}`, `${u.protocol}//www.${bareHost}`];
+  } catch {
+    return [clean];
+  }
+};
+
+const allowedOrigins = [...new Set(
+  [
+    process.env.FRONTEND_URL,
+    process.env.FRONTEND_URL_ALT,
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'http://localhost:4173',
+  ]
+    .filter(Boolean)
+    .flatMap((o) => expandOrigin(o as string))
+)];
 
 // Security
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
@@ -39,8 +58,11 @@ app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, server-to-server)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    callback(new Error(`CORS blocked: ${origin}`));
+    if (allowedOrigins.includes(normalizeOrigin(origin))) return callback(null, true);
+    // Reject cleanly (no ACAO header) instead of throwing, so a blocked origin
+    // gets a normal CORS failure rather than a 500 from the error handler.
+    logger.warn(`CORS blocked origin: ${origin}`);
+    return callback(null, false);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
