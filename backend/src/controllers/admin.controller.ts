@@ -220,10 +220,11 @@ export const upsertDeliveryZone = async (req: Request, res: Response): Promise<v
       res.status(400).json({ success: false, message: 'province and baseFee are required' });
       return;
     }
+    // '' is the province-wide sentinel — see DeliveryZone.district in schema.prisma
     const zone = await prisma.deliveryZone.upsert({
-      where: { province_district: { province, district: district || null } },
+      where: { province_district: { province, district: district || '' } },
       update: { baseFee: Number(baseFee), estimatedDays: Number(estimatedDays || 1), isActive: isActive !== false },
-      create: { province, district: district || null, baseFee: Number(baseFee), estimatedDays: Number(estimatedDays || 1) },
+      create: { province, district: district || '', baseFee: Number(baseFee), estimatedDays: Number(estimatedDays || 1) },
     });
     res.json({ success: true, data: zone });
   } catch (error) {

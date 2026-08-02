@@ -288,7 +288,10 @@ model DeliveryAddress {
 model DeliveryZone {
   id            String   @id @default(uuid())
   province      String
-  district      String?
+  // Empty string = province-wide zone. Must not be null: Postgres treats NULLs as
+  // distinct in a unique index, so a nullable district lets @@unique below pass on
+  // every province-wide upsert and insert duplicate zones.
+  district      String   @default("")
   baseFee       Float
   currency      String   @default("RWF")
   isActive      Boolean  @default(true)

@@ -31,7 +31,9 @@ Multilingual textile reservation and product showcase platform for Kigali, Rwand
 denise-textile/
 ├── frontend/          # React + Vite app
 ├── backend/           # Express + Prisma API
-├── database/          # Raw SQL schema (schema.sql)
+│   └── prisma/
+│       ├── schema.prisma   # Single source of truth for the DB
+│       └── migrations/     # Versioned SQL migrations (committed)
 ├── render.yaml        # Render deployment config
 └── .gitignore
 ```
@@ -103,8 +105,8 @@ ADMIN_PASSWORD=Admin@123456
 ```bash
 cd backend
 
-# Run Prisma migrations
-npx prisma migrate dev --name init
+# Apply the committed migrations to your local database
+npx prisma migrate dev
 
 # Seed with sample data + admin user
 npm run db:seed
@@ -185,7 +187,7 @@ Access the admin panel at `/admin` after logging in with an admin account.
 3. Add a **PostgreSQL** plugin — Railway auto-sets `DATABASE_URL`
 4. Set **Root Directory** to `backend`
 5. Add environment variables (all from `.env.example`, except `DATABASE_URL`)
-6. Railway uses `railway.json` config — start command runs migrations then starts the server.
+6. Railway uses `railway.json` config — the start command runs `prisma migrate deploy` then starts the server.
 7. Note the Railway URL and set as `VITE_API_URL` in your Vercel project.
 
 ### Backend — Render (Alternative)
@@ -199,7 +201,7 @@ Use the `render.yaml` at the repo root for one-click Render deployment:
 
 ### Post-Deployment Checklist
 
-- [ ] Verify `/api/health` returns `{ status: "ok" }`
+- [ ] Verify `/health` returns `{ status: "ok" }`
 - [ ] Test registration and login flow
 - [ ] Create a test reservation and verify email notification
 - [ ] Upload a product image and verify Cloudinary URL
@@ -328,13 +330,16 @@ Base URL: `https://your-api.railway.app/api`
 
 ### Monitoring
 - Winston logger writes to `logs/error.log` and `logs/combined.log`
-- `/api/health` endpoint for uptime monitoring (Railway/Render health checks use this)
+- `/health` endpoint for uptime monitoring (Railway/Render health checks use this)
 - Activity logs table records all admin actions
 
 ### Database
-- Run `npx prisma migrate deploy` (not `migrate dev`) in production
+- Migrations in `backend/prisma/migrations/` are committed and are the only way the
+  production schema changes — both Render and Railway run `prisma migrate deploy` on boot
+- Never run `prisma db push` against production; it bypasses migration history
+- If you point a deploy at a database that already has tables, baseline it once with
+  `npx prisma migrate resolve --applied 0_init` before the first `migrate deploy`
 - Enable PostgreSQL connection pooling on Railway/Render for production load
-- The GIN trigram index on `products.name` enables fast fuzzy search
 
 ### Backup
 - Enable automated daily backups in Railway/Render (available on paid plans)
@@ -352,10 +357,11 @@ npm run start        # Run compiled dist/index.js
 npm run db:seed      # Seed database with sample data
 
 # Database
-npx prisma migrate dev --name <name>   # Create and run migration
-npx prisma migrate deploy              # Apply migrations (production)
+npx prisma migrate dev --name <name>   # Create + apply a migration after editing schema.prisma
+npx prisma migrate dev                 # Apply pending migrations locally
+npx prisma migrate deploy              # Apply migrations (production — used by both hosts)
+npx prisma migrate status              # Show which migrations are applied
 npx prisma studio                      # Visual database browser
-npx prisma db push                     # Push schema without migration (dev only)
 
 # Frontend
 npm run dev          # Vite dev server
