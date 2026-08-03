@@ -332,10 +332,44 @@ export const getAllReservations = async (req: Request, res: Response): Promise<v
   }
 };
 
+// (Re)compute a pickup/delivery order's total from CURRENT product prices and
+// sync the pending mobile-money payment. Run on confirmation so the customer's
+// pay prompt shows the right amount even when the price was set AFTER ordering.
+const recomputeReservationTotal = async (id: string): Promise<void> => {
+  const r = await prisma.reservation.findUnique({
+    where: { id },
+    include: { items: { include: { product: true } }, payments: true },
+  });
+  if (!r || (r.fulfillmentType !== 'PICKUP' && r.fulfillmentType !== 'DELIVERY')) return;
+
+  let goods = 0;
+  for (const it of r.items) {
+    const p = it.product;
+    if (it.metersRequired != null && p.pricePerMeter != null) goods += p.pricePerMeter * it.metersRequired;
+    else if (it.quantity != null) goods += (p.salePrice ?? p.price ?? 0) * it.quantity;
+    else if (it.totalPrice != null) goods += it.totalPrice;
+  }
+  const total = Math.round(goods) + (r.deliveryFee ?? 0);
+
+  await prisma.reservation.update({ where: { id }, data: { totalAmount: total > 0 ? total : null } });
+
+  const pending = r.payments.find(
+    (pp) => pp.status === 'PENDING' && (pp.method === 'MTN_MOMO' || pp.method === 'AIRTEL_MONEY')
+  );
+  if (pending && total > 0) {
+    await prisma.payment.update({ where: { id: pending.id }, data: { amount: total } });
+  }
+};
+
 export const updateReservationStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { status, adminNotes, cancelReason } = req.body;
+
+    // Finalise the payable amount from current prices when the order is confirmed.
+    if (status === 'CONFIRMED') {
+      await recomputeReservationTotal(id).catch((e) => logger.error('Recompute total on confirm failed:', e));
+    }
 
     const reservation = await prisma.reservation.update({
       where: { id },
