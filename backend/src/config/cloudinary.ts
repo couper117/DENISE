@@ -40,4 +40,19 @@ export const blogImageStorage = new CloudinaryStorage({
   } as object,
 });
 
+/**
+ * Visual CMS media library. Unlike the product/banner/blog buckets this one does
+ * not crop to a fixed shape — an asset here may be used as a hero backdrop, a
+ * card thumbnail or an OG image, so it is only bounded and quality-optimised.
+ * Cropping is an explicit editor action, applied as a delivery transformation.
+ */
+export const cmsMediaStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'denise-textile/cms',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'svg', 'gif'],
+    transformation: [{ width: 2400, height: 2400, crop: 'limit', quality: 'auto', fetch_format: 'auto' }],
+  } as object,
+});
+
 export default cloudinary;

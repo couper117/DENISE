@@ -6,6 +6,7 @@ import Layout from './components/layout/Layout';
 import AdminLayout from './components/layout/AdminLayout';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import Analytics from './components/Analytics';
+import { CmsProvider } from './cms';
 
 // Public pages
 const Home = lazy(() => import('./pages/Home'));
@@ -53,6 +54,9 @@ const App = () => {
   return (
     <BrowserRouter>
       <Analytics />
+      {/* Content overlay for every route. Non-blocking: pages paint from the
+          bundled i18n defaults and swap in overrides when they arrive. */}
+      <CmsProvider>
       <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg" /></div>}>
         <Routes>
           {/* Public Layout */}
@@ -88,6 +92,7 @@ const App = () => {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
+      </CmsProvider>
       <Toaster />
     </BrowserRouter>
   );

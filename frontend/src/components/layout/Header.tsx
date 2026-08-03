@@ -7,6 +7,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { clearAuthSession, useAuthStore, useCartStore, useThemeStore } from '../../store';
 import { authApi } from '../../lib/api';
 import { cn } from '../../lib/utils';
+import { EditWebsiteButton } from '../../cms';
 
 const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -91,6 +92,9 @@ const Header = () => {
 
           {/* Actions */}
           <div className="flex items-center gap-1">
+            {/* Visual CMS. Renders nothing unless the signed-in user is an admin. */}
+            <EditWebsiteButton className="mr-1" />
+
             {/* Search */}
             <button onClick={() => navigate('/products')} className="p-2 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
               <Search size={18} />

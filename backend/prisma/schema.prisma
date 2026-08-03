@@ -83,28 +83,32 @@ enum MeasurementOption {
 // ─── Models ───────────────────────────────────────────────────────────────────
 
 model User {
-  id                String    @id @default(uuid())
-  email             String?   @unique
-  phone             String    @unique
+  id                String   @id @default(uuid())
+  email             String?  @unique
+  phone             String   @unique
   password          String
   firstName         String
   lastName          String
-  role              Role      @default(CUSTOMER)
-  isActive          Boolean   @default(true)
-  isEmailVerified   Boolean   @default(false)
-  isPhoneVerified   Boolean   @default(false)
-  preferredLanguage String    @default("en")
-  darkMode          Boolean   @default(false)
+  role              Role     @default(CUSTOMER)
+  isActive          Boolean  @default(true)
+  isEmailVerified   Boolean  @default(false)
+  isPhoneVerified   Boolean  @default(false)
+  preferredLanguage String   @default("en")
+  darkMode          Boolean  @default(false)
   avatarUrl         String?
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  refreshTokens     RefreshToken[]
-  reservations      Reservation[]
-  wishlist          WishlistItem[]
-  notifications     Notification[]
-  activityLogs      ActivityLog[]
-  reviews           ProductReview[]
+  refreshTokens    RefreshToken[]
+  reservations     Reservation[]
+  wishlist         WishlistItem[]
+  notifications    Notification[]
+  activityLogs     ActivityLog[]
+  reviews          ProductReview[]
+  contentBlocks    ContentBlock[]    @relation("ContentBlockEditor")
+  contentRevisions ContentRevision[] @relation("ContentRevisionAuthor")
+  mediaAssets      MediaAsset[]      @relation("MediaUploader")
+  siteSettings     SiteSetting[]     @relation("SiteSettingEditor")
 
   @@index([email])
   @@index([phone])
@@ -117,80 +121,80 @@ model RefreshToken {
   expiresAt DateTime
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
 
 model Category {
-  id          String     @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
-  slug        String     @unique
+  slug        String   @unique
   description String?
   imageUrl    String?
-  isActive    Boolean    @default(true)
-  sortOrder   Int        @default(0)
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
   parentId    String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  parent      Category?  @relation("CategoryToCategory", fields: [parentId], references: [id])
-  children    Category[] @relation("CategoryToCategory")
-  products    Product[]
+  parent       Category?             @relation("CategoryToCategory", fields: [parentId], references: [id])
+  children     Category[]            @relation("CategoryToCategory")
+  products     Product[]
   translations CategoryTranslation[]
 
   @@index([slug])
 }
 
 model CategoryTranslation {
-  id           String   @id @default(uuid())
-  categoryId   String
-  language     String
-  name         String
-  description  String?
+  id          String  @id @default(uuid())
+  categoryId  String
+  language    String
+  name        String
+  description String?
 
-  category     Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
 
   @@unique([categoryId, language])
 }
 
 model Product {
-  id              String    @id @default(uuid())
-  name            String
-  slug            String    @unique
-  description     String?
-  specifications  String?
-  material        String?
-  priceRange      String?
-  price           Float?
-  salePrice       Float?
-  pricePerMeter   Float?
-  currency        String    @default("RWF")
-  isAvailable     Boolean   @default(true)
-  isFeatured      Boolean   @default(false)
-  isNewArrival    Boolean   @default(false)
-  isOnPromotion   Boolean   @default(false)
-  promotionText   String?
-  canBeDelivered  Boolean   @default(true)
-  canBuyOnline    Boolean   @default(true)
-  categoryId      String
-  sortOrder       Int       @default(0)
-  viewCount       Int       @default(0)
+  id               String   @id @default(uuid())
+  name             String
+  slug             String   @unique
+  description      String?
+  specifications   String?
+  material         String?
+  priceRange       String?
+  price            Float?
+  salePrice        Float?
+  pricePerMeter    Float?
+  currency         String   @default("RWF")
+  isAvailable      Boolean  @default(true)
+  isFeatured       Boolean  @default(false)
+  isNewArrival     Boolean  @default(false)
+  isOnPromotion    Boolean  @default(false)
+  promotionText    String?
+  canBeDelivered   Boolean  @default(true)
+  canBuyOnline     Boolean  @default(true)
+  categoryId       String
+  sortOrder        Int      @default(0)
+  viewCount        Int      @default(0)
   reservationCount Int      @default(0)
-  metaTitle       String?
-  metaDescription String?
-  metaKeywords    String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  metaTitle        String?
+  metaDescription  String?
+  metaKeywords     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  category        Category  @relation(fields: [categoryId], references: [id])
-  images          ProductImage[]
-  colors          ProductColor[]
-  inventory       Inventory?
+  category         Category             @relation(fields: [categoryId], references: [id])
+  images           ProductImage[]
+  colors           ProductColor[]
+  inventory        Inventory?
   reservationItems ReservationItem[]
-  wishlistItems   WishlistItem[]
-  translations    ProductTranslation[]
-  reviews         ProductReview[]
+  wishlistItems    WishlistItem[]
+  translations     ProductTranslation[]
+  reviews          ProductReview[]
 
   @@index([slug])
   @@index([categoryId])
@@ -199,41 +203,41 @@ model Product {
 }
 
 model ProductTranslation {
-  id              String   @id @default(uuid())
-  productId       String
-  language        String
-  name            String
-  description     String?
-  specifications  String?
+  id             String  @id @default(uuid())
+  productId      String
+  language       String
+  name           String
+  description    String?
+  specifications String?
 
-  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([productId, language])
 }
 
 model ProductImage {
-  id          String   @id @default(uuid())
-  productId   String
-  url         String
-  publicId    String?
-  altText     String?
-  isPrimary   Boolean  @default(false)
-  sortOrder   Int      @default(0)
-  createdAt   DateTime @default(now())
+  id        String   @id @default(uuid())
+  productId String
+  url       String
+  publicId  String?
+  altText   String?
+  isPrimary Boolean  @default(false)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
 
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
 }
 
 model ProductColor {
-  id        String   @id @default(uuid())
+  id        String  @id @default(uuid())
   productId String
   name      String
   hexCode   String?
   imageUrl  String?
 
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId])
 }
@@ -251,8 +255,8 @@ model ProductReview {
   helpfulCount Int      @default(0)
   createdAt    DateTime @default(now())
 
-  product      Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  user         User?    @relation(fields: [userId], references: [id])
+  product      Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user         User?               @relation(fields: [userId], references: [id])
   helpfulVotes ReviewHelpfulVote[]
 
   @@index([productId])
@@ -263,15 +267,15 @@ model ProductReview {
 /// one vote per voter per review — doing it in the database rather than with a
 /// read-then-write in the handler also closes the race between concurrent votes.
 model ReviewHelpfulVote {
-  id        String        @id @default(uuid())
+  id        String   @id @default(uuid())
   reviewId  String
   /// "user:<uuid>" for a signed-in voter, "ip:<address>" for a guest. A single
   /// non-null column because Postgres treats NULLs as distinct, so a nullable
   /// userId would not be deduplicated by a unique index.
   voterKey  String
-  createdAt DateTime      @default(now())
+  createdAt DateTime @default(now())
 
-  review    ProductReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  review ProductReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
 
   @@unique([reviewId, voterKey])
   @@index([reviewId])
@@ -286,11 +290,11 @@ model Inventory {
   isTracked       Boolean  @default(true)
   updatedAt       DateTime @updatedAt
 
-  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 model DeliveryAddress {
-  id            String        @id @default(uuid())
+  id            String   @id @default(uuid())
   province      String
   district      String
   sector        String?
@@ -299,9 +303,9 @@ model DeliveryAddress {
   streetAddress String?
   latitude      Float?
   longitude     Float?
-  createdAt     DateTime      @default(now())
+  createdAt     DateTime @default(now())
 
-  reservations  Reservation[]
+  reservations Reservation[]
 }
 
 model DeliveryZone {
@@ -334,42 +338,42 @@ model Payment {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
-  reservation     Reservation   @relation(fields: [reservationId], references: [id])
+  reservation Reservation @relation(fields: [reservationId], references: [id])
 
   @@index([reservationId])
   @@index([reference])
 }
 
 model Reservation {
-  id                  String            @id @default(uuid())
-  reservationNumber   String            @unique
-  qrCode              String?
-  userId              String?
-  customerName        String
-  customerPhone       String
-  customerEmail       String?
-  preferredLanguage   String            @default("en")
-  fulfillmentType     FulfillmentType   @default(RESERVATION)
-  visitDate           DateTime?
-  visitTime           String?
-  notes               String?
-  measurementOption   MeasurementOption @default(HELP_AT_SHOP)
-  status              ReservationStatus @default(PENDING)
-  totalAmount         Float?
-  deliveryFee         Float?
-  paymentStatus       PaymentStatus     @default(AWAITING)
-  deliveryAddressId   String?
-  deliveryType        DeliveryType?
-  adminNotes          String?
-  cancelReason        String?
-  createdAt           DateTime          @default(now())
-  updatedAt           DateTime          @updatedAt
+  id                String            @id @default(uuid())
+  reservationNumber String            @unique
+  qrCode            String?
+  userId            String?
+  customerName      String
+  customerPhone     String
+  customerEmail     String?
+  preferredLanguage String            @default("en")
+  fulfillmentType   FulfillmentType   @default(RESERVATION)
+  visitDate         DateTime?
+  visitTime         String?
+  notes             String?
+  measurementOption MeasurementOption @default(HELP_AT_SHOP)
+  status            ReservationStatus @default(PENDING)
+  totalAmount       Float?
+  deliveryFee       Float?
+  paymentStatus     PaymentStatus     @default(AWAITING)
+  deliveryAddressId String?
+  deliveryType      DeliveryType?
+  adminNotes        String?
+  cancelReason      String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
-  user                User?             @relation(fields: [userId], references: [id])
-  deliveryAddress     DeliveryAddress?  @relation(fields: [deliveryAddressId], references: [id])
-  items               ReservationItem[]
-  notifications       Notification[]
-  payments            Payment[]
+  user            User?             @relation(fields: [userId], references: [id])
+  deliveryAddress DeliveryAddress?  @relation(fields: [deliveryAddressId], references: [id])
+  items           ReservationItem[]
+  notifications   Notification[]
+  payments        Payment[]
 
   @@index([reservationNumber])
   @@index([customerPhone])
@@ -379,20 +383,20 @@ model Reservation {
 }
 
 model ReservationItem {
-  id              String      @id @default(uuid())
-  reservationId   String
-  productId       String
-  quantity        Int?
-  metersRequired  Float?
-  windowWidth     Float?
-  windowHeight    Float?
-  unitPrice       Float?
-  totalPrice      Float?
-  notes           String?
-  createdAt       DateTime    @default(now())
+  id             String   @id @default(uuid())
+  reservationId  String
+  productId      String
+  quantity       Int?
+  metersRequired Float?
+  windowWidth    Float?
+  windowHeight   Float?
+  unitPrice      Float?
+  totalPrice     Float?
+  notes          String?
+  createdAt      DateTime @default(now())
 
-  reservation     Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
-  product         Product     @relation(fields: [productId], references: [id])
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+  product     Product     @relation(fields: [productId], references: [id])
 
   @@index([reservationId])
   @@index([productId])
@@ -404,68 +408,68 @@ model WishlistItem {
   productId String
   createdAt DateTime @default(now())
 
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@unique([userId, productId])
 }
 
 model Blog {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   title           String
-  slug            String   @unique
+  slug            String    @unique
   content         String
   excerpt         String?
   imageUrl        String?
   imagePublicId   String?
   authorName      String
-  isPublished     Boolean  @default(false)
+  isPublished     Boolean   @default(false)
   publishedAt     DateTime?
   metaTitle       String?
   metaDescription String?
   metaKeywords    String?
-  viewCount       Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  viewCount       Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
-  translations    BlogTranslation[]
+  translations BlogTranslation[]
 
   @@index([slug])
   @@index([isPublished])
 }
 
 model BlogTranslation {
-  id       String @id @default(uuid())
+  id       String  @id @default(uuid())
   blogId   String
   language String
   title    String
   content  String
   excerpt  String?
 
-  blog     Blog   @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
 
   @@unique([blogId, language])
 }
 
 model Testimonial {
-  id          String   @id @default(uuid())
+  id           String   @id @default(uuid())
   customerName String
-  message     String
-  rating      Int      @default(5)
-  imageUrl    String?
-  isApproved  Boolean  @default(false)
-  createdAt   DateTime @default(now())
+  message      String
+  rating       Int      @default(5)
+  imageUrl     String?
+  isApproved   Boolean  @default(false)
+  createdAt    DateTime @default(now())
 
   translations TestimonialTranslation[]
 }
 
 model TestimonialTranslation {
-  id            String      @id @default(uuid())
+  id            String @id @default(uuid())
   testimonialId String
   language      String
   message       String
 
-  testimonial   Testimonial @relation(fields: [testimonialId], references: [id], onDelete: Cascade)
+  testimonial Testimonial @relation(fields: [testimonialId], references: [id], onDelete: Cascade)
 
   @@unique([testimonialId, language])
 }
@@ -483,8 +487,8 @@ model Notification {
   error         String?
   createdAt     DateTime            @default(now())
 
-  user          User?               @relation(fields: [userId], references: [id])
-  reservation   Reservation?        @relation(fields: [reservationId], references: [id])
+  user        User?        @relation(fields: [userId], references: [id])
+  reservation Reservation? @relation(fields: [reservationId], references: [id])
 
   @@index([userId])
   @@index([reservationId])
@@ -536,7 +540,7 @@ model ActivityLog {
   userAgent String?
   createdAt DateTime @default(now())
 
-  user      User?    @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@index([action])
@@ -553,4 +557,115 @@ model SEOSettings {
   ogDescription   String?
   ogImage         String?
   updatedAt       DateTime @updatedAt
+}
+
+// ─── Visual CMS ───────────────────────────────────────────────────────────────
+// Content is addressed by the same dotted keys the site already uses for i18n
+// ("hero.title", "about.story_p1"). A block is an *override*: when none exists
+// the bundled locale JSON is served, so the site renders correctly against an
+// empty database and no bulk migration is required to adopt the CMS.
+
+enum ContentType {
+  TEXT // single-line plain text
+  RICHTEXT // sanitised HTML from the rich text editor
+  IMAGE // { url, alt, publicId?, width?, height? }
+  LINK // { href, label, external? }
+  ICON // lucide icon name
+  NUMBER // statistics and counters
+  COLOR // theme colours
+  JSON // repeatable collections: cards, nav items, footer links
+}
+
+model ContentBlock {
+  id     String      @id @default(uuid())
+  key    String
+  locale String      @default("en")
+  type   ContentType @default(TEXT)
+
+  // draftValue is what edit mode and preview read; publishedValue is what the
+  // public site reads. They diverge exactly while there are unpublished edits.
+  draftValue     Json?
+  publishedValue Json?
+
+  // Optional metadata, used by the CMS search UI. Neither affects rendering.
+  page  String?
+  label String?
+
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  updatedById String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  updatedBy User?             @relation("ContentBlockEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  revisions ContentRevision[]
+
+  @@unique([key, locale])
+  @@index([locale])
+  @@index([page])
+  // Partial-index candidate: only rows with a schedule are ever scanned here.
+  @@index([scheduledAt])
+}
+
+// One row per publish, so history can be listed, compared and restored.
+model ContentRevision {
+  id          String   @id @default(uuid())
+  blockId     String
+  value       Json?
+  label       String?
+  createdById String?
+  createdAt   DateTime @default(now())
+
+  block     ContentBlock @relation(fields: [blockId], references: [id], onDelete: Cascade)
+  createdBy User?        @relation("ContentRevisionAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([blockId, createdAt])
+}
+
+model MediaFolder {
+  id        String   @id @default(uuid())
+  name      String
+  parentId  String?
+  createdAt DateTime @default(now())
+
+  parent   MediaFolder?  @relation("MediaFolderTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children MediaFolder[] @relation("MediaFolderTree")
+  assets   MediaAsset[]
+
+  @@unique([parentId, name])
+}
+
+model MediaAsset {
+  id           String   @id @default(uuid())
+  url          String
+  publicId     String? // Cloudinary asset id, or "local:folder/file"
+  filename     String
+  mimeType     String
+  bytes        Int      @default(0)
+  width        Int?
+  height       Int?
+  alt          String?
+  tags         String[] @default([])
+  folderId     String?
+  uploadedById String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  folder     MediaFolder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  uploadedBy User?        @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([folderId])
+  @@index([createdAt])
+  @@index([filename])
+}
+
+// Global, non-localised configuration: theme colours, logo, favicon, analytics
+// id, maintenance mode. Keyed by dotted name like content blocks.
+model SiteSetting {
+  key         String   @id
+  value       Json
+  updatedById String?
+  updatedAt   DateTime @updatedAt
+
+  updatedBy User? @relation("SiteSettingEditor", fields: [updatedById], references: [id], onDelete: SetNull)
 }

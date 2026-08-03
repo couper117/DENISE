@@ -20,6 +20,9 @@ import reviewsRoutes from './routes/reviews.routes';
 import paymentsRoutes from './routes/payments.routes';
 import deliveryRoutes from './routes/delivery.routes';
 import contentRoutes from './routes/content.routes';
+import cmsRoutes from './routes/cms.routes';
+import mediaRoutes from './routes/media.routes';
+import { publishScheduled } from './controllers/cms.controller';
 import logger from './utils/logger';
 
 const app = express();
@@ -99,6 +102,16 @@ app.use('/api/reviews', reviewsRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api', contentRoutes); // public: /api/testimonials, /api/faqs
+app.use('/api/cms', cmsRoutes); // visual CMS: content blocks + site settings
+app.use('/api/media', mediaRoutes); // visual CMS: media library
+
+// Release scheduled publishes. A timer rather than a job runner because the API
+// is a single long-lived process; each release clears scheduledAt, so a second
+// instance would find nothing to do rather than double-publishing.
+const SCHEDULE_TICK_MS = 60_000;
+setInterval(() => {
+  publishScheduled().catch((e) => logger.error('Scheduled publish failed:', e));
+}, SCHEDULE_TICK_MS).unref();
 
 // Dynamic sitemap
 app.get('/sitemap.xml', (_req, res) => {

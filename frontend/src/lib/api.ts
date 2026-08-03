@@ -179,6 +179,49 @@ export const adminApi = {
   deleteReview: (id: string) => api.delete(`/admin/reviews/${id}`),
 };
 
+// Visual CMS — content blocks and site settings.
+// The two GETs under `/cms` are public; everything under `/cms/admin` is
+// authenticated and admin-gated on the server.
+export const cmsApi = {
+  getContent: (locale: string) => api.get('/cms/content', { params: { locale } }),
+  getSettings: () => api.get('/cms/settings'),
+
+  getDraft: (locale: string) => api.get('/cms/admin/content', { params: { locale } }),
+  saveDrafts: (locale: string, blocks: unknown[]) => api.patch('/cms/admin/content', { locale, blocks }),
+  publish: (locale: string, keys?: string[], label?: string) =>
+    api.post('/cms/admin/content/publish', { locale, keys, label }),
+  discard: (locale: string, keys?: string[]) => api.post('/cms/admin/content/discard', { locale, keys }),
+  schedule: (locale: string, keys: string[], scheduledAt: string | null) =>
+    api.post('/cms/admin/content/schedule', { locale, keys, scheduledAt }),
+
+  search: (q: string, locale?: string) => api.get('/cms/admin/content/search', { params: { q, locale } }),
+  replace: (find: string, replace: string, opts?: { locale?: string; dryRun?: boolean }) =>
+    api.post('/cms/admin/content/replace', { find, replace, ...opts }),
+
+  getRevisions: (key: string, locale: string) =>
+    api.get(`/cms/admin/content/${encodeURIComponent(key)}/revisions`, { params: { locale } }),
+  restoreRevision: (key: string, locale: string, revisionId: string) =>
+    api.post(`/cms/admin/content/${encodeURIComponent(key)}/restore`, { locale, revisionId }),
+
+  getAllSettings: () => api.get('/cms/admin/settings'),
+  updateSettings: (settings: Record<string, unknown>) => api.put('/cms/admin/settings', { settings }),
+};
+
+// Visual CMS — media library (admin only).
+export const mediaApi = {
+  list: (params?: Record<string, unknown>) => api.get('/media', { params }),
+  upload: (data: FormData) => api.post('/media', data, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  update: (id: string, data: Record<string, unknown>) => api.patch(`/media/${id}`, data),
+  remove: (id: string) => api.delete(`/media/${id}`),
+  usage: (id: string) => api.get(`/media/${id}/usage`),
+  transform: (id: string, data: Record<string, unknown>) => api.post(`/media/${id}/transform`, data),
+
+  listFolders: () => api.get('/media/folders'),
+  createFolder: (name: string, parentId?: string | null) => api.post('/media/folders', { name, parentId }),
+  renameFolder: (id: string, name: string) => api.patch(`/media/folders/${id}`, { name }),
+  deleteFolder: (id: string) => api.delete(`/media/folders/${id}`),
+};
+
 // Auth
 export const authApi = {
   register: (data: Record<string, unknown>) => api.post('/auth/register', data),
