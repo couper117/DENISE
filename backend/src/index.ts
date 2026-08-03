@@ -26,6 +26,9 @@ import { publishScheduled } from './controllers/cms.controller';
 import logger from './utils/logger';
 
 const app = express();
+// Behind Railway/Render's proxy: trust the first hop so req.protocol is 'https'
+// (correct image URLs) and rate-limiting sees the real client IP.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
 
 // Build allowed origins list from env. Normalise (drop trailing slash) and, for
