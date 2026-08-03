@@ -31,7 +31,8 @@ export const WHATSAPP_LINK = `https://wa.me/${BUSINESS_WHATSAPP}?text=${WHATSAPP
 // filled in. If a network changes its menu order, adjust the numbers in the
 // template — nothing else needs to change.
 
-// MTN Mobile Money
+// MTN Mobile Money — send-money menu: *182# → 1 (transfer) → 1 (uri muri MoMo)
+// → number → amount → (confirm + PIN). Two 1s.
 export const MOMO_NUMBER = '250788878487';
 export const MOMO_USSD_TEMPLATE = '*182*1*1*{number}*{amount}#';
 
