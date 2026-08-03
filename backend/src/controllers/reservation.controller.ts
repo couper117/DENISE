@@ -279,8 +279,33 @@ export const getMyReservations = async (req: AuthenticatedRequest, res: Response
       where: { userId: req.user!.id },
       orderBy: { createdAt: 'desc' },
       include: {
-        items: { include: { product: { include: { images: { where: { isPrimary: true }, take: 1 } } } } },
+        // `slug` lets the history page link each line back to its product.
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                images: { where: { isPrimary: true }, take: 1 },
+              },
+            },
+          },
+        },
         deliveryAddress: true,
+        // Needed for the payment column: what was paid, how, and whether it
+        // actually went through.
+        payments: {
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            amount: true,
+            method: true,
+            status: true,
+            reference: true,
+            createdAt: true,
+          },
+        },
       },
     });
     res.json({ success: true, data: reservations });

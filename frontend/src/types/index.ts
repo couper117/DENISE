@@ -145,7 +145,7 @@ export interface Payment {
 export interface ReservationItem {
   id: string;
   productId: string;
-  product: Pick<Product, 'id' | 'name' | 'images'>;
+  product: Pick<Product, 'id' | 'name' | 'images'> & { slug?: string };
   quantity?: number;
   metersRequired?: number;
   windowWidth?: number;
