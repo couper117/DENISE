@@ -10,6 +10,7 @@ import {
   optionalText,
   paginationRules,
   PAYMENT_METHODS,
+  PAYMENT_STATUSES,
   phoneField,
   requiredText,
   RESERVATION_STATUSES,
@@ -48,6 +49,18 @@ export const createReservationRules = rules(
   optionalItemNumber('totalPrice', 'Total price', 1_000_000_000),
   optionalText('items.*.notes', 'Item notes', 500),
 
+  // The chosen configuration. Only its size is bounded here — every key and
+  // value is matched against the catalogue in utils/productOptions.ts before
+  // anything is stored, so unknown keys are dropped rather than rejected (an
+  // older cart in someone's browser must not become unsubmittable).
+  body('items.*.options')
+    .optional({ values: 'null' })
+    .isObject()
+    .withMessage('Item options must be an object')
+    .bail()
+    .custom((value: Record<string, unknown>) => Object.keys(value).length <= 30)
+    .withMessage('Too many item options'),
+
   // A delivery order without a province and district is accepted by the handler
   // and stored with no address at all, so the pair is required for that mode.
   body('deliveryAddress.province')
@@ -79,12 +92,17 @@ export const listReservationsRules = rules(
   optionalSearchQuery(),
   query('status').optional({ values: 'falsy' }).isIn(RESERVATION_STATUSES).withMessage(`status must be one of: ${RESERVATION_STATUSES.join(', ')}`),
   query('fulfillmentType').optional({ values: 'falsy' }).isIn(FULFILLMENT_TYPES).withMessage(`fulfillmentType must be one of: ${FULFILLMENT_TYPES.join(', ')}`),
+  query('paymentStatus').optional({ values: 'falsy' }).isIn(PAYMENT_STATUSES).withMessage(`paymentStatus must be one of: ${PAYMENT_STATUSES.join(', ')}`),
   query('date').optional({ values: 'falsy' }).isISO8601().withMessage('date must be a valid date')
 );
 
 export const updateReservationStatusRules = rules(
   param('id').isUUID().withMessage('A valid reservation id is required'),
-  body('status').isIn(RESERVATION_STATUSES).withMessage(`status must be one of: ${RESERVATION_STATUSES.join(', ')}`),
+  // Optional: the admin screen also PUTs here to record a payment alone, with
+  // no status change. The handler skips any field that is absent.
+  body('status').optional({ values: 'falsy' }).isIn(RESERVATION_STATUSES).withMessage(`status must be one of: ${RESERVATION_STATUSES.join(', ')}`),
+  body('paymentStatus').optional({ values: 'falsy' }).isIn(PAYMENT_STATUSES).withMessage(`paymentStatus must be one of: ${PAYMENT_STATUSES.join(', ')}`),
+  body('totalAmount').optional({ values: 'falsy' }).isFloat({ min: 0, max: 1_000_000_000 }).withMessage('totalAmount must be a positive number'),
   optionalText('adminNotes', 'Admin notes', 1000),
   optionalText('cancelReason', 'Cancel reason', 500)
 );

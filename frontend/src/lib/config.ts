@@ -44,6 +44,23 @@ export const AIRTEL_USSD_TEMPLATE = '*500*1*1*{number}*{amount}#';
 // so customers don't dial the placeholder above.
 export const AIRTEL_ENABLED = AIRTEL_NUMBER !== '250730000000' && /^\d{9,}$/.test(AIRTEL_NUMBER);
 
+// ─── OTHER PAYMENT METHODS ────────────────────────────────────────────────────
+// Same pattern as AIRTEL_ENABLED: a method is only offered at checkout once the
+// shop can actually honour it. Flip a flag to true when that becomes so.
+
+/** Card payments need a gateway. `POST /api/payments/initiate` still carries a
+ *  "TODO: integrate with actual payment gateway" — offering a card button before
+ *  then would take an order the shop cannot charge. */
+export const CARD_ENABLED = false;
+
+/** Bank transfer needs no integration: the customer is told the team will send
+ *  account details once the order is confirmed. */
+export const BANK_TRANSFER_ENABLED = true;
+
+/** Paying in person — at the shop for a pickup/reservation, to the courier on
+ *  delivery. Maps to the PAY_AT_SHOP method the API already accepts. */
+export const PAY_ON_COLLECTION_ENABLED = true;
+
 export type MobileMoneyMethod = 'MTN_MOMO' | 'AIRTEL_MONEY';
 
 export const MOBILE_MONEY = {

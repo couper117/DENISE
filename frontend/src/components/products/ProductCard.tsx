@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Heart, ShoppingBag, Share2, Eye } from 'lucide-react';
+import { Heart, ShoppingBag, Share2, Eye, SlidersHorizontal } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Product } from '../../types';
 import { useCartStore, useAuthStore } from '../../store';
 import { wishlistApi } from '../../lib/api';
+import { defaultConfiguration, validate } from '../../lib/productOptions';
+import { toast } from '../ui/Toaster';
 import { cn } from '../../lib/utils';
 
 interface ProductCardProps {
@@ -15,16 +17,31 @@ interface ProductCardProps {
 
 const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const { t } = useTranslation();
-  const { addItem } = useCartStore();
+  const { addLine } = useCartStore();
   const { isAuthenticated } = useAuthStore();
+  const navigate = useNavigate();
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
 
   const primaryImage = product.images?.find((i) => i.isPrimary) || product.images?.[0];
 
+  // A curtain needs measurements and a fabric needs a length before it can be
+  // priced, so those go to the product page to be configured. Only a product
+  // whose defaults already validate can be added straight from the grid.
+  const needsConfiguration = Object.keys(validate(product, defaultConfiguration(product))).length > 0;
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
-    addItem(product);
+    if (needsConfiguration) {
+      navigate(`/products/${product.slug}`);
+      return;
+    }
+    addLine(product, defaultConfiguration(product), 1);
+    toast({
+      title: t('cart.added', { defaultValue: 'Added to cart' }),
+      description: product.name,
+      variant: 'success',
+    });
   };
 
   const handleWishlist = async (e: React.MouseEvent) => {
@@ -115,8 +132,10 @@ const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           <div className="flex gap-2">
             <button onClick={handleAddToCart} disabled={!product.isAvailable}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-primary text-primary-foreground text-xs font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-              <ShoppingBag size={13} />
-              {t('products.add_to_cart')}
+              {needsConfiguration ? <SlidersHorizontal size={13} /> : <ShoppingBag size={13} />}
+              {needsConfiguration
+                ? t('products.configure', { defaultValue: 'Configure' })
+                : t('products.add_to_cart')}
             </button>
             <Link to={`/products/${product.slug}`} className="w-9 h-9 flex items-center justify-center border border-border rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
               <Eye size={14} />

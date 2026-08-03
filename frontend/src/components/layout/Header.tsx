@@ -50,7 +50,7 @@ const Header = () => {
   const navLinks = [
     { to: '/', labelKey: 'nav.home', end: true },
     { to: '/products', labelKey: 'nav.products' },
-    { to: '/reservation', labelKey: 'nav.reservation' },
+    { to: '/track', labelKey: 'nav.track' },
     { to: '/about', labelKey: 'nav.about' },
     { to: '/blog', labelKey: 'nav.blog' },
     { to: '/contact', labelKey: 'nav.contact' },
@@ -129,10 +129,14 @@ const Header = () => {
             </button>
 
             {/* Cart */}
-            <Link to="/reservation" className="relative p-2 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
+            <Link
+              to="/cart"
+              aria-label={t('nav.cart')}
+              className="relative p-2 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+            >
               <ShoppingBag size={18} />
               {itemCount() > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-bold">
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-bold">
                   {itemCount()}
                 </span>
               )}
