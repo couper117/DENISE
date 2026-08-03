@@ -4,13 +4,13 @@ import { useSearchParams } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import {
   Search, Package, Calendar, Clock, User, Phone, Mail,
-  MapPin, Truck, Store, CreditCard, CheckCircle2,
+  MapPin, Truck, Store, CreditCard, CheckCircle2, Smartphone,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { reservationsApi } from '../lib/api';
 import { Reservation, FulfillmentType } from '../types';
 import { formatDate, getStatusColor, getStatusLabel } from '../lib/utils';
-import { WHATSAPP_LINK } from '../lib/config';
+import { WHATSAPP_LINK, buildMobileMoneyDial, MobileMoneyMethod } from '../lib/config';
 import Seo from '../components/Seo';
 import QRCode from 'qrcode.react';
 
@@ -119,6 +119,19 @@ const ReservationTracking = () => {
   const isPickup = fulfillmentType === 'PICKUP';
   const requiresPayment = isDelivery || isPickup;
 
+  // Once an admin confirms the order (status leaves PENDING) and it isn't yet
+  // paid, show the mobile-money dial prompt for the method the customer chose.
+  const momoPayment = reservation?.payments?.find(
+    (p) => p.method === 'MTN_MOMO' || p.method === 'AIRTEL_MONEY'
+  );
+  const canPay =
+    !!reservation && !!momoPayment && (reservation.totalAmount ?? 0) > 0 &&
+    reservation.paymentStatus !== 'COMPLETED' &&
+    reservation.status !== 'PENDING' && reservation.status !== 'CANCELLED';
+  const pay = canPay && reservation && momoPayment
+    ? buildMobileMoneyDial(momoPayment.method as MobileMoneyMethod, reservation.totalAmount as number)
+    : null;
+
   return (
     <div className="container mx-auto px-4 py-12 max-w-2xl">
       <Seo
@@ -154,6 +167,24 @@ const ReservationTracking = () => {
 
       {reservation && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
+
+          {/* Pay now — shown once the order is confirmed and still unpaid */}
+          {pay && (
+            <div className="bg-primary/5 border-2 border-primary/30 rounded-2xl p-6 text-center">
+              <h2 className="font-semibold text-lg mb-1">{t('reservation.pay_now')}</h2>
+              <p className="text-sm text-muted-foreground mb-4">{t('reservation.pay_momo_instructions')}</p>
+              <a
+                href={pay.href}
+                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-lg"
+              >
+                <Smartphone size={20} /> {t('reservation.pay_dial')} {pay.label} · {(reservation.totalAmount ?? 0).toLocaleString()} {t('common.rwf')}
+              </a>
+              <p className="text-xs text-muted-foreground mt-3">
+                {t('reservation.pay_iphone_hint')}{' '}
+                <span className="font-mono font-semibold select-all">{pay.ussd}</span>
+              </p>
+            </div>
+          )}
 
           {/* Header card */}
           <div className="bg-card border border-border rounded-2xl p-6 text-center">

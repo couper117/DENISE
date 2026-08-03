@@ -16,7 +16,7 @@ import { generateTimeSlots, getMinReservationDate } from '../lib/utils';
 import FabricEstimator from '../components/reservation/FabricEstimator';
 import Seo from '../components/Seo';
 import { RWANDA_PROVINCES, getDistrictsForProvince, getDeliveryFee } from '../lib/rwanda';
-import { buildMobileMoneyDial, MobileMoneyMethod, AIRTEL_ENABLED } from '../lib/config';
+import { AIRTEL_ENABLED } from '../lib/config';
 import { cn } from '../lib/utils';
 
 const LANGUAGES = [
@@ -199,9 +199,9 @@ const ReservationPage = () => {
     const isDelivery = confirmedReservation.fulfillmentType === 'DELIVERY';
     const isPickup = confirmedReservation.fulfillmentType === 'PICKUP';
     const payAmount = confirmedReservation.totalAmount ?? 0;
-    // Show the mobile-money "pay now" prompt for MTN/Airtel orders with a due amount.
-    const isMoMoMethod = form.paymentMethod === 'MTN_MOMO' || form.paymentMethod === 'AIRTEL_MONEY';
-    const pay = isMoMoMethod && payAmount > 0 ? buildMobileMoneyDial(form.paymentMethod as MobileMoneyMethod, payAmount) : null;
+    // Payment happens AFTER an admin confirms the order — the customer gets the
+    // MoMo/Airtel dial prompt on the Track Order page once the status leaves PENDING.
+    const awaitingMomoPayment = (form.paymentMethod === 'MTN_MOMO' || form.paymentMethod === 'AIRTEL_MONEY') && payAmount > 0;
     return (
       <div className="container mx-auto px-4 py-16 max-w-2xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
@@ -282,20 +282,10 @@ const ReservationPage = () => {
             </div>
           </div>
 
-          {pay && (
-            <div className="bg-primary/5 border-2 border-primary/30 rounded-2xl p-6 mb-6 text-center">
-              <h2 className="font-semibold text-lg mb-1">{t('reservation.pay_now')}</h2>
-              <p className="text-sm text-muted-foreground mb-4">{t('reservation.pay_momo_instructions')}</p>
-              <a
-                href={pay.href}
-                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-lg"
-              >
-                <Smartphone size={20} /> {t('reservation.pay_dial')} {pay.label} · {payAmount.toLocaleString()} {t('common.rwf')}
-              </a>
-              <p className="text-xs text-muted-foreground mt-3">
-                {t('reservation.pay_iphone_hint')}{' '}
-                <span className="font-mono font-semibold select-all">{pay.ussd}</span>
-              </p>
+          {awaitingMomoPayment && (
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-5 mb-6 text-center">
+              <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">{t('reservation.pay_after_confirm_title')}</p>
+              <p className="text-blue-700 dark:text-blue-300 text-xs">{t('reservation.pay_after_confirm_desc')}</p>
             </div>
           )}
 
