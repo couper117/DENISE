@@ -1,1 +1,10 @@
-web: npm run start
+# Migrations must run before the app boots, exactly as render.yaml and
+# railway.json already do. Without this, a host that honours the Procfile starts
+# new code against an un-migrated database: the API looks healthy and then every
+# write fails at runtime. The checkout deploy did exactly that — the pay step
+# returned a 500 with "P2022: The column `subtotal` does not exist in the
+# current database".
+#
+# `&&` is deliberate: if the migration fails the process must not start, so the
+# health check fails loudly instead of serving an API that cannot take orders.
+web: npx prisma migrate deploy && npm run start
