@@ -179,7 +179,13 @@
     "pay_dial": "Pay with",
     "pay_iphone_hint": "On iPhone? Dial this code manually:",
     "pay_after_confirm_title": "Payment after confirmation",
-    "pay_after_confirm_desc": "We'll confirm your order shortly. Once confirmed, open Track Order to pay with Mobile Money."
+    "pay_after_confirm_desc": "We'll confirm your order shortly. Once confirmed, open Track Order to pay with Mobile Money.",
+    "track_subtitle": "Track by reference number, or by your name and phone.",
+    "track_by_ref": "Reference number",
+    "track_by_name": "Name & phone",
+    "track_find": "Find my orders",
+    "track_not_found": "No matching order found. Check your details and try again.",
+    "track_select": "We found more than one order — select yours:"
   },
   "status": {
     "PENDING": "Pending",
