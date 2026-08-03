@@ -3,7 +3,7 @@
 
 export const BUSINESS_PHONE       = '+250 788 878 487';   // ← YOUR REAL PHONE HERE
 export const BUSINESS_PHONE_CLEAN = '250788878487';       // ← same number, no spaces/+
-export const BUSINESS_EMAIL       = 'info@deniseshop.com';// ← YOUR REAL EMAIL HERE
+export const BUSINESS_EMAIL       = 'kelvin2028010@gmail.com';
 export const BUSINESS_WHATSAPP    = '250788878487';       // ← WhatsApp number (digits only)
 export const BUSINESS_ADDRESS     = 'Kigali, Rwanda';
 export const BUSINESS_LAT         = -1.9441;              // ← shop coordinates (for maps)
@@ -25,23 +25,40 @@ export const WHATSAPP_MESSAGE = encodeURIComponent(
 
 export const WHATSAPP_LINK = `https://wa.me/${BUSINESS_WHATSAPP}?text=${WHATSAPP_MESSAGE}`;
 
-// ─── MOBILE MONEY (MTN MoMo) ──────────────────────────────────────────────────
-// The MTN MoMo number that RECEIVES customer payments. Digits only, no +.
-export const MOMO_NUMBER = '250788878487'; // ← ⚠️ REPLACE with your real MTN MoMo number
+// ─── MOBILE MONEY (USSD pay) ──────────────────────────────────────────────────
+// Numbers that RECEIVE customer payments (digits only, no +). Each provider's
+// USSD template replays the "send money" menu steps; {number} and {amount} are
+// filled in. If a network changes its menu order, adjust the numbers in the
+// template — nothing else needs to change.
 
-// USSD template for MTN Rwanda "send money". {number} and {amount} are filled in.
-// This replays the menu steps (Transfer → Send money → number → amount). If MTN
-// changes the menu order, adjust the numbers here — nothing else needs to change.
+// MTN Mobile Money
+export const MOMO_NUMBER = '250788878487';
 export const MOMO_USSD_TEMPLATE = '*182*1*1*{number}*{amount}#';
 
+// Airtel Money
+export const AIRTEL_NUMBER = '250730000000'; // ← ⚠️ REPLACE with your real Airtel Money number
+export const AIRTEL_USSD_TEMPLATE = '*500*1*1*{number}*{amount}#';
+
+// Airtel is only offered once a real number is set — until then it stays hidden
+// so customers don't dial the placeholder above.
+export const AIRTEL_ENABLED = AIRTEL_NUMBER !== '250730000000' && /^\d{9,}$/.test(AIRTEL_NUMBER);
+
+export type MobileMoneyMethod = 'MTN_MOMO' | 'AIRTEL_MONEY';
+
+export const MOBILE_MONEY = {
+  MTN_MOMO: { label: 'MTN MoMo', number: MOMO_NUMBER, template: MOMO_USSD_TEMPLATE },
+  AIRTEL_MONEY: { label: 'Airtel Money', number: AIRTEL_NUMBER, template: AIRTEL_USSD_TEMPLATE },
+} as const;
+
 /**
- * Build the dialable MoMo USSD for a given amount.
- * Returns the raw USSD (to show/copy) and a tel: href (# encoded as %23 so the
- * dialer accepts it). The customer taps → confirms DENISE + amount → enters PIN.
+ * Build the dialable USSD for a mobile-money payment. Returns the raw USSD (to
+ * show/copy) and a tel: href (# encoded as %23 so the dialer accepts it). The
+ * customer taps → confirms DENISE + amount → enters PIN.
  */
-export const buildMomoDial = (amount: number) => {
-  const ussd = MOMO_USSD_TEMPLATE
-    .replace('{number}', MOMO_NUMBER)
+export const buildMobileMoneyDial = (method: MobileMoneyMethod, amount: number) => {
+  const { label, number, template } = MOBILE_MONEY[method];
+  const ussd = template
+    .replace('{number}', number)
     .replace('{amount}', String(Math.max(0, Math.round(amount))));
-  return { ussd, href: `tel:${ussd.replace(/#/g, '%23')}` };
+  return { label, ussd, href: `tel:${ussd.replace(/#/g, '%23')}` };
 };

@@ -16,7 +16,7 @@ import { generateTimeSlots, getMinReservationDate } from '../lib/utils';
 import FabricEstimator from '../components/reservation/FabricEstimator';
 import Seo from '../components/Seo';
 import { RWANDA_PROVINCES, getDistrictsForProvince, getDeliveryFee } from '../lib/rwanda';
-import { buildMomoDial } from '../lib/config';
+import { AIRTEL_ENABLED } from '../lib/config';
 import { cn } from '../lib/utils';
 
 const LANGUAGES = [
@@ -61,14 +61,11 @@ const FULFILLMENT_OPTIONS: {
   },
 ];
 
-const PAYMENT_METHODS: { method: PaymentMethod; logo: string; group: string }[] = [
-  { method: 'MTN_MOMO', logo: '📱', group: 'Mobile Money' },
-  { method: 'AIRTEL_MONEY', logo: '📱', group: 'Mobile Money' },
-  { method: 'VISA', logo: '💳', group: 'Credit / Debit Card' },
-  { method: 'MASTERCARD', logo: '💳', group: 'Credit / Debit Card' },
-  { method: 'FLUTTERWAVE', logo: '🌊', group: 'Other' },
-  { method: 'BANK_TRANSFER', logo: '🏦', group: 'Other' },
-  { method: 'PAYPAL', logo: '🅿️', group: 'Other' },
+// Only mobile-money methods that actually work via USSD are offered. Cash is
+// handled by the "Reserve & visit shop" flow (pay in person at the store).
+const PAYMENT_METHODS: { method: PaymentMethod; logo: string }[] = [
+  { method: 'MTN_MOMO', logo: '📱' },
+  ...(AIRTEL_ENABLED ? [{ method: 'AIRTEL_MONEY' as PaymentMethod, logo: '📱' }] : []),
 ];
 
 const DELIVERY_TYPES: { type: DeliveryType; labelKey: string; descKey: string; extraKey: string }[] = [
@@ -202,8 +199,9 @@ const ReservationPage = () => {
     const isDelivery = confirmedReservation.fulfillmentType === 'DELIVERY';
     const isPickup = confirmedReservation.fulfillmentType === 'PICKUP';
     const payAmount = confirmedReservation.totalAmount ?? 0;
-    // Show the MoMo "pay now" prompt for MTN Mobile Money orders with a due amount.
-    const momo = form.paymentMethod === 'MTN_MOMO' && payAmount > 0 ? buildMomoDial(payAmount) : null;
+    // Payment happens AFTER an admin confirms the order — the customer gets the
+    // MoMo/Airtel dial prompt on the Track Order page once the status leaves PENDING.
+    const awaitingMomoPayment = (form.paymentMethod === 'MTN_MOMO' || form.paymentMethod === 'AIRTEL_MONEY') && payAmount > 0;
     return (
       <div className="container mx-auto px-4 py-16 max-w-2xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
@@ -284,20 +282,10 @@ const ReservationPage = () => {
             </div>
           </div>
 
-          {momo && (
-            <div className="bg-primary/5 border-2 border-primary/30 rounded-2xl p-6 mb-6 text-center">
-              <h2 className="font-semibold text-lg mb-1">{t('reservation.pay_now')}</h2>
-              <p className="text-sm text-muted-foreground mb-4">{t('reservation.pay_momo_instructions')}</p>
-              <a
-                href={momo.href}
-                className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-lg"
-              >
-                <Smartphone size={20} /> {t('reservation.pay_dial')} {payAmount.toLocaleString()} {t('common.rwf')}
-              </a>
-              <p className="text-xs text-muted-foreground mt-3">
-                {t('reservation.pay_iphone_hint')}{' '}
-                <span className="font-mono font-semibold select-all">{momo.ussd}</span>
-              </p>
+          {awaitingMomoPayment && (
+            <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-5 mb-6 text-center">
+              <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">{t('reservation.pay_after_confirm_title')}</p>
+              <p className="text-blue-700 dark:text-blue-300 text-xs">{t('reservation.pay_after_confirm_desc')}</p>
             </div>
           )}
 
@@ -700,13 +688,13 @@ const ReservationPage = () => {
                     <CreditCard size={16} className="text-primary" /> {t('payment.method')} *
                   </h3>
 
-                  {/* Group: Mobile Money */}
+                  {/* Mobile Money (MTN / Airtel) */}
                   <div className="mb-4">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 font-medium">
                       📱 {t('payment.group_mobile_money')}
                     </p>
                     <div className="grid grid-cols-2 gap-2">
-                      {PAYMENT_METHODS.filter((m) => m.group === 'Mobile Money').map((m) => (
+                      {PAYMENT_METHODS.map((m) => (
                         <label key={m.method}
                           className={cn(
                             'flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-colors',
@@ -739,58 +727,6 @@ const ReservationPage = () => {
                         </p>
                       </div>
                     )}
-                  </div>
-
-                  {/* Group: Cards */}
-                  <div className="mb-4">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 font-medium">
-                      💳 {t('payment.group_card')}
-                    </p>
-                    <div className="grid grid-cols-2 gap-2">
-                      {PAYMENT_METHODS.filter((m) => m.group === 'Credit / Debit Card').map((m) => (
-                        <label key={m.method}
-                          className={cn(
-                            'flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-colors',
-                            form.paymentMethod === m.method
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/40'
-                          )}
-                        >
-                          <input type="radio" name="payment" value={m.method}
-                            checked={form.paymentMethod === m.method}
-                            onChange={(e) => update('paymentMethod', e.target.value)}
-                            className="accent-primary" />
-                          <span className="text-xl">{m.logo}</span>
-                          <span className="text-sm font-medium">{t(`payment.${m.method}`)}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Group: Other */}
-                  <div>
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 font-medium">
-                      🌐 {t('payment.group_other')}
-                    </p>
-                    <div className="grid grid-cols-1 gap-2">
-                      {PAYMENT_METHODS.filter((m) => m.group === 'Other').map((m) => (
-                        <label key={m.method}
-                          className={cn(
-                            'flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer transition-colors',
-                            form.paymentMethod === m.method
-                              ? 'border-primary bg-primary/5'
-                              : 'border-border hover:border-primary/40'
-                          )}
-                        >
-                          <input type="radio" name="payment" value={m.method}
-                            checked={form.paymentMethod === m.method}
-                            onChange={(e) => update('paymentMethod', e.target.value)}
-                            className="accent-primary" />
-                          <span className="text-xl">{m.logo}</span>
-                          <span className="text-sm font-medium">{t(`payment.${m.method}`)}</span>
-                        </label>
-                      ))}
-                    </div>
                   </div>
 
                   <div className="mt-4 p-3 bg-muted/50 rounded-xl text-xs text-muted-foreground flex items-start gap-2">
