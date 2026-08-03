@@ -94,11 +94,24 @@ const ReservationTracking = () => {
   const [searchParams] = useSearchParams();
   const [refNumber, setRefNumber] = useState(searchParams.get('ref') || '');
   const [reservation, setReservation] = useState<Reservation | null>(null);
+  const [mode, setMode] = useState<'ref' | 'name'>('ref');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [results, setResults] = useState<Reservation[]>([]);
 
   const trackMutation = useMutation({
     mutationFn: (number: string) =>
       reservationsApi.track(number).then((r) => r.data.data as Reservation),
-    onSuccess: (data) => setReservation(data),
+    onSuccess: (data) => { setReservation(data); setResults([]); },
+  });
+
+  const lookupMutation = useMutation({
+    mutationFn: (vars: { name: string; phone: string }) =>
+      reservationsApi.lookup(vars.name, vars.phone).then((r) => r.data.data as Reservation[]),
+    onSuccess: (list) => {
+      if (list.length === 1) { setReservation(list[0]); setResults([]); }
+      else { setReservation(null); setResults(list); }
+    },
   });
 
   useEffect(() => {
@@ -110,6 +123,16 @@ const ReservationTracking = () => {
     e.preventDefault();
     if (refNumber.trim()) trackMutation.mutate(refNumber.trim());
   };
+
+  const handleLookup = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim() && phone.trim()) lookupMutation.mutate({ name: name.trim(), phone: phone.trim() });
+  };
+
+  const notFound =
+    trackMutation.isError ||
+    lookupMutation.isError ||
+    (lookupMutation.isSuccess && results.length === 0 && !reservation);
 
   const fulfillmentType: FulfillmentType = reservation?.fulfillmentType ?? 'RESERVATION';
   const pipeline = STATUS_PIPELINES[fulfillmentType];
@@ -139,29 +162,84 @@ const ReservationTracking = () => {
         title="Track Your Order — DENISE Textile Rwanda"
         description="Track your DENISE Textile reservation or delivery by reference number."
       />
-      <div className="text-center mb-10">
+      <div className="text-center mb-6">
         <h1 className="font-serif text-3xl font-bold mb-2">{t('reservation.track_title')}</h1>
         <p className="text-muted-foreground">
-          Enter your reference number to track your {isDelivery ? 'delivery' : isPickup ? 'order' : 'reservation'}
+          {t('reservation.track_subtitle')}
         </p>
       </div>
 
-      <form onSubmit={handleTrack} className="flex gap-3 mb-8">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input type="text" value={refNumber} onChange={(e) => setRefNumber(e.target.value)}
-            placeholder={t('reservation.track_placeholder')}
-            className="w-full pl-9 pr-4 py-3 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-        </div>
-        <button type="submit" disabled={trackMutation.isPending || !refNumber.trim()}
-          className="px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50">
-          {trackMutation.isPending ? '...' : t('reservation.track_button')}
-        </button>
-      </form>
+      {/* Mode toggle */}
+      <div className="flex gap-2 mb-5 justify-center">
+        {(['ref', 'name'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => { setMode(m); setResults([]); }}
+            className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${mode === m ? 'bg-primary text-white' : 'border border-border hover:bg-accent'}`}
+          >
+            {m === 'ref' ? t('reservation.track_by_ref') : t('reservation.track_by_name')}
+          </button>
+        ))}
+      </div>
 
-      {trackMutation.error && (
+      {mode === 'ref' ? (
+        <form onSubmit={handleTrack} className="flex gap-3 mb-8">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input type="text" value={refNumber} onChange={(e) => setRefNumber(e.target.value)}
+              placeholder={t('reservation.track_placeholder')}
+              className="w-full pl-9 pr-4 py-3 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+          <button type="submit" disabled={trackMutation.isPending || !refNumber.trim()}
+            className="px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50">
+            {trackMutation.isPending ? '...' : t('reservation.track_button')}
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={handleLookup} className="space-y-3 mb-8">
+          <div className="relative">
+            <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)}
+              placeholder={t('reservation.customer_name')}
+              className="w-full pl-9 pr-4 py-3 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+          <div className="relative">
+            <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)}
+              placeholder="+250 7…"
+              className="w-full pl-9 pr-4 py-3 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+          </div>
+          <button type="submit" disabled={lookupMutation.isPending || !name.trim() || !phone.trim()}
+            className="w-full px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50">
+            {lookupMutation.isPending ? '...' : t('reservation.track_find')}
+          </button>
+        </form>
+      )}
+
+      {notFound && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center text-sm text-red-600 mb-6">
-          Reference not found. Please check your number and try again.
+          {t('reservation.track_not_found')}
+        </div>
+      )}
+
+      {/* Multiple matches — pick one */}
+      {results.length > 1 && (
+        <div className="space-y-2 mb-8">
+          <p className="text-sm text-muted-foreground">{t('reservation.track_select')}</p>
+          {results.map((r) => (
+            <button
+              key={r.id}
+              type="button"
+              onClick={() => { setReservation(r); setResults([]); }}
+              className="w-full flex items-center justify-between gap-3 p-4 bg-card border border-border rounded-xl text-left hover:border-primary/40 transition-colors"
+            >
+              <span className="font-mono font-semibold text-primary">{r.reservationNumber}</span>
+              <span className={`text-xs px-2 py-0.5 rounded-full border ${getStatusColor(r.status)}`}>
+                {getStatusLabel(r.status)}
+              </span>
+            </button>
+          ))}
         </div>
       )}
 

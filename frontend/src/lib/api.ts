@@ -108,6 +108,7 @@ export const categoriesApi = {
 export const reservationsApi = {
   create: (data: Record<string, unknown>) => api.post('/reservations', data),
   track: (number: string) => api.get(`/reservations/track/${number}`),
+  lookup: (name: string, phone: string) => api.get('/reservations/lookup', { params: { name, phone } }),
   getMyReservations: () => api.get('/reservations/my'),
   getAll: (params?: Record<string, unknown>) => api.get('/reservations', { params }),
   updateStatus: (id: string, data: Record<string, unknown>) => api.put(`/reservations/${id}/status`, data),

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import {
-  createReservation, getReservationByNumber, getMyReservations, getAllReservations,
+  createReservation, getReservationByNumber, lookupReservations, getMyReservations, getAllReservations,
   updateReservationStatus, cancelReservation, getReservationStats,
 } from '../controllers/reservation.controller';
 import { authenticate, optionalAuth } from '../middleware/auth.middleware';
@@ -18,6 +18,7 @@ const router = Router();
 
 router.post('/', reservationLimiter, optionalAuth, createReservationRules, createReservation);
 router.get('/track/:number', trackReservationRules, getReservationByNumber);
+router.get('/lookup', reservationLimiter, lookupReservations);
 router.get('/my', authenticate, getMyReservations);
 router.get('/stats', authenticate, requireAdmin, getReservationStats);
 router.get('/', authenticate, requireAdmin, listReservationsRules, getAllReservations);

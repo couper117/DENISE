@@ -241,6 +241,38 @@ export const getReservationByNumber = async (req: Request, res: Response): Promi
   }
 };
 
+// Guest lookup by name + phone (BOTH required, so a name alone can't reveal
+// someone else's orders). Phone is matched on its significant digits so it works
+// regardless of format (+250…, 078…, spaces).
+export const lookupReservations = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const name = String(req.query.name || '').trim();
+    const digits = String(req.query.phone || '').replace(/\D/g, '');
+    if (name.length < 2 || digits.length < 6) {
+      res.status(400).json({ success: false, message: 'Both name and phone number are required' });
+      return;
+    }
+    const sig = digits.slice(-9);
+    const reservations = await prisma.reservation.findMany({
+      where: {
+        customerName: { contains: name, mode: 'insensitive' },
+        customerPhone: { contains: sig },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+      include: {
+        items: { include: { product: { include: { images: { where: { isPrimary: true }, take: 1 } } } } },
+        deliveryAddress: true,
+        payments: true,
+      },
+    });
+    res.json({ success: true, data: reservations });
+  } catch (error) {
+    logger.error('LookupReservations error:', error);
+    res.status(500).json({ success: false, message: 'Failed to look up orders' });
+  }
+};
+
 export const getMyReservations = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const reservations = await prisma.reservation.findMany({
