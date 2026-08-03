@@ -9,6 +9,7 @@ import { Product, Category } from '../types';
 import ProductCard from '../components/products/ProductCard';
 import { ProductGridSkeleton } from '../components/ui/SkeletonCard';
 import Seo from '../components/Seo';
+import Breadcrumbs from '../components/Breadcrumbs';
 import { EditableText } from '../cms';
 
 const SORT_OPTIONS = [
@@ -79,6 +80,7 @@ const Products = () => {
         title="Shop Curtains, Fabrics & Traditional Attire — DENISE Rwanda"
         description="Browse curtains (amarido), voile, blackout & velvet curtains, fabrics, imikenyero, imishanana and imyenda gakondo. Buy online with delivery across Rwanda or reserve for pickup in Kigali."
       />
+      <Breadcrumbs items={[{ label: t('nav.products') }]} />
       {/* Header */}
       <div className="mb-8">
         <EditableText id="products.title" as="h1" className="font-serif text-3xl font-bold mb-2" />

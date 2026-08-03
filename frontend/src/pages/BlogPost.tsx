@@ -7,6 +7,7 @@ import { Blog } from '../types';
 import { formatDate } from '../lib/utils';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Seo from '../components/Seo';
+import Breadcrumbs from '../components/Breadcrumbs';
 import { EditableText } from '../cms';
 
 const BlogPost = () => {
@@ -33,6 +34,7 @@ const BlogPost = () => {
         image={post.imageUrl}
         type="article"
       />
+      <Breadcrumbs items={[{ label: t('nav.blog'), to: '/blog' }, { label: post.title }]} />
       <Link to="/blog" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors">
         <ChevronLeft size={14} /> <EditableText id="blog.back" />
       </Link>

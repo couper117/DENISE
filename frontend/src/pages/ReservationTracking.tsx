@@ -12,6 +12,7 @@ import { Reservation, FulfillmentType } from '../types';
 import { formatDate, getStatusColor, getStatusLabel } from '../lib/utils';
 import { WHATSAPP_LINK, buildMobileMoneyDial, MobileMoneyMethod } from '../lib/config';
 import Seo from '../components/Seo';
+import Breadcrumbs from '../components/Breadcrumbs';
 import { EditableText } from '../cms';
 import { useCustomerIdentity } from '../lib/useCustomerIdentity';
 
@@ -171,6 +172,7 @@ const ReservationTracking = () => {
         title="Track Your Order — DENISE Textile Rwanda"
         description="Track your DENISE Textile reservation or delivery by reference number."
       />
+      <Breadcrumbs items={[{ label: t('nav.track') }]} />
       <div className="text-center mb-6">
         <EditableText id="reservation.track_title" as="h1" className="font-serif text-3xl font-bold mb-2" />
         <p className="text-muted-foreground">

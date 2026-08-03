@@ -13,6 +13,7 @@ import { Product, ProductReview, FulfillmentType } from '../types';
 import ProductCard from '../components/products/ProductCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Seo from '../components/Seo';
+import Breadcrumbs from '../components/Breadcrumbs';
 import { cn } from '../lib/utils';
 import { EditableText } from '../cms';
 import { useCustomerIdentity } from '../lib/useCustomerIdentity';
@@ -193,18 +194,11 @@ const ProductDetail = () => {
             : {}),
         }}
       />
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 flex-wrap">
-        <Link to="/" className="hover:text-primary">Home</Link>
-        <ChevronRight size={14} />
-        <Link to="/products" className="hover:text-primary">Products</Link>
-        <ChevronRight size={14} />
-        <Link to={`/products?category=${product.category?.slug}`} className="hover:text-primary">
-          {product.category?.name}
-        </Link>
-        <ChevronRight size={14} />
-        <span className="text-foreground truncate max-w-32">{product.name}</span>
-      </nav>
+      <Breadcrumbs items={[
+        { label: t('nav.products'), to: '/products' },
+        ...(product.category ? [{ label: product.category.name, to: `/products?category=${product.category.slug}` }] : []),
+        { label: product.name },
+      ]} />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-16">
         {/* Images */}

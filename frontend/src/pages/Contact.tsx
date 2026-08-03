@@ -7,6 +7,7 @@ import {
   BUSINESS_HOURS, WHATSAPP_LINK,
 } from '../lib/config';
 import Seo from '../components/Seo';
+import Breadcrumbs from '../components/Breadcrumbs';
 import { EditableText } from '../cms';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
@@ -32,6 +33,7 @@ const Contact = () => {
         title="Contact DENISE Textile — Kigali, Rwanda"
         description="Contact DENISE Textile in Kigali. WhatsApp, call or visit. Curtains, fabrics and traditional Rwandan attire."
       />
+      <Breadcrumbs items={[{ label: t('nav.contact') }]} />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
         <EditableText id="contact.title" as="h1" className="font-serif text-4xl font-bold mb-3" />
         <EditableText id="contact.subtitle" as="p" className="text-muted-foreground max-w-lg mx-auto" />

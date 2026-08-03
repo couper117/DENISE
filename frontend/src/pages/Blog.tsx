@@ -8,6 +8,7 @@ import { Blog } from '../types';
 import { formatDate, truncate } from '../lib/utils';
 import { ProductGridSkeleton } from '../components/ui/SkeletonCard';
 import Seo from '../components/Seo';
+import Breadcrumbs from '../components/Breadcrumbs';
 import { EditableText } from '../cms';
 
 const BlogPage = () => {
@@ -29,6 +30,7 @@ const BlogPage = () => {
         title="Blog — Interior Design & Rwandan Textile Tips | DENISE"
         description="Interior design ideas, curtain guides, and Rwandan traditional attire inspiration from DENISE Textile, Kigali."
       />
+      <Breadcrumbs items={[{ label: t('nav.blog') }]} />
       <div className="text-center mb-10">
         <EditableText id="blog.title" as="h1" className="font-serif text-4xl font-bold mb-3" />
         <EditableText id="blog.subtitle" as="p" className="text-muted-foreground" />

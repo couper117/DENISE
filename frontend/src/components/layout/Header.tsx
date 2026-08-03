@@ -51,6 +51,7 @@ const Header = () => {
     { to: '/', labelKey: 'nav.home', end: true },
     { to: '/products', labelKey: 'nav.products' },
     { to: '/reservation', labelKey: 'nav.reservation' },
+    { to: '/track', labelKey: 'nav.track' },
     { to: '/about', labelKey: 'nav.about' },
     { to: '/blog', labelKey: 'nav.blog' },
     { to: '/contact', labelKey: 'nav.contact' },
