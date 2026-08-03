@@ -482,7 +482,9 @@
       "updating": "Updating...",
       "payment": "Payment",
       "mark_paid": "Mark as Paid",
-      "mark_unpaid": "Mark unpaid"
+      "mark_unpaid": "Mark unpaid",
+      "amount_to_charge": "Amount to charge (RWF)",
+      "amount_hint": "The final price the customer pays via MoMo — set this for products priced as a range. Leave blank to keep the current amount."
     },
     "customers": {
       "title": "Customers",

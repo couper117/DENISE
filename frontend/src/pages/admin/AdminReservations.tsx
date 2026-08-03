@@ -43,6 +43,7 @@ const AdminReservations = () => {
   const [selected, setSelected] = useState<Reservation | null>(null);
   const [adminNotes, setAdminNotes] = useState('');
   const [newStatus, setNewStatus] = useState('');
+  const [amount, setAmount] = useState('');
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-reservations', { search, status, fulfillmentFilter, page }],
@@ -57,8 +58,8 @@ const AdminReservations = () => {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: ({ id, status, adminNotes }: { id: string; status: string; adminNotes?: string }) =>
-      reservationsApi.updateStatus(id, { status, adminNotes }),
+    mutationFn: ({ id, status, adminNotes, totalAmount }: { id: string; status: string; adminNotes?: string; totalAmount?: string }) =>
+      reservationsApi.updateStatus(id, { status, adminNotes, ...(totalAmount !== undefined && totalAmount !== '' ? { totalAmount } : {}) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reservations'] });
       setSelected(null);
@@ -162,7 +163,7 @@ const AdminReservations = () => {
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={() => { setSelected(r); setNewStatus(r.status); setAdminNotes(r.adminNotes || ''); }}
+                        onClick={() => { setSelected(r); setNewStatus(r.status); setAdminNotes(r.adminNotes || ''); setAmount(r.totalAmount != null ? String(r.totalAmount) : ''); }}
                         className="px-3 py-1.5 text-xs bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors"
                       >
                         {t('admin.reservations.manage')}
@@ -212,6 +213,16 @@ const AdminReservations = () => {
 
             {(selected.fulfillmentType === 'PICKUP' || selected.fulfillmentType === 'DELIVERY') && (
               <div className="mb-4">
+                <label className="text-sm font-medium block mb-1.5">{t('admin.reservations.amount_to_charge')}</label>
+                <input type="number" min="0" step="1" inputMode="numeric" value={amount}
+                  onChange={(e) => setAmount(e.target.value)} placeholder="e.g. 45000"
+                  className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                <p className="text-xs text-muted-foreground mt-1">{t('admin.reservations.amount_hint')}</p>
+              </div>
+            )}
+
+            {(selected.fulfillmentType === 'PICKUP' || selected.fulfillmentType === 'DELIVERY') && (
+              <div className="mb-4">
                 <label className="text-sm font-medium block mb-1.5">{t('admin.reservations.payment')}</label>
                 <div className="flex items-center justify-between gap-3 p-3 border border-border rounded-xl">
                   <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${PS_COLORS[selected.paymentStatus] || 'bg-muted'}`}>
@@ -257,7 +268,7 @@ const AdminReservations = () => {
                 {t('admin.cancel')}
               </button>
               <button
-                onClick={() => updateStatusMutation.mutate({ id: selected.id, status: newStatus, adminNotes })}
+                onClick={() => updateStatusMutation.mutate({ id: selected.id, status: newStatus, adminNotes, totalAmount: amount })}
                 disabled={updateStatusMutation.isPending}
                 className="flex-1 py-2.5 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-70">
                 {updateStatusMutation.isPending ? t('admin.reservations.updating') : t('admin.reservations.update_status')}
