@@ -341,6 +341,8 @@ const recomputeReservationTotal = async (id: string): Promise<void> => {
     include: { items: { include: { product: true } }, payments: true },
   });
   if (!r || (r.fulfillmentType !== 'PICKUP' && r.fulfillmentType !== 'DELIVERY')) return;
+  // Never overwrite an amount that's already been set (by the admin or a prior run).
+  if (r.totalAmount != null && r.totalAmount > 0) return;
 
   let goods = 0;
   for (const it of r.items) {
@@ -366,15 +368,23 @@ const VALID_PAYMENT_STATUSES = ['AWAITING', 'PENDING', 'COMPLETED', 'FAILED', 'R
 export const updateReservationStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { status, adminNotes, cancelReason, paymentStatus } = req.body;
+    const { status, adminNotes, cancelReason, paymentStatus, totalAmount } = req.body;
 
     if (paymentStatus && !VALID_PAYMENT_STATUSES.includes(paymentStatus)) {
       res.status(400).json({ success: false, message: 'Invalid payment status' });
       return;
     }
 
-    // Finalise the payable amount from current prices when the order is confirmed.
-    if (status === 'CONFIRMED') {
+    // Optional admin-set amount to charge (for products priced as a range).
+    const amt = totalAmount !== undefined && totalAmount !== null && totalAmount !== ''
+      ? Number(totalAmount) : undefined;
+    if (amt !== undefined && (!Number.isFinite(amt) || amt < 0)) {
+      res.status(400).json({ success: false, message: 'Invalid amount' });
+      return;
+    }
+
+    // Auto-compute from product prices on confirm ONLY when the admin didn't set an amount.
+    if (status === 'CONFIRMED' && amt === undefined) {
       await recomputeReservationTotal(id).catch((e) => logger.error('Recompute total on confirm failed:', e));
     }
 
@@ -385,12 +395,31 @@ export const updateReservationStatus = async (req: Request, res: Response): Prom
         adminNotes: adminNotes || null,
         cancelReason: status === 'CANCELLED' ? cancelReason : null,
         ...(paymentStatus ? { paymentStatus } : {}),
+        ...(amt !== undefined ? { totalAmount: amt > 0 ? amt : null } : {}),
       },
     });
 
     // Keep the Payment record(s) in sync so verify/track reflect "Paid".
     if (paymentStatus) {
       await prisma.payment.updateMany({ where: { reservationId: id }, data: { status: paymentStatus } });
+    }
+
+    // When an amount is set on an online-payment order, make sure a pending
+    // mobile-money payment exists with that amount, so the customer's pay button shows.
+    if (amt !== undefined && amt > 0 && (reservation.fulfillmentType === 'PICKUP' || reservation.fulfillmentType === 'DELIVERY')) {
+      const existing = await prisma.payment.findFirst({
+        where: { reservationId: id, method: { in: ['MTN_MOMO', 'AIRTEL_MONEY'] } },
+      });
+      if (existing) {
+        await prisma.payment.update({ where: { id: existing.id }, data: { amount: amt } });
+      } else {
+        await prisma.payment.create({
+          data: {
+            reservationId: id, method: 'MTN_MOMO', amount: amt, currency: 'RWF', status: 'PENDING',
+            reference: `PAY-${Date.now()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
+          },
+        });
+      }
     }
 
     const formattedDate = reservation.visitDate
