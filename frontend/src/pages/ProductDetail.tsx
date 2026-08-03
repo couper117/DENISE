@@ -1,52 +1,25 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  ShoppingBag, Heart, Share2, ChevronLeft, ZoomIn, ChevronRight,
-  Star, Store, Package, Truck, ThumbsUp, CheckCircle,
+  Heart, Share2, ChevronLeft, ZoomIn, ChevronRight,
+  Star, ThumbsUp, CheckCircle, Truck, Store,
 } from 'lucide-react';
 import { productsApi, reviewsApi } from '../lib/api';
 import { useCartStore } from '../store';
-import { Product, ProductReview, FulfillmentType } from '../types';
+import { Product, ProductReview } from '../types';
+import { Configuration } from '../lib/productOptions';
 import ProductCard from '../components/products/ProductCard';
+import ProductConfigurator from '../components/products/ProductConfigurator';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
+import { toast } from '../components/ui/Toaster';
 import Seo from '../components/Seo';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { cn } from '../lib/utils';
 import { EditableText } from '../cms';
 import { useCustomerIdentity } from '../lib/useCustomerIdentity';
-
-const PURCHASE_OPTIONS: {
-  type: FulfillmentType;
-  icon: React.ReactNode;
-  label: string;
-  sub: string;
-  color: string;
-}[] = [
-  {
-    type: 'RESERVATION',
-    icon: <Store size={18} />,
-    label: 'Reserve & Visit',
-    sub: 'No payment now',
-    color: 'border-brand-green text-brand-green bg-green-50 dark:bg-green-950/20',
-  },
-  {
-    type: 'PICKUP',
-    icon: <Package size={18} />,
-    label: 'Buy + Pickup',
-    sub: 'Pay online',
-    color: 'border-blue-500 text-blue-600 bg-blue-50 dark:bg-blue-950/20',
-  },
-  {
-    type: 'DELIVERY',
-    icon: <Truck size={18} />,
-    label: 'Buy + Delivery',
-    sub: 'Rwanda-wide',
-    color: 'border-purple-500 text-purple-600 bg-purple-50 dark:bg-purple-950/20',
-  },
-];
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => (
   <div className="flex gap-0.5">
@@ -90,8 +63,13 @@ const ReviewCard = ({ review }: { review: ProductReview }) => (
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { t } = useTranslation();
-  const { addItem, items } = useCartStore();
+  const { addLine, updateLine, items } = useCartStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // `?line=` means the customer came from the cart to change a line they
+  // already configured, so the form is seeded from it and saves back to it.
+  const editingLineId = searchParams.get('line');
+  const editingLine = items.find((i) => i.id === editingLineId);
   const [selectedImage, setSelectedImage] = useState(0);
   const [zoomed, setZoomed] = useState(false);
   const [tab, setTab] = useState<'description' | 'specs' | 'materials' | 'reviews'>('description');
@@ -131,11 +109,21 @@ const ProductDetail = () => {
 
   const product = data;
   const reviews = reviewsData ?? product.reviews ?? [];
-  const inCart = items.some((i) => i.product.id === product.id);
+  const linesForProduct = items.filter((i) => i.product.id === product.id).length;
 
-  const handlePurchaseOption = (type: FulfillmentType) => {
-    if (!inCart) addItem(product);
-    navigate(`/reservation?mode=${type}`);
+  const handleConfigured = (config: Configuration, quantity: number) => {
+    if (editingLine) {
+      updateLine(editingLine.id, config, quantity);
+      toast({ title: t('cart.updated', { defaultValue: 'Cart updated' }), variant: 'success' });
+      navigate('/cart');
+      return;
+    }
+    addLine(product, config, quantity);
+    toast({
+      title: t('cart.added', { defaultValue: 'Added to cart' }),
+      description: product.name,
+      variant: 'success',
+    });
   };
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -332,48 +320,69 @@ const ProductDetail = () => {
             )}
           </div>
 
-          {/* Three purchase options */}
-          {product.isAvailable && (
-            <div className="mb-6">
-              <p className="text-sm font-medium mb-3">How would you like to get this?</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                {PURCHASE_OPTIONS.filter((opt) => {
-                  if (opt.type === 'DELIVERY' && !product.canBeDelivered) return false;
-                  if ((opt.type === 'PICKUP' || opt.type === 'DELIVERY') && !product.canBuyOnline) return false;
-                  return true;
-                }).map((opt) => (
-                  <button
-                    key={opt.type}
-                    onClick={() => handlePurchaseOption(opt.type)}
-                    className={cn(
-                      'flex flex-col items-center gap-1 p-3 border-2 rounded-xl text-center transition-all hover:scale-[1.02] active:scale-[0.98]',
-                      opt.color
-                    )}
-                  >
-                    {opt.icon}
-                    <span className="font-semibold text-xs">{opt.label}</span>
-                    <span className="text-xs opacity-70">{opt.sub}</span>
-                  </button>
-                ))}
-              </div>
-              {inCart && (
-                <p className="text-xs text-primary mt-2 text-center">✓ Already in cart</p>
-              )}
-            </div>
-          )}
+          {/* ── Configure, then add to cart ─────────────────────────────────
+              How the order is fulfilled and paid for is decided at checkout,
+              once the customer knows what the whole basket costs. This page is
+              only about the product. */}
+          <div className="border border-border rounded-2xl p-5 mb-6 bg-card">
+            <h2 className="font-serif text-lg font-semibold mb-4">
+              {editingLine
+                ? t('cart.edit_item', { defaultValue: 'Edit this item' })
+                : t('config.title', { defaultValue: 'Configure your order' })}
+            </h2>
+            <ProductConfigurator
+              key={editingLine?.id ?? 'new'}
+              product={product}
+              mode={editingLine ? 'edit' : 'add'}
+              initialConfig={editingLine?.config}
+              initialQuantity={editingLine?.quantity}
+              onSubmit={handleConfigured}
+            />
+            {!editingLine && linesForProduct > 0 && (
+              <Link
+                to="/cart"
+                className="mt-3 flex items-center justify-center gap-1.5 w-full py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-accent transition-colors"
+              >
+                <CheckCircle size={14} className="text-primary" />
+                {t('cart.in_cart_view', {
+                  defaultValue: '{{count}} in your cart — view cart',
+                  count: linesForProduct,
+                })}
+              </Link>
+            )}
+          </div>
+
+          {/* Fulfilment options this product supports — set expectations before
+              checkout without asking the customer to decide yet. */}
+          <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground mb-6">
+            <span className="flex items-center gap-1.5">
+              <Store size={13} className="text-primary" />
+              {t('config.badge_pickup', { defaultValue: 'Collect from our Kigali shop' })}
+            </span>
+            {product.canBeDelivered && (
+              <span className="flex items-center gap-1.5">
+                <Truck size={13} className="text-primary" />
+                {t('config.badge_delivery', { defaultValue: 'Delivery across Rwanda' })}
+              </span>
+            )}
+          </div>
 
           <div className="flex gap-3 mb-6">
             {!product.isAvailable && (
               <div className="flex-1 flex items-center justify-center py-3 bg-muted text-muted-foreground font-medium rounded-xl text-sm">
-                Out of Stock
+                {t('products.out_of_stock')}
               </div>
             )}
             <button
+              type="button"
+              aria-label={t('products.save')}
               className="p-3 border border-border rounded-xl hover:bg-accent transition-colors text-muted-foreground hover:text-red-500"
             >
               <Heart size={18} />
             </button>
             <button
+              type="button"
+              aria-label={t('products.share')}
               onClick={() => navigator.share?.({ title: product.name, url: window.location.href })}
               className="p-3 border border-border rounded-xl hover:bg-accent transition-colors text-muted-foreground hover:text-primary"
             >

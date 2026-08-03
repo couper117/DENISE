@@ -13,7 +13,8 @@ import { CmsProvider } from './cms';
 const Home = lazy(() => import('./pages/Home'));
 const Products = lazy(() => import('./pages/Products'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
-const Reservation = lazy(() => import('./pages/Reservation'));
+const Cart = lazy(() => import('./pages/Cart'));
+const Checkout = lazy(() => import('./pages/Checkout'));
 const ReservationTracking = lazy(() => import('./pages/ReservationTracking'));
 const About = lazy(() => import('./pages/About'));
 const Blog = lazy(() => import('./pages/Blog'));
@@ -66,7 +67,12 @@ const App = () => {
             <Route path="/" element={<Home />} />
             <Route path="/products" element={<Products />} />
             <Route path="/products/:slug" element={<ProductDetail />} />
-            <Route path="/reservation" element={<Reservation />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/checkout" element={<Checkout />} />
+            {/* The old single-page reservation wizard was split into the cart
+                and checkout above. Links in the wild — SMS receipts, the
+                sitemap, bookmarks — must still land somewhere useful. */}
+            <Route path="/reservation" element={<Navigate to="/cart" replace />} />
             <Route path="/track" element={<ReservationTracking />} />
             <Route path="/about" element={<About />} />
             <Route path="/blog" element={<Blog />} />

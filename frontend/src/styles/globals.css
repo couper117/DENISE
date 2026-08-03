@@ -96,4 +96,22 @@
 @media print {
   .no-print { display: none !important; }
   .print-only { display: block !important; }
+
+  /* Printing an invoice from inside the admin SPA: everything is hidden and
+     only #print-area is made visible again, then lifted to the top of the page.
+     `visibility` rather than `display` so ancestors keep their layout — hiding
+     a parent with display:none would take the invoice down with it. */
+  body:has(#print-area) * { visibility: hidden; }
+  #print-area, #print-area * { visibility: visible; }
+  #print-area {
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    max-height: none;
+    overflow: visible;
+    background: #fff;
+    color: #000;
+  }
 }

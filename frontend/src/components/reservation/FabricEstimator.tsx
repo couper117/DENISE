@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Calculator, Info } from 'lucide-react';
+import { computeCurtainMeters } from '../../lib/productOptions';
 
 type EstimatorType = 'curtain' | 'attire';
 
 const FabricEstimator = () => {
   const { t } = useTranslation();
   const [type, setType] = useState<EstimatorType>('curtain');
-  const [inputs, setInputs] = useState({ width: '', height: '', windows: '1', panels: '2', fullness: '2.5', garmentType: 'top', size: 'M' });
+  const [inputs, setInputs] = useState({ width: '', height: '', windows: '1', fullness: '2.5', garmentType: 'top', size: 'M' });
   const [result, setResult] = useState<number | null>(null);
 
   const attireFabricMap: Record<string, Record<string, number>> = {
@@ -24,9 +25,12 @@ const FabricEstimator = () => {
       const h = parseFloat(inputs.height) || 0;
       const windows = parseInt(inputs.windows) || 1;
       const fullness = parseFloat(inputs.fullness) || 2.5;
-      const panels = parseInt(inputs.panels) || 2;
-      const hem = 0.3;
-      const meters = ((w / 100 * fullness) * panels * ((h / 100) + hem)) * windows;
+      // Shared with the product configurator so the estimate a customer gets
+      // here matches the metres they are actually charged for. The previous
+      // formula also multiplied by the panel count, which over-estimated a
+      // pair by 2× — splitting the same gathered width into two panels does
+      // not need twice the fabric.
+      const meters = computeCurtainMeters(w, h, fullness) * windows;
       setResult(Math.ceil(meters * 10) / 10);
     } else {
       const meters = attireFabricMap[inputs.garmentType]?.[inputs.size] || 2;
@@ -65,20 +69,11 @@ const FabricEstimator = () => {
                 className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="250" />
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-muted-foreground">Windows</label>
               <input type="number" value={inputs.windows} onChange={(e) => setInputs(p => ({ ...p, windows: e.target.value }))}
                 className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" placeholder="1" min="1" />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground">Panels/Window</label>
-              <select value={inputs.panels} onChange={(e) => setInputs(p => ({ ...p, panels: e.target.value }))}
-                className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-                <option value="1">1</option>
-                <option value="2">2</option>
-                <option value="3">3</option>
-              </select>
             </div>
             <div>
               <label className="text-xs text-muted-foreground">Fullness</label>

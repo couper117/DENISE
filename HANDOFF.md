@@ -1,283 +1,178 @@
 # HANDOFF
 
 ## Current Task
-Visual CMS (VCMS): the website itself becomes the content editor. Admins toggle
-"Edit Website" in the navbar and edit in place; visitors see and download
-nothing. Branch `Levi`. **Backend done, frontend not started — uncommitted.**
+Checkout redesign: the buying journey now runs
+**browse → configure → add to cart → review cart → checkout → delivery details →
+review order → choose payment → pay → await admin confirmation → track**.
+Payment used to be the *first* question asked (on the product page, and again as
+step 1 of the reservation wizard); it is now the last. Branch `Levi`, merged to
+`main`.
 
 ## Status
-All 8 phases complete and **uncommitted**. Verified against a real Postgres:
-both migrations apply, 24/24 API checks, 9/9 end-to-end browser checks
-(login → edit → autosave → publish → anonymous visitor sees it), 10/10 media
-checks, 11/11 history-and-settings checks.
+Shipped. Backend and frontend typecheck, the production build passes, and the
+migration applies cleanly to a real Postgres and is safely re-runnable.
 
-**Not yet done:** nothing has run against the production database, and no
-Cloudinary credentials were configured, so the server-side crop path
-(`buildTransform`) has only been exercised through its local-disk fallback.
+**Verified:** 44/44 API checks (server-side pricing, tampered carts, option
+normalisation, stock across lines, delivery fees, status history, admin filters
+and search) and 29/35 browser checks of the journey.
+
+**Not verified:** the browser pass was not re-run after the last fix — the user
+asked to skip it and ship. Specifically unverified in a browser: the
+duplicate-submit fix and the confirmation screen behind it. The 6 failures in
+the last recorded browser run were all downstream of the double-submit bug,
+which is fixed but not re-run. **Re-run `browser.js` (recipe at the bottom)
+before trusting the confirmation screen.**
 
 ## Progress
-- [x] 1 — Data model: `ContentBlock`, `ContentRevision`, `MediaAsset`,
-      `MediaFolder`, `SiteSetting` + `ContentType` enum. Migration written to
-      `20260803120000_visual_cms_and_review_votes` — it **also carries the
-      outstanding `ReviewHelpfulVote` table**, so that older gap is closed.
-- [x] 2 — Content API (`/api/cms`): public published map with ETag, admin draft
-      map, batch draft save, publish, discard, revisions, restore, search,
-      find-and-replace, schedule + a 60s release timer in `index.ts`.
-- [x] 3 — Media API (`/api/media`): multi-file upload, list/search/tag/folder
-      CRUD, usage check before delete, Cloudinary crop transforms.
-- [x] 4 — Frontend core in `frontend/src/cms/`: `CmsProvider`, zustand store,
-      `Editable*` primitives, `EditWebsiteButton` in the navbar, editor chunk
-      shell. About.tsx converted as the reference adoption.
-- [x] 5 — Editors: inline contentEditable for text/rich text with a format
-      toolbar, anchored glass panels for image / link / icon / number / colour,
-      and a list editor with add / remove / reorder / duplicate. Exercised in a
-      real browser over CDP.
-- [x] 6 — Save system: debounced autosave with a hard ceiling, publish /
-      discard / preview in the toolbar, status pill, unload guard, toasts.
-      `cms/sync.ts` is the single implementation of every write path.
-- [x] 7 — Media library modal (folders, search, tags, drag-drop upload, detail
-      pane, usage-count warning before delete) and a crop / resize / recompress
-      tool. 10/10 browser checks.
-- [x] 8 — Version history (list, author, relative time, word-level diff,
-      restore-into-draft), site settings (SEO, logo, favicon, theme colours,
-      analytics id, maintenance mode) and global find-and-replace with a dry-run
-      preview. 11/11 browser checks.
+- [x] Product page configures the curtain (colour, width, drop, panels, header,
+      lining, fullness, quantity, notes) with a live total and validation
+- [x] `/cart` — line items with specs, quantity steppers, edit, remove, summary
+- [x] `/checkout` — delivery → review → **payment last** → confirmation
+- [x] Backend prices every line server-side and stores the configuration
+- [x] Order status history, price breakdown, scheduled delivery date persisted
+- [x] Admin: payment method/reference, ordered specs, breakdown, history,
+      payment-status filter, reference search, printable invoice
+- [x] i18n keys in all five locales (en + fr translated; rw/sw/ln fall back —
+      see "Known gaps")
+- [ ] Browser re-run of the full journey after the duplicate-submit fix
 
-## Deploying this
+## Architecture — read this before changing the checkout
 
-1. `npx prisma migrate deploy` against the real database.
-2. Set `CLOUDINARY_*` if you want non-destructive server-side crops and CDN
-   delivery; without it uploads land on local disk, which is **ephemeral on
-   Railway/Render** — images will vanish on redeploy.
-3. Nothing else. The CMS renders correctly against an empty database.
+**The flow is three pages, not one wizard.** `pages/Reservation.tsx` (881 lines:
+fulfilment → cart → one giant form) is **deleted**. It became:
+- `pages/Cart.tsx` — the basket, no questions asked
+- `pages/Checkout.tsx` — delivery info → order review → payment → success
+- `/reservation` is a `<Navigate to="/cart">` so SMS receipts and bookmarks live
 
-## VCMS architecture — read this before continuing
+**Fulfilment (delivery / pickup / reserve-and-visit) moved to checkout step 1,**
+not the product page, because the delivery fee cannot be known until a province
+is chosen, and that fee has to be inside the total the customer reviews *before*
+paying. The three types and their semantics are otherwise unchanged.
 
-**The load-bearing decision:** every piece of marketing copy on this site
-already flows through `t('some.key')` (`hero.title`, `about.story_p1`,
-`footer.tagline`) in five locales. That is already a universal, page-agnostic
-content addressing scheme. The CMS does **not** invent one — it overlays it.
+**Configuration lives in one catalogue, duplicated on purpose:**
+`frontend/src/lib/productOptions.ts` and `backend/src/utils/productOptions.ts`.
+The frontend one drives the UI and shows an estimate; **the backend one is the
+authority** and re-prices every line from the product row at checkout, so a
+tampered cart cannot change what is owed (there is an API check for exactly
+that). Keep them in sync — `DELIVERY_FEES` is duplicated the same way.
 
-Consequences, all deliberate:
-- A `ContentBlock` is an **override**, not the source of truth. When no row
-  exists the bundled locale JSON renders. An empty database therefore serves a
-  correct site, and adopting the CMS needs no bulk content migration.
-- Content is **per-locale**. Edit mode edits whichever language is currently
-  selected. Unique key is `(key, locale)`.
-- "No page needs custom edit code" is satisfied because a new page written with
-  `t()` and the `Editable*` wrappers is editable the moment it ships.
+**Which options a product gets is *derived*, not configured:** a category
+slug/name containing curtain/sheer/drape/blind → CURTAIN (dimensions +
+make-up); `pricePerMeter` set → FABRIC (cut length); otherwise SIMPLE (quantity
+only). There is no product-type column and adding one would mean re-tagging the
+whole catalogue.
 
-**Draft vs published.** `draftValue` is what edit mode and preview read;
-`publishedValue` is what the public endpoint serves. There is deliberately **no
-status column** — dirty state is derived (`hasUnpublishedChanges`) so it cannot
-drift. Publishing copies draft→published and writes one `ContentRevision` per
-block, which is what history restores from. Discard deletes never-published rows
-entirely so the site falls back to the JSON default.
+**Option prices are all zero, deliberately.** Header type, lining and panel
+layout genuinely change what a curtain costs, but the shop has never recorded
+those surcharges anywhere — not on `Product`, not in the seed. Inventing numbers
+would overcharge real customers. The `priceDelta` mechanism is wired end to end
+with every value at `0`; set real ones in the two catalogue files when the shop
+decides, and nothing else has to change.
 
-**Security.** All rich text is sanitised server-side in `utils/cms.ts` against
-an allowlist matching what the toolbar can produce — an admin account is still
-an untrusted input path for stored XSS aimed at visitors. `normalizeContentValue`
-is the single choke point: every write goes through it, per content type. URLs
-are scheme-checked (`javascript:`/`data:` rejected). Every `/api/cms/admin/*`
-and all of `/api/media` sits behind `authenticate + requireAdmin`.
+**Curtain metres** = `(width_m × fullness) × (drop_m + 0.3)`, rounded up to a
+tenth, and **not** multiplied by the panel count — splitting the same gathered
+width into two panels does not need twice the fabric. `FabricEstimator` used to
+multiply by panels and over-estimated a pair by 2×; it now calls the same
+`computeCurtainMeters`, and its "Panels/Window" input was dropped because it
+never affected the answer.
 
-**Performance.** One request returns the whole content map for a locale, not one
-per element. Public reads carry an ETag and `stale-while-revalidate`.
-`CmsProvider` deliberately does **not** block rendering — children paint from the
-bundled defaults and overrides swap in — so the CMS never sits in front of first
-paint. Repeat visits hydrate synchronously from a localStorage cache to avoid a
-default→override flash; only *published* content is cached, never drafts.
+**The cart holds configured lines, not products.** Each line has its own id, so
+the same curtain at two sizes is two lines; re-adding an identical configuration
+bumps the quantity instead. `denise-cart` is persisted at **version 2** with a
+`migrate` that converts v1 carts (keyed by product id) — customers have live
+carts in their browsers, and losing them on deploy day is exactly what this
+refactor exists to prevent.
 
-**Two invariants worth re-verifying after any change to `Editable.tsx`:**
-1. `EditorLayer` must stay a `React.lazy()` import. Verify with
-   `npm run build` — it must appear as its own chunk and **must not** be
-   `modulepreload`ed in `dist/index.html`.
-2. A visitor's DOM must contain **zero** `data-cms-*` attributes. Verify with
-   `chrome --headless --dump-dom <url> | grep -c 'data-cms'` → 0. This already
-   caught one leak: `data-cms-multiline` was gated on the `multiline` prop but
-   not on `editMode`, so it shipped to visitors. Every attribute must be gated
-   on edit mode, not only the id.
+**Duplicate orders.** `Checkout.tsx` guards with two refs and the reason is in a
+comment there: React Query's `isPending` is a snapshot from the last render, so
+two clicks in the same tick both read the stale value. A double click on Place
+order really did create two identical orders six milliseconds apart during
+verification. `submittingRef` is set **synchronously** before the request;
+`placedRef` is set on success and never cleared. The "cart is empty → go to
+/cart" effect tests `placedRef`, not `step`, so no interleaving of those two
+state updates can bounce a customer to an empty cart instead of their receipt.
 
-## Running the CMS locally (this is how phase 6 was verified)
+**The cart is cleared only in `onSuccess`.** A failed order must leave it exactly
+as it was, and the error copy promises that.
 
-No `DATABASE_URL` is configured and the installed Postgres 18 password is
-unknown, so a **throwaway cluster** was used instead of touching real data:
+**Payment methods are gated on what the shop can actually honour**
+(`lib/config.ts`, the same pattern as the pre-existing `AIRTEL_ENABLED`): MoMo
+on, Airtel off until a real number is set, **card off because there is still no
+gateway** — `POST /api/payments/initiate` carries a "TODO: integrate with actual
+payment gateway", and a card button would take an order the shop cannot charge.
+Bank transfer and pay-in-person are on. A reservation is always pay-in-person.
 
-```
-initdb -D <tmp>/pgdata -U postgres --auth=trust
-pg_ctl -D <tmp>/pgdata -o "-p 55432 -c listen_addresses=localhost -c autovacuum=off" start
-createdb -h localhost -p 55432 -U postgres denise_cms
-DATABASE_URL=postgresql://postgres@localhost:55432/denise_cms npx prisma migrate deploy
-```
+## Database
 
-Windows gotchas that cost real time:
-- Start Postgres from **PowerShell, not Git Bash**. Spawned from Git Bash its
-  child processes die with `0xC0000142` (DLL init failure) and the server
-  restart-loops. `-c autovacuum=off` avoids the autovacuum worker hitting it.
-- `frontend/.env` sets `VITE_API_URL=/api` and **beats a shell variable**. To
-  point the dev server at a local API use `frontend/.env.local` (gitignored),
-  and delete it afterwards.
-- The API needs `FRONTEND_URL` set to the dev origin or CORS silently blocks
-  every browser request — the API log shows nothing at all, which is the tell.
-- `pkill -f tsx` does not reliably kill the API on Windows. Use
-  `Get-NetTCPConnection -LocalPort <port> | Stop-Process`, or the next start
-  fails with `EADDRINUSE` and you keep testing the *old* process.
+Migration `20260804090000_checkout_order_details`, all additive and guarded:
+- `ReservationItem.options` (JSONB) — the normalised configuration. JSON rather
+  than a column per option because the option set differs per product kind. It
+  is normalised against the catalogue server-side, so an arbitrary blob can
+  never reach the admin screen or an invoice (there is an API check for this).
+- `Reservation.subtotal` / `discount` — the breakdown at the prices actually
+  charged, so an invoice reprinted later still shows what the customer saw.
+- `Reservation.scheduledDeliveryDate` — the API accepted this and silently threw
+  it away; it is stored now.
+- `ReservationStatusEvent` — append-only audit, one row per real transition.
 
-**Driving the editor without a backend.** In dev only, the store is exposed as
-`window.__cms`, so edit mode can be entered with
-`__cms.setState({ canEdit: true, editMode: true })`. That is how phase 5 was
-verified: headless Chrome with `--remote-debugging-port`, driven over CDP from a
-throwaway Node script (fetch `/json/list`, connect the WebSocket,
-`Runtime.evaluate` + `Page.captureScreenshot`). The Claude Chrome extension was
-not connected in that session; CDP needs nothing installed.
+Deploy: `npx prisma migrate deploy`. Nothing else.
 
-**Three traps this phase hit, all worth remembering:**
-1. `import * as LucideIcons` in `Editable.tsx` to resolve icons by name defeated
-   tree-shaking and took the main chunk from **312 kB to 979 kB**. Icons now come
-   from an explicit registry in `cms/icons.ts` (126 named imports); adding one is
-   a two-line change there and nothing else.
-2. `EditorStyles.tsx` holds its CSS in a **JS template literal**, so a backtick
-   anywhere inside — including in a CSS comment — terminates the string and
-   crashes the whole editor subtree with a `TypeError` whose message is the CSS.
-   There is a NOTE in the file; do not put backticks in that block.
-3. Editor chrome must key off the site's `.dark` class, **not**
-   `prefers-color-scheme`. The latter gave dark panels over a light page.
-4. **`backdrop-filter` on `.cms-glass` makes it a containing block for
-   `position: fixed` descendants.** The media library and crop modals render
-   from inside an editor panel, so without a portal they were trapped inside the
-   340px panel instead of covering the viewport. Both now
-   `createPortal(..., document.body)`. Any future full-screen editor UI must do
-   the same. Element-count assertions passed while this was broken — it was only
-   visible in a screenshot.
-5. **Version history must live in the toolbar, not the editor panel.** Text
-   blocks edit inline and never render a panel, so a History button in the panel
-   footer was unreachable for the most common content type. It now hangs off
-   `selected` in the toolbar and covers every type uniformly.
-6. The public content endpoint originally sent
-   `max-age=30, stale-while-revalidate=300`. That made a publish invisible to
-   any browser holding a cached copy — up to five minutes. It is now
-   `max-age=0, must-revalidate`; the ETag keeps revalidation to a bodyless 304,
-   so correctness costs almost nothing. **Do not reintroduce a freshness
-   window** without a CDN purge on publish.
+## Known gaps
 
-**Inline text editing.** The real element becomes `contentEditable` rather than
-being swapped for an input — that is what preserves its typography and makes it
-feel like a document. The store is deliberately **not** updated per keystroke:
-that would re-render mid-edit and drop the caret. Commit happens on blur, on
-Enter for single-line fields, and in the effect cleanup so that switching
-elements or leaving edit mode cannot lose an edit. Escape reverts.
-
-## What is editable, and what deliberately is not
-
-Every static string on the public site is now wrapped. Counts in edit mode:
-Home 58, About 26, Contact 19, Products 18, Blog 18, Track 17 — and **0**
-`data-cms-*` attributes in a visitor's DOM on all of them.
-
-Repeatable collections an editor can add to / reorder: `home.category_cards`,
-`home.steps`, `about.value_cards`, `footer.product_links`,
-`footer.company_links`.
-
-Deliberately **not** editable, each for a reason:
-- **i18next interpolations** — `t('reservation.continue_with', { title })` and
-  `t('delivery.fee_for', { province })`. The stored string contains `{{title}}`;
-  `useCmsValue` returns overrides verbatim with no interpolation, so making
-  these editable would silently break the substitution.
-- **Attribute strings** — `placeholder={t(...)}`, titles, aria labels. An
-  attribute is not a text node, so there is nothing on the page to click.
-- **AdminLayout** — an internal tool, not marketing copy.
-- **Product / blog / testimonial records** — real data with their own admin CRUD.
-
-**Adoption pattern** (About.tsx is the worked example):
-```tsx
-<h1 className="…">{t('about.story')}</h1>
-<EditableText id="about.story" as="h1" className="…" />
-```
-For non-text types the previously hardcoded value becomes `fallback`, so the
-change cannot regress the page. Repeatable collections use `EditableList` with a
-`fields` schema; its `fallback` is built from `t()` at render time so the list
-stays translated until someone overrides it for that locale.
-
-## Working Notes
-
-### About page
-Two earlier attempts this session were rejected and reverted — **do not
-re-apply them**:
-1. A restructured page (page header + "what we stock" panel + how-we-sell band).
-2. A dark photo hero band at the top.
-
-What the user wanted, and what is now shipped: main's original three-section
-page, polished in place, plus one new section. Current order is
-**Story → Mission & Vision → Values**. There is deliberately **no hero and no
-page title block** — the user asked for the "Made in Rwanda" badge, the
-`about.title` heading and `about.hero_subtitle` to be removed. The page opens
-straight into the story, so `about.story` ("Our Story") is the page's `h1`.
-Do not reintroduce a title band.
-
-Other details:
-- The old story image (`photo-1558171813-d3fcd69cf19b`) was **404 on Unsplash**
-  and rendered as a grey box. Replaced with a verified pair: fabric swatches
-  (`1601056639638`) in a 4:5 frame plus a linen inset (`1616627561950`).
-- The image column is capped at `max-w-md`. At full column width the 4:5 frame
-  stands ~825px tall against ~480px of text and the row fills with dead space.
-- The gold block and the inset photo use negative offsets into the grid gutter,
-  so both are `hidden lg:block` — below `lg` that gutter does not exist and they
-  would push past the container and scroll sideways.
-
-### Home hero
-The photo is the user's choice, `photo-1783538690103-782ddd5404c1`. The original
-is 3000px / 1.7 MB, so `heroSrc(w)` builds the URL and the `<img>` carries a
-`srcSet` of 768–3000. Scrims are unchanged from main.
-
-**Before launch:** replace both pages' hotlinked Unsplash photos with the shop's
-own photography — same `<img>`, different `src`.
-
-### Favicon
-`public/favicon.svg` is the source of truth: crimson field, white serif "D"
-drawn as a **path** (so it does not depend on Playfair Display being installed),
-gold baseline, faint woven pattern. Everything else is generated from it.
-
-Regenerating: Chrome's headless screenshot **silently produces blank frames at
-some window sizes** (128/144/152 came out white). So render once at 1024px and
-downscale in Node — a throwaway `png.js` (decode → box filter → encode → ICO) in
-the session scratchpad did this. Do not trust a per-size Chrome screenshot
-without opening the result.
-
-Generated: `icons/icon-{72,96,128,144,152,192,384,512}.png` (full-bleed, so the
-manifest's `purpose: "maskable any"` can crop safely), `apple-touch-icon.png`
-(180, rounded), `favicon-{16,32,48}.png` and `favicon.ico`. `index.html` now
-lists `.ico` → `.svg` → PNGs, and `apple-touch-icon` points at the real 180px
-file instead of `icons/icon-192.png`.
-
-### Verifying screenshots
-Two Windows-specific traps, both capture artifacts rather than bugs:
-- Headless Chrome does **not** advance framer-motion's `whileInView`, so
-  below-fold sections always look half-faded.
-- Chrome clamps the viewport to ~500px wide, so `--window-size=390` crops a
-  500px page instead of rendering a 390px one. **Mobile cannot be verified this
-  way.** The untouched Contact page clips identically — that is the tell.
+1. **rw / sw / ln translations.** The new checkout strings were added to all five
+   locale files; English and French are translated, the other three carry the
+   English text (i18next falls back to `en` regardless). They are ordinary
+   `t()` keys, so an admin can translate them in place through the visual CMS.
+2. **Browser re-run outstanding** — see Status.
+3. Card payments stay hidden until a gateway exists.
 
 ## Out of scope — found while working, not fixed
 
-1. `PUT /api/auth/profile` wipes the stored email when the field is omitted:
-   `email: email || null` (auth.controller.ts). Data loss on a partial update.
-2. `updateProduct` sets `isFeatured`/`isNewArrival`/`isAvailable`/`isOnPromotion`
-   to `false` whenever the field is absent, so editing just a name silently
-   unfeatures the product.
-3. `updateCategory` runs `parseInt(sortOrder)` unconditionally → writes NaN when
-   the field is omitted.
-4. `POST /api/payments/initiate` takes `amount` from the request body with no
-   authentication, so a caller can set any amount against any reservation id.
-   The amount must be derived from the reservation.
-5. `createReservation` destructures `scheduledDeliveryDate` and never uses it.
-6. `connectDB()` calls `process.exit(1)` on failure, defeating the
-   "run without DB" `.catch()` in index.ts.
-7. `index.html` sets `theme-color: #006B3C` (green) while the logo and favicon
-   are crimson. Someone should decide which is the brand colour.
-8. `home.stat_products` / `stat_customers` / `stat_rating` are now unused in all
-   five locales — the fabricated stats they backed were removed earlier.
+1. `lookupReservations` (track by name + phone) matches the last nine digits
+   with `contains` against the phone **as typed**, so a number stored as
+   `+250 780 111 222` is never found by `780111222`. Confirmed during
+   verification. Needs a normalised column or a digits-only comparison.
+2. `PUT /api/auth/profile` wipes the stored email when the field is omitted.
+3. `updateProduct` unfeatures a product when the boolean fields are absent.
+4. `updateCategory` writes NaN when `sortOrder` is omitted.
+5. `connectDB()` still `process.exit(1)`s on failure, defeating the
+   "run without DB" catch in `index.ts`.
+6. `index.html` sets `theme-color: #006B3C` (green) while the brand is crimson.
+
+## How verification was run (repeat it before trusting the flow)
+
+Scratchpad scripts — `flow.js` (API), `browser.js` (journey), `cdp.js` (driver)
+— live in this session's scratchpad; recreate them if they are gone.
+
+```
+# throwaway Postgres — never point this at real data
+initdb -D <tmp>/pgdata -U postgres --auth=trust
+pg_ctl -D <tmp>/pgdata -o "-p 55432 -c listen_addresses=localhost -c autovacuum=off" start
+createdb -h localhost -p 55432 -U postgres denise_checkout
+DATABASE_URL=postgresql://postgres@localhost:55432/denise_checkout npx prisma migrate deploy
+ADMIN_PASSWORD=... npx ts-node src/seed.ts     # seeded products are price-on-request:
+                                               # set price / pricePerMeter by hand to test pricing
+```
+
+Windows gotchas that cost real time (all still true):
+- Start Postgres from **PowerShell, not Git Bash** — children die with
+  `0xC0000142` otherwise.
+- `frontend/.env` beats a shell variable. Point the dev server at a local API
+  with `frontend/.env.local` (gitignored) and **delete it afterwards**.
+- The API needs `FRONTEND_URL` set to the dev origin or CORS blocks every
+  browser request with nothing in the API log — that silence is the tell.
+- The Claude Chrome extension was not connected; headless Chrome with
+  `--remote-debugging-port=9222` driven over CDP needs nothing installed.
+- Vite compiles each route chunk on first request. Warm the app up before
+  asserting anything, or the first page looks empty and every check fails.
+- React controlled inputs ignore a plain `el.value = x`. Use the native setter
+  (`Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value').set`)
+  then dispatch `input` + `change`.
 
 ## Recently Completed
-- About polish + home hero + favicon set (this task); `origin/main` was merged
-  in first, since it already contained this branch.
-- Home page polish (previous task).
-- Security findings L-1..L-5 on the backend API.
+- Checkout redesign (this task).
+- Visual CMS, 8 phases (previous task). Its two invariants still hold and were
+  re-checked here: `EditorLayer` is still its own lazy chunk and is not
+  modulepreloaded in `dist/index.html`, and the new pages emit **0**
+  `data-cms-*` attributes for a visitor.
+- About polish + home hero + favicon set.

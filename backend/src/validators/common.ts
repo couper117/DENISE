@@ -3,6 +3,7 @@ import {
   FulfillmentType,
   MeasurementOption,
   PaymentMethod,
+  PaymentStatus,
   ReservationStatus,
 } from '@prisma/client';
 import { body, query, ValidationChain } from 'express-validator';
@@ -15,6 +16,7 @@ import { body, query, ValidationChain } from 'express-validator';
 export const RESERVATION_STATUSES = Object.values(ReservationStatus);
 export const FULFILLMENT_TYPES = Object.values(FulfillmentType);
 export const PAYMENT_METHODS = Object.values(PaymentMethod);
+export const PAYMENT_STATUSES = Object.values(PaymentStatus);
 export const DELIVERY_TYPES = Object.values(DeliveryType);
 export const MEASUREMENT_OPTIONS = Object.values(MeasurementOption);
 

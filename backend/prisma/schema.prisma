@@ -359,11 +359,19 @@ model Reservation {
   notes             String?
   measurementOption MeasurementOption @default(HELP_AT_SHOP)
   status            ReservationStatus @default(PENDING)
+  /// Goods total before delivery, at the prices actually charged. Stored so an
+  /// invoice reprinted months later still shows the breakdown the customer saw,
+  /// even after the product's price has changed.
+  subtotal          Float?
+  /// Money saved against list price (sale prices). Never negative.
+  discount          Float?
   totalAmount       Float?
   deliveryFee       Float?
   paymentStatus     PaymentStatus     @default(AWAITING)
   deliveryAddressId String?
   deliveryType      DeliveryType?
+  /// Only set when deliveryType is SCHEDULED — the date the customer picked.
+  scheduledDeliveryDate DateTime?
   adminNotes        String?
   cancelReason      String?
   createdAt         DateTime          @default(now())
@@ -374,12 +382,14 @@ model Reservation {
   items           ReservationItem[]
   notifications   Notification[]
   payments        Payment[]
+  statusHistory   ReservationStatusEvent[]
 
   @@index([reservationNumber])
   @@index([customerPhone])
   @@index([status])
   @@index([visitDate])
   @@index([fulfillmentType])
+  @@index([paymentStatus])
 }
 
 model ReservationItem {
@@ -388,10 +398,18 @@ model ReservationItem {
   productId      String
   quantity       Int?
   metersRequired Float?
+  /// Finished curtain width / drop in cm. Named "window*" historically; the
+  /// configurator writes the ordered curtain's own dimensions here.
   windowWidth    Float?
   windowHeight   Float?
   unitPrice      Float?
   totalPrice     Float?
+  /// The configuration the customer chose, normalised server-side by
+  /// utils/productOptions.ts: colour, fabric, header type, lining, panel
+  /// layout, fullness, plus a snapshot of the product name and pricing mode.
+  /// A JSON column rather than columns-per-option because the option set
+  /// differs per product kind and grows with the catalogue.
+  options        Json?
   notes          String?
   createdAt      DateTime @default(now())
 
@@ -400,6 +418,24 @@ model ReservationItem {
 
   @@index([reservationId])
   @@index([productId])
+}
+
+/// Append-only audit of an order's progress. One row per status or payment
+/// transition, so both the customer timeline and the admin can show *when*
+/// something happened rather than only the current state.
+model ReservationStatusEvent {
+  id            String             @id @default(uuid())
+  reservationId String
+  status        ReservationStatus?
+  paymentStatus PaymentStatus?
+  note          String?
+  /// Who caused it: "customer", "admin:<userId>", or "system".
+  actor         String             @default("system")
+  createdAt     DateTime           @default(now())
+
+  reservation Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
+
+  @@index([reservationId])
 }
 
 model WishlistItem {

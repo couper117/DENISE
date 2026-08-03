@@ -50,7 +50,9 @@ const Header = () => {
   const navLinks = [
     { to: '/', labelKey: 'nav.home', end: true },
     { to: '/products', labelKey: 'nav.products' },
-    { to: '/reservation', labelKey: 'nav.reservation' },
+    // No "Reserve" entry any more: reserving is one of the fulfilment choices
+    // at checkout, not a separate destination, and /reservation now redirects
+    // to the cart. The cart has its own icon in the actions row.
     { to: '/track', labelKey: 'nav.track' },
     { to: '/about', labelKey: 'nav.about' },
     { to: '/blog', labelKey: 'nav.blog' },
@@ -130,10 +132,14 @@ const Header = () => {
             </button>
 
             {/* Cart */}
-            <Link to="/reservation" className="relative p-2 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
+            <Link
+              to="/cart"
+              aria-label={t('nav.cart')}
+              className="relative p-2 rounded-md hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+            >
               <ShoppingBag size={18} />
               {itemCount() > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-bold">
+                <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center font-bold">
                   {itemCount()}
                 </span>
               )}

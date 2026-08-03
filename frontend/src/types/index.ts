@@ -142,6 +142,29 @@ export interface Payment {
   createdAt: string;
 }
 
+/**
+ * The configuration a line was ordered with, as normalised and stored by the
+ * server (`backend/src/utils/productOptions.ts`). Read-only on this side.
+ */
+export interface OrderedOptions {
+  kind?: 'CURTAIN' | 'FABRIC' | 'SIMPLE';
+  pricingMode?: 'PER_METER' | 'PER_UNIT' | 'ON_REQUEST';
+  productName?: string;
+  color?: string;
+  fabric?: string;
+  headerType?: string;
+  headerTypeLabel?: string;
+  lining?: string;
+  liningLabel?: string;
+  panelLayout?: string;
+  panelLayoutLabel?: string;
+  fullness?: number;
+  widthCm?: number;
+  dropCm?: number;
+  meters?: number;
+  unitLabel?: string;
+}
+
 export interface ReservationItem {
   id: string;
   productId: string;
@@ -152,7 +175,17 @@ export interface ReservationItem {
   windowHeight?: number;
   unitPrice?: number;
   totalPrice?: number;
+  options?: OrderedOptions | null;
   notes?: string;
+}
+
+export interface ReservationStatusEvent {
+  id: string;
+  status?: ReservationStatus | null;
+  paymentStatus?: PaymentStatus | null;
+  note?: string | null;
+  actor: string;
+  createdAt: string;
 }
 
 export interface Reservation {
@@ -169,26 +202,40 @@ export interface Reservation {
   notes?: string;
   measurementOption: MeasurementOption;
   status: ReservationStatus;
+  subtotal?: number;
+  discount?: number;
   totalAmount?: number;
   deliveryFee?: number;
   paymentStatus: PaymentStatus;
   deliveryAddress?: DeliveryAddress;
   deliveryType?: DeliveryType;
+  scheduledDeliveryDate?: string;
   adminNotes?: string;
   cancelReason?: string;
   items: ReservationItem[];
   payments?: Payment[];
+  statusHistory?: ReservationStatusEvent[];
   createdAt: string;
   updatedAt: string;
 }
 
+/**
+ * One configured line in the cart.
+ *
+ * `id` exists because the same product can be in the cart twice with different
+ * configurations (a 2m curtain for the lounge and a 1.2m one for the kitchen),
+ * so the product id is no longer a usable key. `unitPrice`/`lineTotal` are the
+ * estimate shown to the customer; the server re-prices on checkout.
+ */
 export interface CartItem {
+  id: string;
   product: Product;
-  quantity?: number;
-  metersRequired?: number;
-  windowWidth?: number;
-  windowHeight?: number;
-  notes?: string;
+  quantity: number;
+  config: import('../lib/productOptions').Configuration;
+  unitPrice: number | null;
+  lineTotal: number | null;
+  listTotal: number | null;
+  addedAt: string;
 }
 
 export interface Blog {

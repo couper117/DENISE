@@ -1,25 +1,32 @@
 import { Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import { generateReservationNumber, getPaginationParams, buildPaginationResponse } from '../utils/helpers';
 import { notifyReservationCreated, notifyStatusUpdate, notifyPaymentDue } from '../services/notification.service';
 import { AuthenticatedRequest } from '../types';
+import { priceLine, RawItemInput, NormalizedOptions } from '../utils/productOptions';
 import logger from '../utils/logger';
-
-type ItemInput = {
-  productId: string;
-  quantity?: number;
-  metersRequired?: number;
-  windowWidth?: number;
-  windowHeight?: number;
-  unitPrice?: number;
-  totalPrice?: number;
-  notes?: string;
-};
 
 const PAYMENT_METHODS = [
   'MTN_MOMO', 'AIRTEL_MONEY', 'VISA', 'MASTERCARD', 'AMEX',
   'BANK_TRANSFER', 'FLUTTERWAVE', 'PAYPAL', 'STRIPE', 'PAY_AT_SHOP',
 ];
+
+/**
+ * Everything the customer-facing order views need in one shape. The image
+ * ordering falls back to sort order when no image is flagged primary, so a line
+ * never renders with an empty thumbnail.
+ */
+const customerOrderInclude = {
+  items: {
+    include: {
+      product: { include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 } } },
+    },
+  },
+  deliveryAddress: true,
+  payments: { orderBy: { createdAt: 'desc' } },
+  statusHistory: { orderBy: { createdAt: 'asc' } },
+} satisfies Prisma.ReservationInclude;
 
 export const createReservation = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
@@ -62,10 +69,13 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
     }
 
     // ── Fetch products (with inventory) referenced by the cart ──────────────
-    const itemList: ItemInput[] = Array.isArray(items) ? items : [];
+    const itemList: RawItemInput[] = Array.isArray(items) ? items : [];
     const productIds = [...new Set(itemList.map((i) => i.productId).filter(Boolean))];
     const products = productIds.length
-      ? await prisma.product.findMany({ where: { id: { in: productIds } }, include: { inventory: true } })
+      ? await prisma.product.findMany({
+          where: { id: { in: productIds } },
+          include: { inventory: true, colors: true, category: { select: { name: true, slug: true } } },
+        })
       : [];
     const productMap = new Map(products.map((p) => [p.id, p]));
 
@@ -75,38 +85,58 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
+    // A configured item can no longer be ordered if the product went off sale
+    // between adding it to the cart and checking out.
+    const unavailable = itemList.find((i) => !productMap.get(i.productId)!.isAvailable);
+    if (unavailable) {
+      res.status(409).json({
+        success: false,
+        message: `"${productMap.get(unavailable.productId)!.name}" is no longer available`,
+      });
+      return;
+    }
+
     // ── Price every line server-side (never trust client-sent totals) ──────
+    // The client sends only the *configuration*; `priceLine` re-derives metres
+    // and money from the product row, so a tampered cart cannot change what is
+    // owed. It also normalises the options against the catalogue before they
+    // are stored.
     let goodsTotal = 0;
+    let listTotal = 0;
     const preparedItems = itemList.map((item) => {
       const product = productMap.get(item.productId)!;
-      const qty = item.quantity ?? null;
-      const meters = item.metersRequired ?? null;
-      let unitPrice: number | null = null;
-      let lineTotal = 0;
-      if (meters != null && product.pricePerMeter != null) {
-        unitPrice = product.pricePerMeter;
-        lineTotal = product.pricePerMeter * meters;
-      } else if (qty != null) {
-        unitPrice = product.salePrice ?? product.price ?? null;
-        lineTotal = (unitPrice ?? 0) * qty;
-      } else if (item.totalPrice != null) {
-        // Price-on-request items already quoted by staff
-        lineTotal = item.totalPrice;
-      }
-      goodsTotal += lineTotal;
-      return { item, product, qty, meters, unitPrice, lineTotal };
+      const priced = priceLine(product, item);
+      goodsTotal += priced.lineTotal;
+      listTotal += priced.listTotal;
+      return { item, product, priced };
     });
 
     // ── Stock availability check (before writing anything) ─────────────────
+    // Quantities for the same product across several configured lines are
+    // summed, otherwise two lines of 3 could each pass a stock-of-4 check.
+    const qtyByProduct = new Map<string, number>();
+    const metersByProduct = new Map<string, number>();
     for (const p of preparedItems) {
-      const inv = p.product.inventory;
-      if (!inv?.isTracked) continue;
-      if (p.qty != null && inv.stockCount < p.qty) {
-        res.status(409).json({ success: false, message: `Insufficient stock for "${p.product.name}"` });
-        return;
+      qtyByProduct.set(p.product.id, (qtyByProduct.get(p.product.id) ?? 0) + p.priced.quantity);
+      if (p.priced.meters != null) {
+        metersByProduct.set(p.product.id, (metersByProduct.get(p.product.id) ?? 0) + p.priced.meters * p.priced.quantity);
       }
-      if (p.meters != null && inv.metersAvailable != null && inv.metersAvailable < p.meters) {
-        res.status(409).json({ success: false, message: `Insufficient fabric length for "${p.product.name}"` });
+    }
+    for (const product of products) {
+      const inv = product.inventory;
+      if (!inv?.isTracked) continue;
+      const wantedMeters = metersByProduct.get(product.id);
+      // A cut-to-length product is limited by its fabric, not its unit count.
+      if (wantedMeters != null) {
+        if (inv.metersAvailable != null && inv.metersAvailable < wantedMeters) {
+          res.status(409).json({ success: false, message: `Insufficient fabric length for "${product.name}"` });
+          return;
+        }
+        continue;
+      }
+      const wantedQty = qtyByProduct.get(product.id);
+      if (wantedQty != null && inv.stockCount < wantedQty) {
+        res.status(409).json({ success: false, message: `Insufficient stock for "${product.name}"` });
         return;
       }
     }
@@ -118,7 +148,9 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    const totalAmount = Math.round(goodsTotal) + (deliveryFeeAmount || 0);
+    const subtotal = Math.round(goodsTotal);
+    const discount = Math.max(0, Math.round(listTotal) - subtotal);
+    const totalAmount = subtotal + (deliveryFeeAmount || 0);
 
     // ── Persist reservation, payment and stock changes atomically ──────────
     const reservation = await prisma.$transaction(async (tx) => {
@@ -137,26 +169,40 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
           measurementOption: measurementOption || 'HELP_AT_SHOP',
           deliveryAddressId: deliveryAddressId || null,
           deliveryType: mode === 'DELIVERY' ? (deliveryType || 'NEXT_DAY') : null,
+          scheduledDeliveryDate:
+            mode === 'DELIVERY' && deliveryType === 'SCHEDULED' && scheduledDeliveryDate
+              ? new Date(scheduledDeliveryDate)
+              : null,
           deliveryFee: deliveryFeeAmount,
+          subtotal: subtotal > 0 ? subtotal : null,
+          discount: discount > 0 ? discount : null,
           totalAmount: totalAmount > 0 ? totalAmount : null,
           paymentStatus: mode === 'RESERVATION' ? 'AWAITING' : 'PENDING',
           items: preparedItems.length > 0 ? {
             create: preparedItems.map((p) => ({
               productId: p.item.productId,
-              quantity: p.qty,
-              metersRequired: p.meters,
-              windowWidth: p.item.windowWidth || null,
-              windowHeight: p.item.windowHeight || null,
-              unitPrice: p.unitPrice,
-              totalPrice: p.lineTotal || null,
+              quantity: p.priced.quantity,
+              metersRequired: p.priced.meters,
+              windowWidth: p.priced.widthCm,
+              windowHeight: p.priced.dropCm,
+              unitPrice: p.priced.unitPrice,
+              totalPrice: p.priced.lineTotal || null,
+              options: p.priced.options as unknown as Prisma.InputJsonValue,
               notes: p.item.notes || null,
             })),
           } : undefined,
+          // First entry of the audit trail, so every order has a "placed at"
+          // event and the customer timeline is never empty.
+          statusHistory: {
+            create: {
+              status: 'PENDING',
+              paymentStatus: mode === 'RESERVATION' ? 'AWAITING' : 'PENDING',
+              note: 'Order placed',
+              actor: req.user?.id ? `customer:${req.user.id}` : 'customer',
+            },
+          },
         },
-        include: {
-          items: { include: { product: { include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 } } } } },
-          deliveryAddress: true,
-        },
+        include: customerOrderInclude,
       });
 
       // Payment record bills the FULL amount owed (goods + delivery), not just delivery
@@ -174,15 +220,20 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
         });
       }
 
-      // Decrement stock for tracked products
-      for (const p of preparedItems) {
-        const inv = p.product.inventory;
+      // Decrement stock for tracked products, once per product rather than
+      // once per line — the totals were summed for the availability check above.
+      for (const product of products) {
+        const inv = product.inventory;
         if (!inv?.isTracked) continue;
+        const meters = metersByProduct.get(product.id);
         const invUpdate: { stockCount?: { decrement: number }; metersAvailable?: { decrement: number } } = {};
-        if (p.qty != null) invUpdate.stockCount = { decrement: p.qty };
-        if (p.meters != null && inv.metersAvailable != null) invUpdate.metersAvailable = { decrement: p.meters };
+        if (meters != null && inv.metersAvailable != null) invUpdate.metersAvailable = { decrement: meters };
+        else {
+          const qty = qtyByProduct.get(product.id);
+          if (qty != null) invUpdate.stockCount = { decrement: qty };
+        }
         if (Object.keys(invUpdate).length > 0) {
-          await tx.inventory.update({ where: { productId: p.item.productId }, data: invUpdate });
+          await tx.inventory.update({ where: { productId: product.id }, data: invUpdate });
         }
       }
 
@@ -194,6 +245,14 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       }
 
       return created;
+    });
+
+    // Read the order back after the transaction. `created` was loaded before
+    // the payment row existed — returning it would hand the confirmation screen
+    // an order with an empty `payments` array and no reference to show.
+    const fullOrder = await prisma.reservation.findUnique({
+      where: { id: reservation.id },
+      include: customerOrderInclude,
     });
 
     const formattedDate = visitDate
@@ -211,7 +270,7 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       visitTime: visitTime || '',
     }).catch((e) => logger.error('Notification failed:', e));
 
-    res.status(201).json({ success: true, data: reservation });
+    res.status(201).json({ success: true, data: fullOrder ?? reservation });
   } catch (error) {
     logger.error('CreateReservation error:', error);
     res.status(500).json({ success: false, message: 'Failed to create reservation' });
@@ -223,11 +282,7 @@ export const getReservationByNumber = async (req: Request, res: Response): Promi
     const { number } = req.params;
     const reservation = await prisma.reservation.findUnique({
       where: { reservationNumber: number },
-      include: {
-        items: { include: { product: { include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 } } } } },
-        deliveryAddress: true,
-        payments: true,
-      },
+      include: customerOrderInclude,
     });
     if (!reservation) { res.status(404).json({ success: false, message: 'Reservation not found' }); return; }
     res.json({ success: true, data: reservation });
@@ -256,11 +311,7 @@ export const lookupReservations = async (req: Request, res: Response): Promise<v
       },
       orderBy: { createdAt: 'desc' },
       take: 20,
-      include: {
-        items: { include: { product: { include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 } } } } },
-        deliveryAddress: true,
-        payments: true,
-      },
+      include: customerOrderInclude,
     });
     res.json({ success: true, data: reservations });
   } catch (error) {
@@ -302,6 +353,7 @@ export const getMyReservations = async (req: AuthenticatedRequest, res: Response
             createdAt: true,
           },
         },
+        statusHistory: { orderBy: { createdAt: 'asc' } },
       },
     });
     res.json({ success: true, data: reservations });
@@ -313,11 +365,12 @@ export const getMyReservations = async (req: AuthenticatedRequest, res: Response
 
 export const getAllReservations = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { page = 1, limit = 20, status, search, date, fulfillmentType } = req.query;
+    const { page = 1, limit = 20, status, search, date, fulfillmentType, paymentStatus } = req.query;
 
     const where: Record<string, unknown> = {};
     if (status) where.status = String(status);
     if (fulfillmentType) where.fulfillmentType = String(fulfillmentType);
+    if (paymentStatus) where.paymentStatus = String(paymentStatus);
     if (date) {
       const d = new Date(String(date));
       where.visitDate = {
@@ -329,7 +382,11 @@ export const getAllReservations = async (req: Request, res: Response): Promise<v
       where.OR = [
         { customerName: { contains: String(search), mode: 'insensitive' } },
         { customerPhone: { contains: String(search), mode: 'insensitive' } },
+        { customerEmail: { contains: String(search), mode: 'insensitive' } },
         { reservationNumber: { contains: String(search), mode: 'insensitive' } },
+        // Staff reconciling a mobile-money statement search by the payment
+        // reference, which is not on the reservation itself.
+        { payments: { some: { reference: { contains: String(search), mode: 'insensitive' } } } },
       ];
     }
 
@@ -338,9 +395,13 @@ export const getAllReservations = async (req: Request, res: Response): Promise<v
       prisma.reservation.findMany({
         where, skip, take,
         orderBy: { createdAt: 'desc' },
+        // The manage drawer shows the full order — specs, money, payment and
+        // history — without a second round trip per row.
         include: {
-          items: { include: { product: { select: { name: true } } } },
+          items: { include: { product: { select: { id: true, name: true, slug: true, images: { where: { isPrimary: true }, take: 1 } } } } },
           deliveryAddress: true,
+          payments: { orderBy: { createdAt: 'desc' } },
+          statusHistory: { orderBy: { createdAt: 'asc' } },
         },
       }),
       prisma.reservation.count({ where }),
@@ -359,22 +420,40 @@ export const getAllReservations = async (req: Request, res: Response): Promise<v
 const recomputeReservationTotal = async (id: string): Promise<void> => {
   const r = await prisma.reservation.findUnique({
     where: { id },
-    include: { items: { include: { product: true } }, payments: true },
+    include: {
+      items: { include: { product: { include: { category: { select: { name: true, slug: true } }, colors: true } } } },
+      payments: true,
+    },
   });
   if (!r || (r.fulfillmentType !== 'PICKUP' && r.fulfillmentType !== 'DELIVERY')) return;
   // Never overwrite an amount that's already been set (by the admin or a prior run).
   if (r.totalAmount != null && r.totalAmount > 0) return;
 
+  // Re-price through the same module the checkout used, feeding back the
+  // configuration that was stored on the line, so a price entered after the
+  // order still produces the metres and totals the customer configured.
   let goods = 0;
   for (const it of r.items) {
-    const p = it.product;
-    if (it.metersRequired != null && p.pricePerMeter != null) goods += p.pricePerMeter * it.metersRequired;
-    else if (it.quantity != null) goods += (p.salePrice ?? p.price ?? 0) * it.quantity;
-    else if (it.totalPrice != null) goods += it.totalPrice;
+    const priced = priceLine(
+      it.product,
+      {
+        productId: it.productId,
+        quantity: it.quantity,
+        metersRequired: it.metersRequired,
+        windowWidth: it.windowWidth,
+        windowHeight: it.windowHeight,
+        options: (it.options ?? {}) as Record<string, unknown>,
+      }
+    );
+    goods += priced.lineTotal || it.totalPrice || 0;
   }
-  const total = Math.round(goods) + (r.deliveryFee ?? 0);
+  const subtotal = Math.round(goods);
+  const total = subtotal + (r.deliveryFee ?? 0);
 
-  await prisma.reservation.update({ where: { id }, data: { totalAmount: total > 0 ? total : null } });
+  await prisma.reservation.update({
+    where: { id },
+    data: { subtotal: subtotal > 0 ? subtotal : null, totalAmount: total > 0 ? total : null },
+  });
 
   const pending = r.payments.find(
     (pp) => pp.status === 'PENDING' && (pp.method === 'MTN_MOMO' || pp.method === 'AIRTEL_MONEY')
@@ -386,13 +465,25 @@ const recomputeReservationTotal = async (id: string): Promise<void> => {
 
 const VALID_PAYMENT_STATUSES = ['AWAITING', 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'];
 
-export const updateReservationStatus = async (req: Request, res: Response): Promise<void> => {
+export const updateReservationStatus = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const { status, adminNotes, cancelReason, paymentStatus, totalAmount } = req.body;
 
     if (paymentStatus && !VALID_PAYMENT_STATUSES.includes(paymentStatus)) {
       res.status(400).json({ success: false, message: 'Invalid payment status' });
+      return;
+    }
+
+    // What it was before: the history records real transitions only, and the
+    // "pay now" notice must fire on the first confirmation rather than on every
+    // subsequent save.
+    const before = await prisma.reservation.findUnique({
+      where: { id },
+      select: { status: true, paymentStatus: true },
+    });
+    if (!before) {
+      res.status(404).json({ success: false, message: 'Reservation not found' });
       return;
     }
 
@@ -404,9 +495,6 @@ export const updateReservationStatus = async (req: Request, res: Response): Prom
       return;
     }
 
-    // Previous status — so the "pay now" notice only fires on the first confirm.
-    const before = await prisma.reservation.findUnique({ where: { id }, select: { status: true } });
-
     // Auto-compute from product prices on confirm ONLY when the admin didn't set an amount.
     if (status === 'CONFIRMED' && amt === undefined) {
       await recomputeReservationTotal(id).catch((e) => logger.error('Recompute total on confirm failed:', e));
@@ -415,9 +503,12 @@ export const updateReservationStatus = async (req: Request, res: Response): Prom
     const reservation = await prisma.reservation.update({
       where: { id },
       data: {
-        status,
-        adminNotes: adminNotes || null,
-        cancelReason: status === 'CANCELLED' ? cancelReason : null,
+        ...(status ? { status } : {}),
+        // Only touch the note when the caller actually sent the field —
+        // "mark as paid" posts no note, and must not erase the message the
+        // customer is being shown.
+        ...(adminNotes !== undefined ? { adminNotes: adminNotes || null } : {}),
+        ...(status === 'CANCELLED' ? { cancelReason: cancelReason || null } : {}),
         ...(paymentStatus ? { paymentStatus } : {}),
         ...(amt !== undefined ? { totalAmount: amt > 0 ? amt : null } : {}),
       },
@@ -426,6 +517,22 @@ export const updateReservationStatus = async (req: Request, res: Response): Prom
     // Keep the Payment record(s) in sync so verify/track reflect "Paid".
     if (paymentStatus) {
       await prisma.payment.updateMany({ where: { reservationId: id }, data: { status: paymentStatus } });
+    }
+
+    // Append to the audit trail — one row per real transition. Failing to log
+    // must never fail the update itself.
+    const statusChanged = !!status && status !== before.status;
+    const paymentChanged = !!paymentStatus && paymentStatus !== before.paymentStatus;
+    if (statusChanged || paymentChanged) {
+      await prisma.reservationStatusEvent.create({
+        data: {
+          reservationId: id,
+          status: statusChanged ? status : null,
+          paymentStatus: paymentChanged ? paymentStatus : null,
+          note: adminNotes || null,
+          actor: req.user?.id ? `admin:${req.user.id}` : 'admin',
+        },
+      }).catch((e) => logger.error('Status history write failed:', e));
     }
 
     // When an amount is set on an online-payment order, make sure a pending
@@ -446,39 +553,44 @@ export const updateReservationStatus = async (req: Request, res: Response): Prom
       }
     }
 
-    // When an online-payment order is first confirmed with a due amount, send the
-    // "pay now" message instead of the generic status text (avoids a double SMS).
-    const dueAmount = (amt !== undefined ? amt : reservation.totalAmount) ?? 0;
-    const sendPaymentDue =
-      status === 'CONFIRMED' && before?.status !== 'CONFIRMED' && dueAmount > 0 &&
-      (reservation.fulfillmentType === 'PICKUP' || reservation.fulfillmentType === 'DELIVERY') &&
-      reservation.paymentStatus !== 'COMPLETED';
+    // Notify only when the status really moved: marking a payment as received
+    // re-sends the current status, which used to fire a duplicate "your order is
+    // CONFIRMED" SMS every time. Within that, a first confirmation of an unpaid
+    // online order sends the "pay now" message *instead of* the generic status
+    // text, so the customer gets one message rather than two.
+    if (statusChanged) {
+      const dueAmount = (amt !== undefined ? amt : reservation.totalAmount) ?? 0;
+      const sendPaymentDue =
+        status === 'CONFIRMED' && before.status !== 'CONFIRMED' && dueAmount > 0 &&
+        (reservation.fulfillmentType === 'PICKUP' || reservation.fulfillmentType === 'DELIVERY') &&
+        reservation.paymentStatus !== 'COMPLETED';
 
-    if (sendPaymentDue) {
-      await notifyPaymentDue({
-        reservationId: reservation.id,
-        customerName: reservation.customerName,
-        customerPhone: reservation.customerPhone,
-        customerEmail: reservation.customerEmail,
-        reservationNumber: reservation.reservationNumber,
-        amount: dueAmount,
-      }).catch((e) => logger.error('Payment-due notification failed:', e));
-    } else {
-      const formattedDate = reservation.visitDate
-        ? reservation.visitDate.toLocaleDateString('en-RW')
-        : reservation.fulfillmentType === 'DELIVERY' ? 'Delivery order' : 'Pickup order';
+      if (sendPaymentDue) {
+        await notifyPaymentDue({
+          reservationId: reservation.id,
+          customerName: reservation.customerName,
+          customerPhone: reservation.customerPhone,
+          customerEmail: reservation.customerEmail,
+          reservationNumber: reservation.reservationNumber,
+          amount: dueAmount,
+        }).catch((e) => logger.error('Payment-due notification failed:', e));
+      } else {
+        const formattedDate = reservation.visitDate
+          ? reservation.visitDate.toLocaleDateString('en-RW')
+          : reservation.fulfillmentType === 'DELIVERY' ? 'Delivery order' : 'Pickup order';
 
-      await notifyStatusUpdate({
-        reservationId: reservation.id,
-        customerName: reservation.customerName,
-        customerPhone: reservation.customerPhone,
-        customerEmail: reservation.customerEmail,
-        reservationNumber: reservation.reservationNumber,
-        fulfillmentType: reservation.fulfillmentType,
-        visitDate: formattedDate,
-        visitTime: reservation.visitTime,
-        status,
-      }).catch((e) => logger.error('Status notification failed:', e));
+        await notifyStatusUpdate({
+          reservationId: reservation.id,
+          customerName: reservation.customerName,
+          customerPhone: reservation.customerPhone,
+          customerEmail: reservation.customerEmail,
+          reservationNumber: reservation.reservationNumber,
+          fulfillmentType: reservation.fulfillmentType,
+          visitDate: formattedDate,
+          visitTime: reservation.visitTime,
+          status,
+        }).catch((e) => logger.error('Status notification failed:', e));
+      }
     }
 
     res.json({ success: true, data: reservation });
@@ -531,6 +643,14 @@ export const cancelReservation = async (req: AuthenticatedRequest, res: Response
     }
 
     await prisma.reservation.update({ where: { id }, data: { status: 'CANCELLED', cancelReason } });
+    await prisma.reservationStatusEvent.create({
+      data: {
+        reservationId: id,
+        status: 'CANCELLED',
+        note: cancelReason || null,
+        actor: isAdmin ? `admin:${req.user?.id}` : req.user?.id ? `customer:${req.user.id}` : 'customer',
+      },
+    }).catch((e) => logger.error('Cancel history write failed:', e));
     res.json({ success: true, message: 'Reservation cancelled' });
   } catch (error) {
     logger.error('CancelReservation error:', error);

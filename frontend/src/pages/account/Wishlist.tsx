@@ -3,12 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trash2, Heart, ShoppingBag } from 'lucide-react';
 import { wishlistApi } from '../../lib/api';
-import { useCartStore } from '../../store';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 
 const WishlistPage = () => {
   const { t } = useTranslation();
-  const { addItem } = useCartStore();
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
@@ -46,10 +44,13 @@ const WishlistPage = () => {
                   <p className="text-xs text-muted-foreground mb-1">{product.category?.name}</p>
                   <h3 className="font-medium text-sm mb-3 line-clamp-2">{product.name}</h3>
                   <div className="flex gap-2">
-                    <button onClick={() => addItem(product as Parameters<typeof addItem>[0])}
+                    {/* The wishlist only carries a summary of each product, not
+                        the prices and colours the configurator needs, so this
+                        opens the product page rather than guessing a config. */}
+                    <Link to={`/products/${product.slug}`}
                       className="flex-1 flex items-center justify-center gap-1 py-2 bg-primary text-white text-xs font-medium rounded-lg hover:bg-primary/90 transition-colors">
-                      <ShoppingBag size={12} /> Add to Cart
-                    </button>
+                      <ShoppingBag size={12} /> {t('products.view_details')}
+                    </Link>
                     <button onClick={() => removeMutation.mutate(product.id)} disabled={removeMutation.isPending}
                       className="w-8 h-8 flex items-center justify-center border border-border rounded-lg hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors text-muted-foreground">
                       <Trash2 size={13} />
