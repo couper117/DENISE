@@ -7,14 +7,15 @@ export const Skeleton = ({ className }: SkeletonProps) => (
 );
 
 export const ProductCardSkeleton = () => (
-  <div className="bg-card rounded-xl border border-border overflow-hidden">
-    <Skeleton className="h-64 rounded-none" />
-    <div className="p-4 space-y-2">
-      <Skeleton className="h-4 w-3/4" />
-      <Skeleton className="h-3 w-1/2" />
-      <div className="flex gap-2 mt-3">
-        <Skeleton className="h-8 flex-1" />
-        <Skeleton className="h-8 w-8 rounded-full" />
+  <div className="flex h-full flex-col bg-card rounded-xl border border-border overflow-hidden">
+    <Skeleton className="aspect-[4/3] rounded-none shrink-0" />
+    <div className="flex flex-1 flex-col p-4">
+      <Skeleton className="h-3 w-1/3 mb-2" />
+      <Skeleton className="h-4 w-3/4 mb-1" />
+      <Skeleton className="h-4 w-1/2 mb-3" />
+      <div className="mt-auto flex gap-2">
+        <Skeleton className="h-9 flex-1" />
+        <Skeleton className="h-9 w-9" />
       </div>
     </div>
   </div>
