@@ -6,6 +6,7 @@ import Layout from './components/layout/Layout';
 import AdminLayout from './components/layout/AdminLayout';
 import LoadingSpinner from './components/ui/LoadingSpinner';
 import Analytics from './components/Analytics';
+import ScrollToTop from './components/ScrollToTop';
 import { CmsProvider } from './cms';
 
 // Public pages
@@ -53,6 +54,7 @@ const App = () => {
 
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Analytics />
       {/* Content overlay for every route. Non-blocking: pages paint from the
           bundled i18n defaults and swap in overrides when they arrive. */}
