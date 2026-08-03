@@ -479,7 +479,10 @@
       "update_status": "Update Status",
       "message_to_customer": "Message to Customer",
       "message_placeholder": "Any message for the customer...",
-      "updating": "Updating..."
+      "updating": "Updating...",
+      "payment": "Payment",
+      "mark_paid": "Mark as Paid",
+      "mark_unpaid": "Mark unpaid"
     },
     "customers": {
       "title": "Customers",
