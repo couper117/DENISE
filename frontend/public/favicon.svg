@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="DENISE Textile">
+  <title>DENISE Textile</title>
+  <defs>
+    <linearGradient id="field" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#A02020"/>
+      <stop offset="1" stop-color="#8B1A1A"/>
+    </linearGradient>
+    <!-- Woven texture, echoing og-image.svg. Averages out to flat crimson at
+         tab size; adds depth from 96px up. -->
+    <pattern id="weave" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M0 12H24" stroke="#fff" stroke-width="1.5" opacity="0.07"/>
+      <path d="M12 0V24" stroke="#fff" stroke-width="1.5" opacity="0.07"/>
+    </pattern>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#field)"/>
+  <rect width="512" height="512" rx="112" fill="url(#weave)"/>
+
+  <!-- Serif "D" plus the gold baseline, drawn as paths so the mark renders
+       identically without Playfair Display installed. The bowl's counter is cut
+       with evenodd. Nudged so the ink, not the glyph box, is centred. -->
+  <g transform="translate(-19,-20)">
+    <g fill="#fff">
+      <path fill-rule="evenodd" d="M170 140H290c76 0 120 46 120 116s-44 116-120 116H170Zm62 56v120h56c42 0 64-24 64-60s-22-60-64-60Z"/>
+      <rect x="140" y="140" width="34" height="22"/>
+      <rect x="140" y="350" width="34" height="22"/>
+    </g>
+    <rect x="140" y="398" width="232" height="18" rx="9" fill="#C8972A"/>
+  </g>
+</svg>

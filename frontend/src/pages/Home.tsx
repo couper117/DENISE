@@ -18,6 +18,11 @@ import {
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
+/* Hero backdrop: bolts of fabric shot from above. Served at several widths so a
+   phone doesn't pull the 3000px original (1.7 MB) for a 400px-wide viewport. */
+const heroSrc = (w: number) =>
+  `https://images.unsplash.com/photo-1783538690103-782ddd5404c1?fm=jpg&q=60&w=${w}&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA==`;
+
 /* Section heading used by both product rails, so they stay identical. */
 const RailHeading = ({
   title, subtitle, viewAllTo, viewAllLabel,
@@ -100,10 +105,13 @@ const Home = () => {
       />
       {/* ================= Hero ================= */}
       <section className="relative min-h-[82vh] flex items-center bg-brand-dark overflow-hidden">
-        {/* Bolts of fabric, then layered scrims for contrast. Chosen because it
-            carries no third-party brand labels, unlike most market photos. */}
+        {/* Bolts of fabric shot from above, then layered scrims for contrast.
+            Chosen because it carries no third-party brand labels, unlike most
+            market photos. */}
         <img
-          src="https://images.unsplash.com/photo-1783538690103-782ddd5404c1?w=1920&q=80&auto=format&fit=crop"
+          src={heroSrc(1600)}
+          srcSet={[768, 1200, 1600, 2400, 3000].map((w) => `${heroSrc(w)} ${w}w`).join(', ')}
+          sizes="100vw"
           alt=""
           aria-hidden="true"
           className="absolute inset-0 w-full h-full object-cover"

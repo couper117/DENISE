@@ -1,77 +1,103 @@
 # HANDOFF
 
 ## Current Task
-Security findings L-1 through L-5 on the backend API.
+About page polish, home hero image, favicon set. Branch `Levi`, merged to `main`.
 
 ## Status
-Solved — all five applied and verified. Backend and frontend both typecheck clean.
+Solved. Frontend typechecks and builds clean; About verified in a real browser.
 
 ## Progress
-- [x] L-1 Input validation across all routes (express-validator)
-- [x] L-2 Reservation cancel IDOR
-- [x] L-3 Disabled users could refresh for 7 days
-- [x] L-4 JWT secret validation at startup
-- [x] L-5 Seed admin password + helpful-vote dedupe
-- [ ] **Run `npx prisma migrate dev --name review_helpful_votes`** — L-5 added a
-      model and the migration has not been created (no database available here)
+- [x] Home hero uses the fabric-bolts photo, now with a responsive `srcSet`
+- [x] About page rebuilt in place (kept main's structure, did not redesign)
+- [x] Mission & Vision section added; `about.mission_desc` / `about.vision_desc`
+      added to all five locales
+- [x] Full favicon set generated and wired into `index.html`
+- [ ] **Still outstanding from the previous task:** run
+      `npx prisma migrate dev --name review_helpful_votes` — `ReviewHelpfulVote`
+      exists in schema.prisma with no migration, so
+      `POST /api/reviews/:id/helpful` fails until it is applied.
 
 ## Working Notes
 
-**A migration is outstanding.** `ReviewHelpfulVote` was added to schema.prisma;
-`prisma generate` has been run so the code compiles, but no migration exists.
-`POST /api/reviews/:id/helpful` will fail until it is applied.
+### About page
+Two earlier attempts this session were rejected and reverted — **do not
+re-apply them**:
+1. A restructured page (page header + "what we stock" panel + how-we-sell band).
+2. A dark photo hero band at the top.
 
-**Validation layer.** `src/validators/*.validator.ts` (one per route module) plus
-`src/middleware/validate.middleware.ts`. Each module exports arrays already
-terminated with the `validate` handler, mounted as
-`router.post(path, someRules, controller)`. Enum allowlists come from the
-generated Prisma client so they cannot drift from the schema.
+What the user wanted, and what is now shipped: main's original three-section
+page, polished in place, plus one new section. Current order is
+**Story → Mission & Vision → Values**. There is deliberately **no hero and no
+page title block** — the user asked for the "Made in Rwanda" badge, the
+`about.title` heading and `about.hero_subtitle` to be removed. The page opens
+straight into the story, so `about.story` ("Our Story") is the page's `h1`.
+Do not reintroduce a title band.
 
-Two rules worth keeping if this is revisited:
-- On multipart routes validators must sit **after** multer, or `req.body` is empty.
-- Login validates presence only, never the password policy — accounts created
-  before the policy must still be able to sign in.
+Other details:
+- The old story image (`photo-1558171813-d3fcd69cf19b`) was **404 on Unsplash**
+  and rendered as a grey box. Replaced with a verified pair: fabric swatches
+  (`1601056639638`) in a 4:5 frame plus a linen inset (`1616627561950`).
+- The image column is capped at `max-w-md`. At full column width the 4:5 frame
+  stands ~825px tall against ~480px of text and the row fills with dead space.
+- The gold block and the inset photo use negative offsets into the grid gutter,
+  so both are `hidden lg:block` — below `lg` that gutter does not exist and they
+  would push past the container and scroll sideways.
 
-**Verification.** Two throwaway suites in the session scratchpad, both passing:
-`validation-smoke.js` (46 checks, real routers, no DB — validation runs before
-every controller so 400 = rejected and 500 = accepted-then-hit-Prisma) and
-`security-smoke.js` (18 checks, Prisma stubbed via require.cache; the stub needs
-`__esModule: true` or TS interop double-wraps it). They are not part of the repo —
-the project has no test setup.
+### Home hero
+The photo is the user's choice, `photo-1783538690103-782ddd5404c1`. The original
+is 3000px / 1.7 MB, so `heroSrc(w)` builds the URL and the `<img>` carries a
+`srcSet` of 768–3000. Scrims are unchanged from main.
+
+**Before launch:** replace both pages' hotlinked Unsplash photos with the shop's
+own photography — same `<img>`, different `src`.
+
+### Favicon
+`public/favicon.svg` is the source of truth: crimson field, white serif "D"
+drawn as a **path** (so it does not depend on Playfair Display being installed),
+gold baseline, faint woven pattern. Everything else is generated from it.
+
+Regenerating: Chrome's headless screenshot **silently produces blank frames at
+some window sizes** (128/144/152 came out white). So render once at 1024px and
+downscale in Node — a throwaway `png.js` (decode → box filter → encode → ICO) in
+the session scratchpad did this. Do not trust a per-size Chrome screenshot
+without opening the result.
+
+Generated: `icons/icon-{72,96,128,144,152,192,384,512}.png` (full-bleed, so the
+manifest's `purpose: "maskable any"` can crop safely), `apple-touch-icon.png`
+(180, rounded), `favicon-{16,32,48}.png` and `favicon.ico`. `index.html` now
+lists `.ico` → `.svg` → PNGs, and `apple-touch-icon` points at the real 180px
+file instead of `icons/icon-192.png`.
+
+### Verifying screenshots
+Two Windows-specific traps, both capture artifacts rather than bugs:
+- Headless Chrome does **not** advance framer-motion's `whileInView`, so
+  below-fold sections always look half-faded.
+- Chrome clamps the viewport to ~500px wide, so `--window-size=390` crops a
+  500px page instead of rendering a 390px one. **Mobile cannot be verified this
+  way.** The untouched Contact page clips identically — that is the tell.
 
 ## Out of scope — found while working, not fixed
 
 1. `PUT /api/auth/profile` wipes the stored email when the field is omitted:
-   `email: email || null` (auth.controller.ts:141). Data loss on a partial update.
-2. `updateProduct` (product.controller.ts) sets `isFeatured`/`isNewArrival`/
-   `isAvailable`/`isOnPromotion` to `false` whenever the field is absent, so
-   editing just a name silently unfeatures the product.
+   `email: email || null` (auth.controller.ts). Data loss on a partial update.
+2. `updateProduct` sets `isFeatured`/`isNewArrival`/`isAvailable`/`isOnPromotion`
+   to `false` whenever the field is absent, so editing just a name silently
+   unfeatures the product.
 3. `updateCategory` runs `parseInt(sortOrder)` unconditionally → writes NaN when
-   the field is omitted (category.controller.ts:46).
+   the field is omitted.
 4. `POST /api/payments/initiate` takes `amount` from the request body with no
    authentication, so a caller can set any amount against any reservation id.
-   Validation cannot fix this — the amount must be derived from the reservation.
-5. `createReservation` destructures `scheduledDeliveryDate` and never uses it —
-   the scheduled date is silently discarded.
-6. `database/schema.sql` is stale: it predates ProductReview, Payment,
-   DeliveryZone and DeliveryAddress. Prisma is the real source of truth.
-7. README's post-deploy checklist says `/api/health`; the route is `/health`.
-8. `connectDB()` calls `process.exit(1)` on failure, which defeats the
+   The amount must be derived from the reservation.
+5. `createReservation` destructures `scheduledDeliveryDate` and never uses it.
+6. `connectDB()` calls `process.exit(1)` on failure, defeating the
    "run without DB" `.catch()` in index.ts.
-
-## Known frontend issue (not fixed)
-
-The home hero's background image 404s. `Home.tsx:53` hotlinks
-`https://images.unsplash.com/photo-1558171813-d3fcd69cf19b` — that photo has
-been removed from Unsplash, so the hero renders as a bare crimson gradient with
-no fabric imagery behind it. Needs a replacement image (ideally the shop's own
-photo) dropped into that URL.
+7. `index.html` sets `theme-color: #006B3C` (green) while the logo and favicon
+   are crimson. Someone should decide which is the brand colour.
+8. `home.stat_products` / `stat_customers` / `stat_rating` are now unused in all
+   five locales — the fabricated stats they backed were removed earlier.
 
 ## Recently Completed
-- A home-page redesign was attempted this session and **fully reverted** at the
-  user's request — `Home.tsx`, `globals.css`, `tailwind.config.js`, `config.ts`,
-  `Contact.tsx` and all five i18n locale files are back to their committed state.
-  The user did not like the direction; do not re-apply it. Any future attempt
-  should start from a discussion of visual direction, not from this code.
-- Frontend brought up locally at http://localhost:5173 (backend not started —
-  local Postgres password unavailable, so no DATABASE_URL).
+- About polish + home hero + favicon set (this task); `origin/main` was merged
+  in first, since it already contained this branch.
+- Home page polish (previous task).
+- Security findings L-1..L-5 on the backend API.
