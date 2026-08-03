@@ -361,10 +361,17 @@ const recomputeReservationTotal = async (id: string): Promise<void> => {
   }
 };
 
+const VALID_PAYMENT_STATUSES = ['AWAITING', 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'];
+
 export const updateReservationStatus = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
-    const { status, adminNotes, cancelReason } = req.body;
+    const { status, adminNotes, cancelReason, paymentStatus } = req.body;
+
+    if (paymentStatus && !VALID_PAYMENT_STATUSES.includes(paymentStatus)) {
+      res.status(400).json({ success: false, message: 'Invalid payment status' });
+      return;
+    }
 
     // Finalise the payable amount from current prices when the order is confirmed.
     if (status === 'CONFIRMED') {
@@ -377,8 +384,14 @@ export const updateReservationStatus = async (req: Request, res: Response): Prom
         status,
         adminNotes: adminNotes || null,
         cancelReason: status === 'CANCELLED' ? cancelReason : null,
+        ...(paymentStatus ? { paymentStatus } : {}),
       },
     });
+
+    // Keep the Payment record(s) in sync so verify/track reflect "Paid".
+    if (paymentStatus) {
+      await prisma.payment.updateMany({ where: { reservationId: id }, data: { status: paymentStatus } });
+    }
 
     const formattedDate = reservation.visitDate
       ? reservation.visitDate.toLocaleDateString('en-RW')

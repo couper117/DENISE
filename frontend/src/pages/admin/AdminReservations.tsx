@@ -25,6 +25,14 @@ const FULFILLMENT_LABEL_KEYS: Record<string, string> = {
   DELIVERY: 'admin.reservations.label_delivery',
 };
 
+const PS_LABELS: Record<string, string> = {
+  AWAITING: 'Awaiting', PENDING: 'Payment pending', COMPLETED: 'Paid', FAILED: 'Failed', REFUNDED: 'Refunded',
+};
+const PS_COLORS: Record<string, string> = {
+  AWAITING: 'bg-yellow-100 text-yellow-800', PENDING: 'bg-blue-100 text-blue-800',
+  COMPLETED: 'bg-green-100 text-green-800', FAILED: 'bg-red-100 text-red-800', REFUNDED: 'bg-purple-100 text-purple-800',
+};
+
 const AdminReservations = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -54,6 +62,16 @@ const AdminReservations = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-reservations'] });
       setSelected(null);
+    },
+  });
+
+  // Mark payment paid/unpaid without closing the modal, so the admin sees it flip.
+  const paymentMutation = useMutation({
+    mutationFn: ({ id, paymentStatus }: { id: string; paymentStatus: string }) =>
+      reservationsApi.updateStatus(id, { status: selected?.status, paymentStatus }),
+    onSuccess: (_res, vars) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-reservations'] });
+      setSelected((s) => (s ? { ...s, paymentStatus: vars.paymentStatus as Reservation['paymentStatus'] } : s));
     },
   });
 
@@ -191,6 +209,30 @@ const AdminReservations = () => {
                 <div className="flex justify-between"><span className="text-muted-foreground">{t('admin.reservations.total_amount')}:</span><span className="font-bold text-primary">{selected.totalAmount.toLocaleString()} RWF</span></div>
               )}
             </div>
+
+            {(selected.fulfillmentType === 'PICKUP' || selected.fulfillmentType === 'DELIVERY') && (
+              <div className="mb-4">
+                <label className="text-sm font-medium block mb-1.5">{t('admin.reservations.payment')}</label>
+                <div className="flex items-center justify-between gap-3 p-3 border border-border rounded-xl">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${PS_COLORS[selected.paymentStatus] || 'bg-muted'}`}>
+                    {PS_LABELS[selected.paymentStatus] || selected.paymentStatus}
+                  </span>
+                  {selected.paymentStatus === 'COMPLETED' ? (
+                    <button type="button" onClick={() => paymentMutation.mutate({ id: selected.id, paymentStatus: 'PENDING' })}
+                      disabled={paymentMutation.isPending}
+                      className="px-3 py-1.5 text-xs border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-60">
+                      {t('admin.reservations.mark_unpaid')}
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => paymentMutation.mutate({ id: selected.id, paymentStatus: 'COMPLETED' })}
+                      disabled={paymentMutation.isPending}
+                      className="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-60">
+                      {paymentMutation.isPending ? '…' : t('admin.reservations.mark_paid')}
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="mb-4">
               <label className="text-sm font-medium block mb-1.5">{t('admin.reservations.update_status')}</label>
