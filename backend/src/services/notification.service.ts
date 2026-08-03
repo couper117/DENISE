@@ -44,7 +44,6 @@ interface ReservationNotificationData {
   fulfillmentType?: string;
   visitDate?: string | null;
   visitTime?: string | null;
-  qrCode?: string;
   status?: string;
 }
 
@@ -69,7 +68,7 @@ const FULFILLMENT_LABELS: Record<string, string> = {
 export const notifyReservationCreated = async (data: ReservationNotificationData): Promise<void> => {
   const {
     reservationId, customerName, customerPhone, customerEmail,
-    reservationNumber, fulfillmentType, visitDate, visitTime, qrCode,
+    reservationNumber, fulfillmentType, visitDate, visitTime,
   } = data;
 
   const mode = fulfillmentType || 'RESERVATION';
@@ -80,13 +79,13 @@ export const notifyReservationCreated = async (data: ReservationNotificationData
   // Customer-facing channels, each tracked so we can record its real delivery result
   const channels: OutboundNotification[] = [];
 
-  if (customerEmail && qrCode) {
+  if (customerEmail) {
     const email = customerEmail;
     channels.push({
       channel: 'EMAIL',
       recipient: email,
       body: `${modeLabel} confirmation`,
-      send: () => sendReservationConfirmation(email, customerName, reservationNumber, dateInfo, timeInfo, qrCode),
+      send: () => sendReservationConfirmation(email, customerName, reservationNumber, dateInfo, timeInfo),
     });
   }
   channels.push({

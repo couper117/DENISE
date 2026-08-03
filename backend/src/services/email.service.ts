@@ -39,8 +39,7 @@ export const sendReservationConfirmation = async (
   customerName: string,
   reservationNumber: string,
   visitDate: string,
-  visitTime: string,
-  qrCode: string
+  visitTime: string
 ): Promise<boolean> => {
   const html = `
     <!DOCTYPE html>
@@ -66,8 +65,7 @@ export const sendReservationConfirmation = async (
         </div>
 
         <div style="text-align: center; margin: 20px 0;">
-          <img src="${qrCode}" alt="QR Code" style="width: 150px; height: 150px;" />
-          <p style="color: #666; font-size: 12px;">Show this QR code at the shop</p>
+          <p style="color: #666; font-size: 13px;">Show your reservation number <strong>${reservationNumber}</strong> at the shop.</p>
         </div>
 
         <div style="background: #fff8f0; border-left: 4px solid #8B1A1A; padding: 15px; margin: 20px 0;">

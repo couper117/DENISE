@@ -12,7 +12,6 @@ import { Reservation, FulfillmentType } from '../types';
 import { formatDate, getStatusColor, getStatusLabel } from '../lib/utils';
 import { WHATSAPP_LINK, buildMobileMoneyDial, MobileMoneyMethod } from '../lib/config';
 import Seo from '../components/Seo';
-import QRCode from 'qrcode.react';
 import { EditableText } from '../cms';
 import { useCustomerIdentity } from '../lib/useCustomerIdentity';
 
@@ -301,16 +300,6 @@ const ReservationTracking = () => {
               </div>
             )}
 
-            {reservation.qrCode && (
-              <div className="mt-5 flex justify-center">
-                <div className="p-3 bg-white rounded-xl border border-border inline-block">
-                  <QRCode value={reservation.reservationNumber} size={100} />
-                  <p className="text-xs text-center text-muted-foreground mt-2">
-                    {isPickup ? 'Show to collect order' : 'Show at the shop'}
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Progress timeline */}

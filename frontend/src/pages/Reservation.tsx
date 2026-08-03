@@ -8,7 +8,6 @@ import {
   CheckCircle2, QrCode, MapPin, Truck, Store, ShoppingBag,
   CreditCard, Smartphone, ChevronRight,
 } from 'lucide-react';
-import QRCode from 'qrcode.react';
 import { useCartStore } from '../store';
 import { reservationsApi } from '../lib/api';
 import { Reservation, FulfillmentType, PaymentMethod, DeliveryType } from '../types';
@@ -237,20 +236,12 @@ const ReservationPage = () => {
           </p>
 
           <div className="bg-card border border-border rounded-2xl p-6 text-left mb-6">
-            <div className="text-3xl font-mono font-bold text-primary text-center mb-4">
+            <div className="text-3xl font-mono font-bold text-primary text-center mb-2">
               {confirmedReservation.reservationNumber}
             </div>
-
-            {confirmedReservation.qrCode && (
-              <div className="flex justify-center mb-5">
-                <div className="p-4 bg-white rounded-xl border border-border">
-                  <QRCode value={confirmedReservation.reservationNumber} size={140} />
-                  <p className="text-xs text-center text-muted-foreground mt-2">
-                    {isPickup ? t('reservation.show_pickup') : t('reservation.show_shop')}
-                  </p>
-                </div>
-              </div>
-            )}
+            <p className="text-xs text-center text-muted-foreground mb-5">
+              {isPickup ? t('reservation.show_pickup') : t('reservation.show_shop')}
+            </p>
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">

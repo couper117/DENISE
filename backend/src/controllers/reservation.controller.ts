@@ -1,5 +1,4 @@
 import { Request, Response } from 'express';
-import QRCode from 'qrcode';
 import prisma from '../config/database';
 import { generateReservationNumber, getPaginationParams, buildPaginationResponse } from '../utils/helpers';
 import { notifyReservationCreated, notifyStatusUpdate, notifyPaymentDue } from '../services/notification.service';
@@ -35,7 +34,6 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
 
     const mode = fulfillmentType || 'RESERVATION';
     const reservationNumber = generateReservationNumber();
-    const qrCode = await QRCode.toDataURL(`DENISE-${reservationNumber}`);
 
     // Build delivery address if provided
     let deliveryAddressId: string | undefined;
@@ -127,7 +125,6 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       const created = await tx.reservation.create({
         data: {
           reservationNumber,
-          qrCode,
           userId: req.user?.id || null,
           customerName,
           customerPhone,
@@ -212,7 +209,6 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       fulfillmentType: mode,
       visitDate: formattedDate,
       visitTime: visitTime || '',
-      qrCode,
     }).catch((e) => logger.error('Notification failed:', e));
 
     res.status(201).json({ success: true, data: reservation });
