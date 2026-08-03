@@ -101,19 +101,22 @@ const EditorToolbar = () => {
     setEditMode(false);
   };
 
+  // On a phone the editor panel is a bottom sheet, which would sit on top of
+  // this bar. `data-panel-open` lets the stylesheet lift the bar to the top of
+  // the screen so Publish and the save status stay reachable while editing.
   return (
-    <div data-cms-chrome="" className="cms-toolbar cms-glass">
+    <div data-cms-chrome="" className="cms-toolbar cms-glass" data-panel-open={selected ? '' : undefined}>
       <span className="flex items-center gap-2 pl-1.5 pr-1">
         <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,.25)]" />
         <span className="font-semibold">{preview ? 'Previewing' : 'Editing'}</span>
-        <span className="opacity-45 uppercase text-[11px] tracking-wide">{locale}</span>
+        <span className="opacity-45 uppercase text-[11px] tracking-wide cms-hide-xs">{locale}</span>
       </span>
 
       <span className="w-px h-5 bg-current opacity-10" />
       <StatusPill />
-      <span className="w-px h-5 bg-current opacity-10" />
-      <span className="text-[12px] opacity-45 tabular-nums">{editableCount} editable</span>
-      <span className="w-px h-5 bg-current opacity-10" />
+      <span className="w-px h-5 bg-current opacity-10 cms-hide-sm" />
+      <span className="text-[12px] opacity-45 tabular-nums cms-hide-sm">{editableCount} editable</span>
+      <span className="w-px h-5 bg-current opacity-10 cms-hide-xs" />
 
       <button
         type="button"
@@ -124,7 +127,7 @@ const EditorToolbar = () => {
         }`}
         title="See drafts exactly as a visitor would"
       >
-        <Eye size={13} /> Preview
+        <Eye size={13} /> <span className="cms-hide-xs">Preview</span>
       </button>
 
       {confirmDiscard ? (
@@ -147,7 +150,7 @@ const EditorToolbar = () => {
           className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium hover:bg-black/5 dark:hover:bg-white/10 transition-colors disabled:opacity-40"
           title="Revert every unpublished change in this language"
         >
-          {busy === 'discard' ? <Loader2 size={13} className="animate-spin" /> : <Undo2 size={13} />} Discard
+          {busy === 'discard' ? <Loader2 size={13} className="animate-spin" /> : <Undo2 size={13} />} <span className="cms-hide-xs">Discard</span>
         </button>
       )}
 
@@ -196,7 +199,7 @@ const EditorToolbar = () => {
         onClick={onExit}
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[12px] font-medium hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
       >
-        <LogOut size={13} /> Exit
+        <LogOut size={13} /> <span className="cms-hide-xs">Exit</span>
       </button>
     </div>
   );

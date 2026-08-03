@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -15,6 +15,7 @@ import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Seo from '../components/Seo';
 import { cn } from '../lib/utils';
 import { EditableText } from '../cms';
+import { useCustomerIdentity } from '../lib/useCustomerIdentity';
 
 const PURCHASE_OPTIONS: {
   type: FulfillmentType;
@@ -94,6 +95,12 @@ const ProductDetail = () => {
   const [zoomed, setZoomed] = useState(false);
   const [tab, setTab] = useState<'description' | 'specs' | 'materials' | 'reviews'>('description');
   const [reviewForm, setReviewForm] = useState({ rating: 5, title: '', message: '', name: '' });
+  const identity = useCustomerIdentity();
+
+  useEffect(() => {
+    if (!identity.isSignedIn) return;
+    setReviewForm((f) => (f.name ? f : { ...f, name: identity.name }));
+  }, [identity]);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
 
   const { data, isLoading, error } = useQuery({

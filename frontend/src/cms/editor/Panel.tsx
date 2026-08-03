@@ -41,21 +41,35 @@ export const useAnchorRect = (key: string | null): DOMRect | null => {
 };
 
 const PANEL_WIDTH = 340;
+const WIDE_PANEL_WIDTH = 460;
 const GAP = 12;
 
-/** Keeps the panel beside its element and fully on screen. */
-const position = (rect: DOMRect | null, height: number): React.CSSProperties => {
-  if (!rect) return { top: 80, right: 24 };
+/**
+ * Below this the viewport is too narrow for an anchored popover — a 340px panel
+ * beside an element leaves nothing readable — so the panel becomes a bottom
+ * sheet instead, which is the native pattern on a phone anyway.
+ */
+export const SHEET_BREAKPOINT = 640;
 
+/** Keeps the panel beside its element and fully on screen. */
+const position = (rect: DOMRect | null, height: number, wide: boolean): React.CSSProperties => {
   const vw = window.innerWidth;
   const vh = window.innerHeight;
+
+  // Phone: a full-width sheet pinned to the bottom, above the toolbar.
+  if (vw < SHEET_BREAKPOINT) {
+    return { left: 0, right: 0, bottom: 0, width: '100%', maxHeight: '68vh' };
+  }
+
+  const width = wide ? WIDE_PANEL_WIDTH : PANEL_WIDTH;
+  if (!rect) return { top: 80, right: 24, width };
 
   // Prefer below; flip above when there is no room.
   const below = rect.bottom + GAP;
   const top = below + height > vh - 16 ? Math.max(16, rect.top - height - GAP) : below;
 
-  const left = Math.min(Math.max(16, rect.left), vw - PANEL_WIDTH - 16);
-  return { top, left, width: PANEL_WIDTH };
+  const left = Math.min(Math.max(16, rect.left), vw - width - 16);
+  return { top, left, width };
 };
 
 interface PanelProps {
@@ -73,6 +87,15 @@ const Panel = ({ anchorKey, title, subtitle, onClose, children, footer, wide }: 
   const rect = useAnchorRect(anchorKey);
   const ref = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(240);
+  const [narrow, setNarrow] = useState(() => window.innerWidth < SHEET_BREAKPOINT);
+
+  // Rotating a phone flips between sheet and popover, so this has to react to
+  // resize rather than being read once at mount.
+  useEffect(() => {
+    const onResize = () => setNarrow(window.innerWidth < SHEET_BREAKPOINT);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   useLayoutEffect(() => {
     if (ref.current) setHeight(ref.current.offsetHeight);
@@ -91,14 +114,14 @@ const Panel = ({ anchorKey, title, subtitle, onClose, children, footer, wide }: 
     return () => document.removeEventListener('pointerdown', onPointerDown, true);
   }, [onClose]);
 
-  const style = position(rect, height);
+  const style = position(rect, height, Boolean(wide));
 
   return (
     <div
       ref={ref}
       data-cms-chrome=""
-      className="cms-panel cms-glass"
-      style={wide ? { ...style, width: 460 } : style}
+      className={`cms-panel cms-glass${narrow ? ' is-sheet' : ''}`}
+      style={style}
       role="dialog"
       aria-label={title}
     >

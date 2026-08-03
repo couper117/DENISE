@@ -14,6 +14,7 @@ import { WHATSAPP_LINK, buildMobileMoneyDial, MobileMoneyMethod } from '../lib/c
 import Seo from '../components/Seo';
 import QRCode from 'qrcode.react';
 import { EditableText } from '../cms';
+import { useCustomerIdentity } from '../lib/useCustomerIdentity';
 
 // Status pipeline per fulfillment type
 const STATUS_PIPELINES: Record<FulfillmentType, string[]> = {
@@ -99,6 +100,14 @@ const ReservationTracking = () => {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [results, setResults] = useState<Reservation[]>([]);
+  const identity = useCustomerIdentity();
+
+  // Signed-in customers get the name/phone lookup filled in for them.
+  useEffect(() => {
+    if (!identity.isSignedIn) return;
+    setName((v) => v || identity.name);
+    setPhone((v) => v || identity.phone);
+  }, [identity]);
 
   const trackMutation = useMutation({
     mutationFn: (number: string) =>

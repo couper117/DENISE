@@ -370,6 +370,122 @@ const CSS = `
   to   { opacity: 1; transform: scale(1) translateY(0) }
 }
 
+/* ── Phones and small tablets ─────────────────────────────────────────────────
+   The editor was laid out for a mouse and a wide viewport. On a phone the
+   toolbar overflowed off both edges, anchored panels rendered mostly off-screen,
+   and the media/history modals tried to show three columns in 360px.
+
+   The approach: panels and modals become full-width sheets, multi-column layouts
+   stack, and the toolbar wraps and loses its non-essential readouts. Tap targets
+   go up to 34px, which is the smallest that reliably works with a thumb. */
+@media (max-width: 640px) {
+  /* One row that scrolls sideways, never a wrapping one. Wrapping pushed the
+     second row past the bottom of the screen, which hid Exit and Settings
+     entirely — a scrollable row keeps every control reachable. */
+  .cms-toolbar {
+    left: 8px;
+    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    transform: none;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    padding: 7px 8px;
+    border-radius: 12px;
+  }
+  .cms-toolbar::-webkit-scrollbar { display: none }
+  .cms-toolbar > * { flex-shrink: 0 }
+  /* Locale, editable count and their dividers are diagnostics, not controls. */
+  .cms-toolbar .cms-hide-sm { display: none }
+  .cms-toolbar button { min-height: 34px }
+
+  /* With a sheet open the bar would be underneath it, so it moves to the top. */
+  .cms-toolbar[data-panel-open] {
+    bottom: auto;
+    top: calc(8px + env(safe-area-inset-top, 0px));
+  }
+
+  /* Anchored popover becomes a bottom sheet. */
+  .cms-panel.is-sheet {
+    border-radius: 16px 16px 0 0;
+    max-height: 68vh;
+    /* Clear of the toolbar so the two never overlap. */
+    margin-bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .cms-panel.is-sheet .cms-panel-body { max-height: 52vh }
+
+  /* A drag affordance, so the sheet reads as a sheet. */
+  .cms-panel.is-sheet .cms-panel-head::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 34px;
+    height: 4px;
+    border-radius: 2px;
+    background: currentColor;
+    opacity: .2;
+  }
+  .cms-panel.is-sheet .cms-panel-head { position: relative; padding-top: 16px }
+
+  .cms-modal-backdrop { padding: 0 }
+  .cms-modal, .cms-modal-narrow, .cms-modal-mid {
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+  /* Three-column media library and two-column history both stack. */
+  .cms-modal-body { flex-direction: column; overflow-y: auto }
+  .cms-media-sidebar {
+    width: 100%;
+    flex-direction: row;
+    overflow-x: auto;
+    border-right: 0;
+    border-bottom: 1px solid rgba(128,128,128,.18);
+    flex-shrink: 0;
+  }
+  .cms-folder { white-space: nowrap; flex-shrink: 0 }
+  .cms-media-detail {
+    width: 100%;
+    border-left: 0;
+    border-top: 1px solid rgba(128,128,128,.18);
+  }
+  .cms-media-grid { grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)) }
+  .cms-history-list {
+    width: 100%;
+    max-height: 40vh;
+    border-right: 0;
+    border-bottom: 1px solid rgba(128,128,128,.18);
+  }
+
+  /* Formatting toolbar wraps instead of running off the edge. */
+  .cms-format-toolbar {
+    left: 8px !important;
+    right: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: calc(100vw - 16px);
+  }
+  .cms-icon-btn { width: 34px; height: 34px }
+
+  .cms-icon-grid { grid-template-columns: repeat(6, 1fr); max-height: 180px }
+  .cms-icon-cell { border-radius: 9px }
+
+  /* The key badge is useful on a desktop and just noise on a 360px screen. */
+  .cms-hover-badge { max-width: 60vw }
+}
+
+/* Very small phones: drop to the controls that actually change something. */
+@media (max-width: 400px) {
+  .cms-toolbar .cms-hide-xs { display: none }
+  .cms-icon-grid { grid-template-columns: repeat(5, 1fr) }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cms-hover-outline, .cms-selected-outline { transition: none; animation: none }
   .cms-toolbar, .cms-panel, .cms-format-toolbar { animation: none }

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
@@ -18,6 +18,7 @@ import Seo from '../components/Seo';
 import { RWANDA_PROVINCES, getDistrictsForProvince, getDeliveryFee } from '../lib/rwanda';
 import { AIRTEL_ENABLED } from '../lib/config';
 import { cn } from '../lib/utils';
+import { fillBlanks, useCustomerIdentity } from '../lib/useCustomerIdentity';
 import { EditableText } from '../cms';
 
 const LANGUAGES = [
@@ -92,6 +93,7 @@ const ReservationPage = () => {
   const [step, setStep] = useState<Step>(initialStep);
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>(initialMode);
   const [confirmedReservation, setConfirmedReservation] = useState<Reservation | null>(null);
+  const identity = useCustomerIdentity();
 
   const [form, setForm] = useState({
     customerName: '',
@@ -113,6 +115,20 @@ const ReservationPage = () => {
     streetAddress: '',
     scheduledDate: '',
   });
+
+  // A signed-in customer should never have to retype what the account already
+  // knows. Only blank fields are filled, so anything typed before signing in
+  // survives, and every field stays editable — someone may be reserving for a
+  // family member or wanting delivery on a different phone.
+  useEffect(() => {
+    if (!identity.isSignedIn) return;
+    setForm((f) => fillBlanks(f, {
+      customerName: identity.name,
+      customerPhone: identity.phone,
+      customerEmail: identity.email,
+      mobileMoneyPhone: identity.phone,
+    }));
+  }, [identity]);
 
   const update = (key: keyof typeof form, value: string) =>
     setForm((p) => ({ ...p, [key]: value }));
