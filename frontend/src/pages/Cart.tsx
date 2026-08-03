@@ -7,6 +7,7 @@ import { CartItem } from '../types';
 import { describeConfiguration, MAX_QUANTITY } from '../lib/productOptions';
 import { toast } from '../components/ui/Toaster';
 import FabricEstimator from '../components/reservation/FabricEstimator';
+import Breadcrumbs from '../components/Breadcrumbs';
 import Seo from '../components/Seo';
 import { EditableText } from '../cms';
 import { cn } from '../lib/utils';
@@ -161,6 +162,8 @@ const Cart = () => {
       />
 
       <div className="max-w-6xl mx-auto">
+        <Breadcrumbs items={[{ label: t('nav.cart') }]} />
+
         <div className="flex items-end justify-between gap-4 mb-6 flex-wrap">
           <div>
             <EditableText id="cart.title" as="h1" className="font-serif text-2xl sm:text-3xl font-bold" />

@@ -1,9 +1,8 @@
 import { Request, Response } from 'express';
-import QRCode from 'qrcode';
 import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
 import { generateReservationNumber, getPaginationParams, buildPaginationResponse } from '../utils/helpers';
-import { notifyReservationCreated, notifyStatusUpdate } from '../services/notification.service';
+import { notifyReservationCreated, notifyStatusUpdate, notifyPaymentDue } from '../services/notification.service';
 import { AuthenticatedRequest } from '../types';
 import { priceLine, RawItemInput, NormalizedOptions } from '../utils/productOptions';
 import logger from '../utils/logger';
@@ -13,9 +12,17 @@ const PAYMENT_METHODS = [
   'BANK_TRANSFER', 'FLUTTERWAVE', 'PAYPAL', 'STRIPE', 'PAY_AT_SHOP',
 ];
 
-/** Everything the customer-facing order views need in one shape. */
+/**
+ * Everything the customer-facing order views need in one shape. The image
+ * ordering falls back to sort order when no image is flagged primary, so a line
+ * never renders with an empty thumbnail.
+ */
 const customerOrderInclude = {
-  items: { include: { product: { include: { images: { where: { isPrimary: true }, take: 1 } } } } },
+  items: {
+    include: {
+      product: { include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 } } },
+    },
+  },
   deliveryAddress: true,
   payments: { orderBy: { createdAt: 'desc' } },
   statusHistory: { orderBy: { createdAt: 'asc' } },
@@ -34,7 +41,6 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
 
     const mode = fulfillmentType || 'RESERVATION';
     const reservationNumber = generateReservationNumber();
-    const qrCode = await QRCode.toDataURL(`DENISE-${reservationNumber}`);
 
     // Build delivery address if provided
     let deliveryAddressId: string | undefined;
@@ -151,7 +157,6 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       const created = await tx.reservation.create({
         data: {
           reservationNumber,
-          qrCode,
           userId: req.user?.id || null,
           customerName,
           customerPhone,
@@ -263,7 +268,6 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       fulfillmentType: mode,
       visitDate: formattedDate,
       visitTime: visitTime || '',
-      qrCode,
     }).catch((e) => logger.error('Notification failed:', e));
 
     res.status(201).json({ success: true, data: fullOrder ?? reservation });
@@ -330,7 +334,7 @@ export const getMyReservations = async (req: AuthenticatedRequest, res: Response
                 id: true,
                 name: true,
                 slug: true,
-                images: { where: { isPrimary: true }, take: 1 },
+                images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 },
               },
             },
           },
@@ -471,7 +475,9 @@ export const updateReservationStatus = async (req: AuthenticatedRequest, res: Re
       return;
     }
 
-    // What it was before, so the history records real transitions only.
+    // What it was before: the history records real transitions only, and the
+    // "pay now" notice must fire on the first confirmation rather than on every
+    // subsequent save.
     const before = await prisma.reservation.findUnique({
       where: { id },
       select: { status: true, paymentStatus: true },
@@ -547,25 +553,44 @@ export const updateReservationStatus = async (req: AuthenticatedRequest, res: Re
       }
     }
 
-    // Only tell the customer when the status really moved. Marking a payment
-    // as received re-sends the current status, and used to fire a duplicate
-    // "your order is CONFIRMED" SMS every time.
+    // Notify only when the status really moved: marking a payment as received
+    // re-sends the current status, which used to fire a duplicate "your order is
+    // CONFIRMED" SMS every time. Within that, a first confirmation of an unpaid
+    // online order sends the "pay now" message *instead of* the generic status
+    // text, so the customer gets one message rather than two.
     if (statusChanged) {
-      const formattedDate = reservation.visitDate
-        ? reservation.visitDate.toLocaleDateString('en-RW')
-        : reservation.fulfillmentType === 'DELIVERY' ? 'Delivery order' : 'Pickup order';
+      const dueAmount = (amt !== undefined ? amt : reservation.totalAmount) ?? 0;
+      const sendPaymentDue =
+        status === 'CONFIRMED' && before.status !== 'CONFIRMED' && dueAmount > 0 &&
+        (reservation.fulfillmentType === 'PICKUP' || reservation.fulfillmentType === 'DELIVERY') &&
+        reservation.paymentStatus !== 'COMPLETED';
 
-      await notifyStatusUpdate({
-        reservationId: reservation.id,
-        customerName: reservation.customerName,
-        customerPhone: reservation.customerPhone,
-        customerEmail: reservation.customerEmail,
-        reservationNumber: reservation.reservationNumber,
-        fulfillmentType: reservation.fulfillmentType,
-        visitDate: formattedDate,
-        visitTime: reservation.visitTime,
-        status,
-      }).catch((e) => logger.error('Status notification failed:', e));
+      if (sendPaymentDue) {
+        await notifyPaymentDue({
+          reservationId: reservation.id,
+          customerName: reservation.customerName,
+          customerPhone: reservation.customerPhone,
+          customerEmail: reservation.customerEmail,
+          reservationNumber: reservation.reservationNumber,
+          amount: dueAmount,
+        }).catch((e) => logger.error('Payment-due notification failed:', e));
+      } else {
+        const formattedDate = reservation.visitDate
+          ? reservation.visitDate.toLocaleDateString('en-RW')
+          : reservation.fulfillmentType === 'DELIVERY' ? 'Delivery order' : 'Pickup order';
+
+        await notifyStatusUpdate({
+          reservationId: reservation.id,
+          customerName: reservation.customerName,
+          customerPhone: reservation.customerPhone,
+          customerEmail: reservation.customerEmail,
+          reservationNumber: reservation.reservationNumber,
+          fulfillmentType: reservation.fulfillmentType,
+          visitDate: formattedDate,
+          visitTime: reservation.visitTime,
+          status,
+        }).catch((e) => logger.error('Status notification failed:', e));
+      }
     }
 
     res.json({ success: true, data: reservation });

@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { useMutation } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import QRCode from 'qrcode.react';
 import {
   AlertCircle, Building2, Calendar, Check, CheckCircle2, ChevronRight, Clock, CreditCard,
   Loader2, Mail, MapPin, MessageSquare, Package, Phone, ShieldCheck, Smartphone, Store, Truck, User,
@@ -20,6 +19,7 @@ import {
 } from '../lib/config';
 import { fillBlanks, useCustomerIdentity } from '../lib/useCustomerIdentity';
 import { toast } from '../components/ui/Toaster';
+import Breadcrumbs from '../components/Breadcrumbs';
 import Seo from '../components/Seo';
 import { EditableText } from '../cms';
 
@@ -337,19 +337,12 @@ const Checkout = () => {
           </div>
 
           <div className={cn(card, 'mb-4')}>
-            <p className="text-center text-2xl font-mono font-bold text-primary mb-4">{confirmed.reservationNumber}</p>
-            {confirmed.qrCode && (
-              <div className="flex justify-center mb-5">
-                <div className="p-4 bg-white rounded-xl border border-border">
-                  <QRCode value={confirmed.reservationNumber} size={132} />
-                  <p className="text-xs text-center text-muted-foreground mt-2">
-                    {confirmed.fulfillmentType === 'DELIVERY'
-                      ? tr('checkout.qr_delivery', 'Show this to the courier')
-                      : t('reservation.show_shop')}
-                  </p>
-                </div>
-              </div>
-            )}
+            {/* The reference number is the whole identity of an order — QR codes
+                were removed from the customer flow on main, so it is shown
+                large and copyable instead. */}
+            <p className="text-center text-2xl font-mono font-bold text-primary mb-4 select-all">
+              {confirmed.reservationNumber}
+            </p>
 
             <dl className="space-y-2 text-sm border-t border-border pt-4">
               <div className="flex justify-between">
@@ -439,6 +432,11 @@ const Checkout = () => {
       />
 
       <div className="max-w-6xl mx-auto">
+        <Breadcrumbs items={[
+          { label: t('nav.cart'), to: '/cart' },
+          { label: tr('checkout.title', 'Checkout') },
+        ]} />
+
         <h1 className="font-serif text-2xl sm:text-3xl font-bold mb-1">
           {tr('checkout.title', 'Checkout')}
         </h1>

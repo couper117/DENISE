@@ -50,6 +50,9 @@ const Header = () => {
   const navLinks = [
     { to: '/', labelKey: 'nav.home', end: true },
     { to: '/products', labelKey: 'nav.products' },
+    // No "Reserve" entry any more: reserving is one of the fulfilment choices
+    // at checkout, not a separate destination, and /reservation now redirects
+    // to the cart. The cart has its own icon in the actions row.
     { to: '/track', labelKey: 'nav.track' },
     { to: '/about', labelKey: 'nav.about' },
     { to: '/blog', labelKey: 'nav.blog' },

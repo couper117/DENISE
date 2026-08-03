@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { ArrowRight, Target, Compass } from 'lucide-react';
 import Seo from '../components/Seo';
+import Breadcrumbs from '../components/Breadcrumbs';
 import { EditableIcon, EditableImage, EditableList, EditableText } from '../cms';
 
 /* Both photos are hotlinked from Unsplash and verified to resolve — the previous
@@ -81,6 +82,7 @@ const About = () => {
       {/* Story — the page opens straight into it, so this heading is the h1. */}
       <section className="py-14 md:py-20">
         <div className="container mx-auto px-4">
+          <Breadcrumbs items={[{ label: t('nav.about') }]} />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
               <EditableText

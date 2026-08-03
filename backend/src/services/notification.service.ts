@@ -1,6 +1,6 @@
 import prisma from '../config/database';
 import { sendEmail, sendReservationConfirmation, sendReservationStatusUpdate } from './email.service';
-import { sendSMS, sendReservationSMS, sendReservationWhatsApp } from './sms.service';
+import { sendSMS, sendWhatsApp, sendReservationSMS, sendReservationWhatsApp } from './sms.service';
 import logger from '../utils/logger';
 
 type Channel = 'EMAIL' | 'SMS' | 'WHATSAPP';
@@ -44,7 +44,6 @@ interface ReservationNotificationData {
   fulfillmentType?: string;
   visitDate?: string | null;
   visitTime?: string | null;
-  qrCode?: string;
   status?: string;
 }
 
@@ -69,7 +68,7 @@ const FULFILLMENT_LABELS: Record<string, string> = {
 export const notifyReservationCreated = async (data: ReservationNotificationData): Promise<void> => {
   const {
     reservationId, customerName, customerPhone, customerEmail,
-    reservationNumber, fulfillmentType, visitDate, visitTime, qrCode,
+    reservationNumber, fulfillmentType, visitDate, visitTime,
   } = data;
 
   const mode = fulfillmentType || 'RESERVATION';
@@ -80,13 +79,13 @@ export const notifyReservationCreated = async (data: ReservationNotificationData
   // Customer-facing channels, each tracked so we can record its real delivery result
   const channels: OutboundNotification[] = [];
 
-  if (customerEmail && qrCode) {
+  if (customerEmail) {
     const email = customerEmail;
     channels.push({
       channel: 'EMAIL',
       recipient: email,
       body: `${modeLabel} confirmation`,
-      send: () => sendReservationConfirmation(email, customerName, reservationNumber, dateInfo, timeInfo, qrCode),
+      send: () => sendReservationConfirmation(email, customerName, reservationNumber, dateInfo, timeInfo),
     });
   }
   channels.push({
@@ -142,6 +141,49 @@ export const notifyStatusUpdate = async (data: ReservationNotificationData): Pro
     body: `Status update: ${status}`,
     send: () => sendSMS(customerPhone, smsBody),
   });
+
+  const results = await Promise.allSettled(channels.map((c) => c.send()));
+  await recordNotifications(reservationId, channels, results);
+};
+
+interface PaymentDueData {
+  reservationId: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string | null;
+  reservationNumber: string;
+  amount: number;
+}
+
+// Sent when an online-payment order is confirmed and payment is due: the customer
+// gets the amount and a tap-to-pay link (the Track page has the MoMo dial button).
+export const notifyPaymentDue = async (data: PaymentDueData): Promise<void> => {
+  const { reservationId, customerName, customerPhone, customerEmail, reservationNumber, amount } = data;
+  const site = (process.env.FRONTEND_URL || 'https://deniseshop.com').replace(/\/+$/, '');
+  const payLink = `${site}/track?ref=${reservationNumber}`;
+  const amt = amount.toLocaleString();
+
+  const channels: OutboundNotification[] = [
+    {
+      channel: 'SMS', recipient: customerPhone, body: `Payment due: ${amt} RWF`,
+      send: () => sendSMS(customerPhone, `Hello ${customerName}! Your DENISE Textile order ${reservationNumber} is confirmed. Please pay ${amt} RWF via MTN MoMo here: ${payLink} then enter your PIN. Murakoze!`),
+    },
+    {
+      channel: 'WHATSAPP', recipient: customerPhone, body: `Payment due: ${amt} RWF`,
+      send: () => sendWhatsApp(customerPhone, `*DENISE Textile* 💳\n\nHello *${customerName}*! Your order *${reservationNumber}* is confirmed.\n\nPlease pay *${amt} RWF* via MTN MoMo:\n${payLink}\n\nTap the link, confirm, then enter your PIN. Murakoze! 😊`),
+    },
+  ];
+  if (customerEmail) {
+    const email = customerEmail;
+    channels.push({
+      channel: 'EMAIL', recipient: email, body: `Payment due for ${reservationNumber}`,
+      send: () => sendEmail({
+        to: email,
+        subject: `Payment due — order ${reservationNumber}`,
+        html: `<p>Hello ${customerName},</p><p>Your DENISE Textile order <strong>${reservationNumber}</strong> is confirmed. Please pay <strong>${amt} RWF</strong> via MTN Mobile Money.</p><p><a href="${payLink}">Pay now →</a></p><p>Murakoze!</p>`,
+      }),
+    });
+  }
 
   const results = await Promise.allSettled(channels.map((c) => c.send()));
   await recordNotifications(reservationId, channels, results);

@@ -75,10 +75,11 @@ const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05, duration: 0.4 }}
+      className="h-full"
     >
-      <Link to={`/products/${product.slug}`} className="group block bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-        {/* Image */}
-        <div className="relative overflow-hidden bg-muted aspect-[4/3]">
+      <Link to={`/products/${product.slug}`} className="group flex h-full flex-col bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+        {/* Image — fixed ratio so every card's image is identical in size */}
+        <div className="relative overflow-hidden bg-muted aspect-[4/3] shrink-0">
           {primaryImage ? (
             <img
               src={primaryImage.url}
@@ -122,14 +123,15 @@ const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
           )}
         </div>
 
-        {/* Content */}
-        <div className="p-4">
-          <p className="text-xs text-muted-foreground mb-1">{product.category?.name}</p>
-          <h3 className="font-medium text-sm leading-snug mb-1 line-clamp-2 group-hover:text-primary transition-colors">{product.name}</h3>
-          {product.material && <p className="text-xs text-muted-foreground mb-2">{product.material}</p>}
-          {product.priceRange && <p className="text-sm font-semibold text-primary mb-3">{product.priceRange}</p>}
+        {/* Content — reserved heights + bottom-pinned buttons keep every card identical */}
+        <div className="flex flex-1 flex-col p-4">
+          <p className="text-xs text-muted-foreground mb-1 line-clamp-1 min-h-[1rem]">{product.category?.name || ' '}</p>
+          <h3 className="font-medium text-sm leading-snug mb-1 line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors">{product.name}</h3>
+          <p className="text-sm font-semibold text-primary mb-3 line-clamp-1 min-h-[1.25rem]">
+            {product.priceRange || (product.price ? `${product.price.toLocaleString()} ${product.currency ?? 'RWF'}` : ' ')}
+          </p>
 
-          <div className="flex gap-2">
+          <div className="mt-auto flex gap-2">
             <button onClick={handleAddToCart} disabled={!product.isAvailable}
               className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-primary text-primary-foreground text-xs font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               {needsConfiguration ? <SlidersHorizontal size={13} /> : <ShoppingBag size={13} />}

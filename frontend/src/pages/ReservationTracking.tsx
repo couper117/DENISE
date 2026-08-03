@@ -12,7 +12,7 @@ import { Reservation, FulfillmentType } from '../types';
 import { formatDate, getStatusColor, getStatusLabel } from '../lib/utils';
 import { WHATSAPP_LINK, buildMobileMoneyDial, MobileMoneyMethod } from '../lib/config';
 import Seo from '../components/Seo';
-import QRCode from 'qrcode.react';
+import Breadcrumbs from '../components/Breadcrumbs';
 import { EditableText } from '../cms';
 import { useCustomerIdentity } from '../lib/useCustomerIdentity';
 
@@ -172,6 +172,7 @@ const ReservationTracking = () => {
         title="Track Your Order — DENISE Textile Rwanda"
         description="Track your DENISE Textile reservation or delivery by reference number."
       />
+      <Breadcrumbs items={[{ label: t('nav.track') }]} />
       <div className="text-center mb-6">
         <EditableText id="reservation.track_title" as="h1" className="font-serif text-3xl font-bold mb-2" />
         <p className="text-muted-foreground">
@@ -301,16 +302,6 @@ const ReservationTracking = () => {
               </div>
             )}
 
-            {reservation.qrCode && (
-              <div className="mt-5 flex justify-center">
-                <div className="p-3 bg-white rounded-xl border border-border inline-block">
-                  <QRCode value={reservation.reservationNumber} size={100} />
-                  <p className="text-xs text-center text-muted-foreground mt-2">
-                    {isPickup ? 'Show to collect order' : 'Show at the shop'}
-                  </p>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Progress timeline */}
