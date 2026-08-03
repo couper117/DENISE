@@ -3,7 +3,7 @@
 
 export const BUSINESS_PHONE       = '+250 788 878 487';   // ← YOUR REAL PHONE HERE
 export const BUSINESS_PHONE_CLEAN = '250788878487';       // ← same number, no spaces/+
-export const BUSINESS_EMAIL       = 'info@deniseshop.com';// ← YOUR REAL EMAIL HERE
+export const BUSINESS_EMAIL       = 'kelvin2028010@gmail.com';
 export const BUSINESS_WHATSAPP    = '250788878487';       // ← WhatsApp number (digits only)
 export const BUSINESS_ADDRESS     = 'Kigali, Rwanda';
 export const BUSINESS_LAT         = -1.9441;              // ← shop coordinates (for maps)
