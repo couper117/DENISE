@@ -18,6 +18,7 @@ import Seo from '../components/Seo';
 import { RWANDA_PROVINCES, getDistrictsForProvince, getDeliveryFee } from '../lib/rwanda';
 import { AIRTEL_ENABLED } from '../lib/config';
 import { cn } from '../lib/utils';
+import { EditableText } from '../cms';
 
 const LANGUAGES = [
   { code: 'en', label: 'English' },
@@ -237,7 +238,7 @@ const ReservationPage = () => {
 
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('reservation.type_label')}:</span>
+                <span className="text-muted-foreground"><EditableText id="reservation.type_label" />:</span>
                 <span className="font-medium capitalize">
                   {confirmedReservation.fulfillmentType === 'DELIVERY'
                     ? t('reservation.type_delivery')
@@ -248,7 +249,7 @@ const ReservationPage = () => {
               </div>
               {confirmedReservation.visitDate && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('reservation.visit_date')}:</span>
+                  <span className="text-muted-foreground"><EditableText id="reservation.visit_date" />:</span>
                   <span className="font-medium">
                     {new Date(confirmedReservation.visitDate).toLocaleDateString('en-RW', {
                       weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -258,7 +259,7 @@ const ReservationPage = () => {
               )}
               {confirmedReservation.deliveryAddress && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">{t('reservation.deliver_to')}:</span>
+                  <span className="text-muted-foreground"><EditableText id="reservation.deliver_to" />:</span>
                   <span className="font-medium text-right max-w-[60%]">
                     {confirmedReservation.deliveryAddress.district},{' '}
                     {confirmedReservation.deliveryAddress.province}
@@ -267,16 +268,16 @@ const ReservationPage = () => {
               )}
               {confirmedReservation.totalAmount && (
                 <div className="flex justify-between border-t border-border pt-2 mt-2">
-                  <span className="font-semibold">{t('reservation.total_paid')}:</span>
+                  <span className="font-semibold"><EditableText id="reservation.total_paid" />:</span>
                   <span className="font-bold text-primary">
-                    {confirmedReservation.totalAmount.toLocaleString()} {t('common.rwf')}
+                    {confirmedReservation.totalAmount.toLocaleString()} <EditableText id="common.rwf" />
                   </span>
                 </div>
               )}
               <div className="flex justify-between">
-                <span className="text-muted-foreground">{t('reservation.status')}:</span>
+                <span className="text-muted-foreground"><EditableText id="reservation.status" />:</span>
                 <span className="px-2 py-0.5 bg-yellow-100 text-yellow-800 rounded-full text-xs font-medium">
-                  {t('reservation.pending_confirmation')}
+                  <EditableText id="reservation.pending_confirmation" />
                 </span>
               </div>
             </div>
@@ -284,8 +285,8 @@ const ReservationPage = () => {
 
           {awaitingMomoPayment && (
             <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-5 mb-6 text-center">
-              <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">{t('reservation.pay_after_confirm_title')}</p>
-              <p className="text-blue-700 dark:text-blue-300 text-xs">{t('reservation.pay_after_confirm_desc')}</p>
+              <EditableText id="reservation.pay_after_confirm_title" as="p" className="font-medium text-blue-800 dark:text-blue-200 mb-1" />
+              <EditableText id="reservation.pay_after_confirm_desc" as="p" className="text-blue-700 dark:text-blue-300 text-xs" />
             </div>
           )}
 
@@ -294,13 +295,13 @@ const ReservationPage = () => {
               to={`/track?ref=${confirmedReservation.reservationNumber}`}
               className="flex-1 text-center py-3 bg-primary text-primary-foreground font-medium rounded-xl hover:bg-primary/90 transition-colors"
             >
-              {t('reservation.track_order')}
+              <EditableText id="reservation.track_order" />
             </Link>
             <Link
               to="/products"
               className="flex-1 text-center py-3 border border-border font-medium rounded-xl hover:bg-accent transition-colors"
             >
-              {t('reservation.continue_shopping')}
+              <EditableText id="reservation.continue_shopping" />
             </Link>
           </div>
         </motion.div>
@@ -316,8 +317,8 @@ const ReservationPage = () => {
         description="Reserve products and visit our Kigali shop, or buy online with delivery anywhere in Rwanda. Curtains, fabrics and traditional attire from DENISE."
       />
       <div className="max-w-5xl mx-auto">
-        <h1 className="font-serif text-3xl font-bold mb-1">{t('reservation.title')}</h1>
-        <p className="text-muted-foreground mb-6">{t('reservation.subtitle')}</p>
+        <EditableText id="reservation.title" as="h1" className="font-serif text-3xl font-bold mb-1" />
+        <EditableText id="reservation.subtitle" as="p" className="text-muted-foreground mb-6" />
 
         {/* Progress steps */}
         <div className="flex items-center gap-2 mb-8 overflow-x-auto pb-1">
@@ -345,7 +346,7 @@ const ReservationPage = () => {
         {/* ── STEP 1: CHOOSE FULFILLMENT TYPE ── */}
         {step === 'options' && (
           <div>
-            <h2 className="font-serif text-xl font-semibold mb-6">{t('fulfillment.choose')}</h2>
+            <EditableText id="fulfillment.choose" as="h2" className="font-serif text-xl font-semibold mb-6" />
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               {FULFILLMENT_OPTIONS.map((opt) => (
                 <motion.button
@@ -386,7 +387,7 @@ const ReservationPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="font-semibold text-lg">{t('reservation.cart_title')} ({items.length})</h2>
+                <h2 className="font-semibold text-lg"><EditableText id="reservation.cart_title" /> ({items.length})</h2>
                 <span className="text-xs px-3 py-1 bg-primary/10 text-primary rounded-full font-medium">
                   {selectedOption?.icon}{' '}
                   {selectedTitle}
@@ -396,12 +397,12 @@ const ReservationPage = () => {
               {items.length === 0 ? (
                 <div className="bg-card border border-border rounded-xl p-12 text-center">
                   <div className="text-5xl mb-4">🛍️</div>
-                  <p className="font-medium mb-2">{t('reservation.cart_empty')}</p>
+                  <EditableText id="reservation.cart_empty" as="p" className="font-medium mb-2" />
                   <Link
                     to="/products"
                     className="inline-block mt-3 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-colors"
                   >
-                    {t('reservation.browse_products')}
+                    <EditableText id="reservation.browse_products" />
                   </Link>
                 </div>
               ) : (
@@ -430,7 +431,7 @@ const ReservationPage = () => {
                             {fulfillmentType !== 'PICKUP' && (
                               <div className="grid grid-cols-2 gap-2 mt-2">
                                 <div>
-                                  <label className="text-xs text-muted-foreground">{t('reservation.quantity')}</label>
+                                  <EditableText id="reservation.quantity" as="label" className="text-xs text-muted-foreground" />
                                   <input
                                     type="number" min="1"
                                     value={item.quantity || ''}
@@ -440,7 +441,7 @@ const ReservationPage = () => {
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-xs text-muted-foreground">{t('reservation.meters_optional')}</label>
+                                  <EditableText id="reservation.meters_optional" as="label" className="text-xs text-muted-foreground" />
                                   <input
                                     type="number" min="0.1" step="0.1"
                                     value={item.metersRequired || ''}
@@ -469,16 +470,16 @@ const ReservationPage = () => {
             <div className="space-y-4">
               <FabricEstimator />
               <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="font-semibold mb-4">{t('reservation.order_summary')}</h3>
+                <EditableText id="reservation.order_summary" as="h3" className="font-semibold mb-4" />
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t('reservation.items_label')}:</span>
+                    <span className="text-muted-foreground"><EditableText id="reservation.items_label" />:</span>
                     <span>{items.length}</span>
                   </div>
                   {fulfillmentType === 'DELIVERY' && form.province && (
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">{t('delivery.fee')}:</span>
-                      <span>{totalDeliveryFee.toLocaleString()} {t('common.rwf')}</span>
+                      <span className="text-muted-foreground"><EditableText id="delivery.fee" />:</span>
+                      <span>{totalDeliveryFee.toLocaleString()} <EditableText id="common.rwf" /></span>
                     </div>
                   )}
                 </div>
@@ -487,14 +488,14 @@ const ReservationPage = () => {
                     onClick={() => setStep('options')}
                     className="flex-1 py-3 border border-border text-sm rounded-xl hover:bg-accent transition-colors"
                   >
-                    ← {t('reservation.change_method')}
+                    ← <EditableText id="reservation.change_method" />
                   </button>
                   <button
                     disabled={items.length === 0}
                     onClick={() => setStep('form')}
                     className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
-                    {t('reservation.continue')} →
+                    <EditableText id="reservation.continue" /> →
                   </button>
                 </div>
                 {items.length === 0 && fulfillmentType === 'RESERVATION' && (
@@ -502,7 +503,7 @@ const ReservationPage = () => {
                     onClick={() => setStep('form')}
                     className="w-full mt-2 py-2 border border-border text-sm rounded-xl hover:bg-accent transition-colors"
                   >
-                    {t('reservation.book_consultation')}
+                    <EditableText id="reservation.book_consultation" />
                   </button>
                 )}
               </div>
@@ -518,11 +519,11 @@ const ReservationPage = () => {
               {/* Contact */}
               <div className="bg-card border border-border rounded-xl p-6">
                 <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <User size={16} className="text-primary" /> {t('reservation.contact_info')}
+                  <User size={16} className="text-primary" /> <EditableText id="reservation.contact_info" />
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium block mb-1.5">{t('reservation.customer_name')} *</label>
+                    <label className="text-sm font-medium block mb-1.5"><EditableText id="reservation.customer_name" /> *</label>
                     <div className="relative">
                       <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <input required value={form.customerName} onChange={(e) => update('customerName', e.target.value)}
@@ -531,7 +532,7 @@ const ReservationPage = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium block mb-1.5">{t('reservation.phone')} *</label>
+                    <label className="text-sm font-medium block mb-1.5"><EditableText id="reservation.phone" /> *</label>
                     <div className="relative">
                       <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <input required value={form.customerPhone} onChange={(e) => update('customerPhone', e.target.value)}
@@ -540,7 +541,7 @@ const ReservationPage = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium block mb-1.5">{t('reservation.email')}</label>
+                    <EditableText id="reservation.email" as="label" className="text-sm font-medium block mb-1.5" />
                     <div className="relative">
                       <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                       <input value={form.customerEmail} onChange={(e) => update('customerEmail', e.target.value)}
@@ -549,7 +550,7 @@ const ReservationPage = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm font-medium block mb-1.5">{t('reservation.language')}</label>
+                    <EditableText id="reservation.language" as="label" className="text-sm font-medium block mb-1.5" />
                     <select value={form.preferredLanguage} onChange={(e) => update('preferredLanguage', e.target.value)}
                       className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
                       {LANGUAGES.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
@@ -562,11 +563,11 @@ const ReservationPage = () => {
               {fulfillmentType === 'RESERVATION' && (
                 <div className="bg-card border border-border rounded-xl p-6">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <Calendar size={16} className="text-primary" /> {t('reservation.schedule_visit')}
+                    <Calendar size={16} className="text-primary" /> <EditableText id="reservation.schedule_visit" />
                   </h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium block mb-1.5">{t('reservation.date')} *</label>
+                      <label className="text-sm font-medium block mb-1.5"><EditableText id="reservation.date" /> *</label>
                       <div className="relative">
                         <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <input required type="date" min={minDate} value={form.visitDate}
@@ -575,12 +576,12 @@ const ReservationPage = () => {
                       </div>
                     </div>
                     <div>
-                      <label className="text-sm font-medium block mb-1.5">{t('reservation.time')} *</label>
+                      <label className="text-sm font-medium block mb-1.5"><EditableText id="reservation.time" /> *</label>
                       <div className="relative">
                         <Clock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                         <select required value={form.visitTime} onChange={(e) => update('visitTime', e.target.value)}
                           className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-                          <option value="">{t('reservation.select_time')}</option>
+                          <option value=""><EditableText id="reservation.select_time" /></option>
                           {timeSlots.map((ts) => <option key={ts} value={ts}>{ts}</option>)}
                         </select>
                       </div>
@@ -593,7 +594,7 @@ const ReservationPage = () => {
               {fulfillmentType === 'DELIVERY' && (
                 <div className="bg-card border border-border rounded-xl p-6">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <MapPin size={16} className="text-primary" /> {t('delivery.address')}
+                    <MapPin size={16} className="text-primary" /> <EditableText id="delivery.address" />
                   </h3>
 
                   {/* Delivery type */}
@@ -619,7 +620,7 @@ const ReservationPage = () => {
 
                   {form.deliveryType === 'SCHEDULED' && (
                     <div className="mb-4">
-                      <label className="text-sm font-medium block mb-1.5">{t('reservation.scheduled_date')} *</label>
+                      <label className="text-sm font-medium block mb-1.5"><EditableText id="reservation.scheduled_date" /> *</label>
                       <input required type="date" min={minDate} value={form.scheduledDate}
                         onChange={(e) => update('scheduledDate', e.target.value)}
                         className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
@@ -628,39 +629,39 @@ const ReservationPage = () => {
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-medium block mb-1.5">{t('delivery.province')} *</label>
+                      <label className="text-sm font-medium block mb-1.5"><EditableText id="delivery.province" /> *</label>
                       <select required value={form.province}
                         onChange={(e) => { update('province', e.target.value); update('district', ''); }}
                         className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-                        <option value="">{t('reservation.select_province')}</option>
+                        <option value=""><EditableText id="reservation.select_province" /></option>
                         {RWANDA_PROVINCES.map((p) => (
                           <option key={p.name} value={p.name}>{p.name}</option>
                         ))}
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm font-medium block mb-1.5">{t('delivery.district')} *</label>
+                      <label className="text-sm font-medium block mb-1.5"><EditableText id="delivery.district" /> *</label>
                       <select required value={form.district} onChange={(e) => update('district', e.target.value)}
                         disabled={!form.province}
                         className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:opacity-50">
-                        <option value="">{t('reservation.select_district')}</option>
+                        <option value=""><EditableText id="reservation.select_district" /></option>
                         {districtOptions.map((d) => <option key={d} value={d}>{d}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="text-sm font-medium block mb-1.5">{t('delivery.sector')}</label>
+                      <EditableText id="delivery.sector" as="label" className="text-sm font-medium block mb-1.5" />
                       <input value={form.sector} onChange={(e) => update('sector', e.target.value)}
                         placeholder={t('reservation.sector_placeholder')}
                         className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                     </div>
                     <div>
-                      <label className="text-sm font-medium block mb-1.5">{t('delivery.cell')}</label>
+                      <EditableText id="delivery.cell" as="label" className="text-sm font-medium block mb-1.5" />
                       <input value={form.cell} onChange={(e) => update('cell', e.target.value)}
                         placeholder={t('reservation.cell_placeholder')}
                         className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                     </div>
                     <div className="sm:col-span-2">
-                      <label className="text-sm font-medium block mb-1.5">{t('delivery.street')} *</label>
+                      <label className="text-sm font-medium block mb-1.5"><EditableText id="delivery.street" /> *</label>
                       <input required value={form.streetAddress} onChange={(e) => update('streetAddress', e.target.value)}
                         placeholder={t('reservation.street_placeholder')}
                         className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
@@ -674,7 +675,7 @@ const ReservationPage = () => {
                         {t('delivery.fee_for', { province: form.province })}
                       </span>
                       <span className="font-bold text-primary">
-                        {totalDeliveryFee.toLocaleString()} {t('common.rwf')}
+                        {totalDeliveryFee.toLocaleString()} <EditableText id="common.rwf" />
                       </span>
                     </div>
                   )}
@@ -685,13 +686,13 @@ const ReservationPage = () => {
               {requiresPayment && (
                 <div className="bg-card border border-border rounded-xl p-6">
                   <h3 className="font-semibold mb-4 flex items-center gap-2">
-                    <CreditCard size={16} className="text-primary" /> {t('payment.method')} *
+                    <CreditCard size={16} className="text-primary" /> <EditableText id="payment.method" /> *
                   </h3>
 
                   {/* Mobile Money (MTN / Airtel) */}
                   <div className="mb-4">
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-2 font-medium">
-                      📱 {t('payment.group_mobile_money')}
+                      📱 <EditableText id="payment.group_mobile_money" />
                     </p>
                     <div className="grid grid-cols-2 gap-2">
                       {PAYMENT_METHODS.map((m) => (
@@ -716,14 +717,14 @@ const ReservationPage = () => {
                       <div className="mt-3">
                         <label className="text-sm font-medium block mb-1.5">
                           <Smartphone size={13} className="inline mr-1" />
-                          {t('payment.mobile_money_phone')} *
+                          <EditableText id="payment.mobile_money_phone" /> *
                         </label>
                         <input required value={form.mobileMoneyPhone}
                           onChange={(e) => update('mobileMoneyPhone', e.target.value)}
                           placeholder="+250 780 000 000" type="tel"
                           className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
                         <p className="text-xs text-muted-foreground mt-1">
-                          {t('payment.mobile_prompt')}
+                          <EditableText id="payment.mobile_prompt" />
                         </p>
                       </div>
                     )}
@@ -731,7 +732,7 @@ const ReservationPage = () => {
 
                   <div className="mt-4 p-3 bg-muted/50 rounded-xl text-xs text-muted-foreground flex items-start gap-2">
                     <span>🔒</span>
-                    <span>{t('payment.secure')}</span>
+                    <EditableText id="payment.secure" as="span" />
                   </div>
                 </div>
               )}
@@ -739,7 +740,7 @@ const ReservationPage = () => {
               {/* Measurement option — only for RESERVATION */}
               {fulfillmentType === 'RESERVATION' && (
                 <div className="bg-card border border-border rounded-xl p-6">
-                  <h3 className="font-semibold mb-4">{t('reservation.measurement_option')}</h3>
+                  <EditableText id="reservation.measurement_option" as="h3" className="font-semibold mb-4" />
                   <div className="space-y-3">
                     {([
                       { value: 'KNOW_MEASUREMENTS', label: t('reservation.know_measurements'), desc: t('reservation.know_desc') },
@@ -769,7 +770,7 @@ const ReservationPage = () => {
               {/* Notes */}
               <div className="bg-card border border-border rounded-xl p-6">
                 <label className="font-semibold block mb-3 flex items-center gap-2">
-                  <MessageSquare size={16} className="text-primary" /> {t('reservation.notes')}
+                  <MessageSquare size={16} className="text-primary" /> <EditableText id="reservation.notes" />
                 </label>
                 <textarea value={form.notes} onChange={(e) => update('notes', e.target.value)}
                   placeholder={
@@ -785,7 +786,7 @@ const ReservationPage = () => {
               <div className="flex gap-3">
                 <button type="button" onClick={() => setStep('cart')}
                   className="px-6 py-3 border border-border rounded-xl font-medium hover:bg-accent transition-colors">
-                  ← {t('common.back')}
+                  ← <EditableText id="common.back" />
                 </button>
                 <button type="submit"
                   disabled={createMutation.isPending || (requiresPayment && !form.paymentMethod)}
@@ -799,29 +800,29 @@ const ReservationPage = () => {
               </div>
 
               {createMutation.error && (
-                <p className="text-sm text-destructive text-center">{t('reservation.submit_error')}</p>
+                <EditableText id="reservation.submit_error" as="p" className="text-sm text-destructive text-center" />
               )}
             </form>
 
             {/* Summary sidebar */}
             <div className="space-y-4">
               <div className="bg-card border border-border rounded-xl p-5">
-                <h3 className="font-semibold mb-4">{t('reservation.order_summary')}</h3>
+                <EditableText id="reservation.order_summary" as="h3" className="font-semibold mb-4" />
                 <div className="space-y-2 text-sm mb-4">
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">{t('reservation.items_label')}:</span>
+                    <span className="text-muted-foreground"><EditableText id="reservation.items_label" />:</span>
                     <span>{items.length}</span>
                   </div>
                   {fulfillmentType === 'DELIVERY' && form.province && (
                     <>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">{t('delivery.fee')} ({form.province}):</span>
-                        <span>{deliveryFee.toLocaleString()} {t('common.rwf')}</span>
+                        <span className="text-muted-foreground"><EditableText id="delivery.fee" /> ({form.province}):</span>
+                        <span>{deliveryFee.toLocaleString()} <EditableText id="common.rwf" /></span>
                       </div>
                       {extraDeliveryFee > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-muted-foreground">{t('reservation.same_day_surcharge')}:</span>
-                          <span>+{extraDeliveryFee.toLocaleString()} {t('common.rwf')}</span>
+                          <span className="text-muted-foreground"><EditableText id="reservation.same_day_surcharge" />:</span>
+                          <span>+{extraDeliveryFee.toLocaleString()} <EditableText id="common.rwf" /></span>
                         </div>
                       )}
                     </>
@@ -837,7 +838,7 @@ const ReservationPage = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-medium truncate">{item.product.name}</p>
                         {item.product.price && (
-                          <p className="text-xs text-primary">{item.product.price.toLocaleString()} {t('common.rwf')}</p>
+                          <p className="text-xs text-primary">{item.product.price.toLocaleString()} <EditableText id="common.rwf" /></p>
                         )}
                       </div>
                     </div>
@@ -847,9 +848,9 @@ const ReservationPage = () => {
 
               {fulfillmentType === 'RESERVATION' && (
                 <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-xl p-4 text-sm">
-                  <p className="font-medium mb-1 text-green-800 dark:text-green-200">💡 {t('reservation.no_online_payment')}</p>
+                  <p className="font-medium mb-1 text-green-800 dark:text-green-200">💡 <EditableText id="reservation.no_online_payment" /></p>
                   <p className="text-green-700 dark:text-green-300 text-xs">
-                    {t('reservation.no_online_payment_desc')}
+                    <EditableText id="reservation.no_online_payment_desc" />
                   </p>
                 </div>
               )}

@@ -105,13 +105,13 @@ const About = () => {
                   to="/products"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
                 >
-                  {t('common.view_all')} <ArrowRight size={16} />
+                  <EditableText id="common.view_all" /> <ArrowRight size={16} />
                 </Link>
                 <Link
                   to="/contact"
                   className="inline-flex items-center gap-2 px-6 py-3 border border-border rounded-xl font-medium hover:border-primary hover:text-primary transition-colors"
                 >
-                  {t('nav.contact')}
+                  <EditableText id="nav.contact" />
                 </Link>
               </div>
             </motion.div>

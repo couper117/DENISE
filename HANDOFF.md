@@ -167,6 +167,26 @@ that would re-render mid-edit and drop the caret. Commit happens on blur, on
 Enter for single-line fields, and in the effect cleanup so that switching
 elements or leaving edit mode cannot lose an edit. Escape reverts.
 
+## What is editable, and what deliberately is not
+
+Every static string on the public site is now wrapped. Counts in edit mode:
+Home 58, About 26, Contact 19, Products 18, Blog 18, Track 17 — and **0**
+`data-cms-*` attributes in a visitor's DOM on all of them.
+
+Repeatable collections an editor can add to / reorder: `home.category_cards`,
+`home.steps`, `about.value_cards`, `footer.product_links`,
+`footer.company_links`.
+
+Deliberately **not** editable, each for a reason:
+- **i18next interpolations** — `t('reservation.continue_with', { title })` and
+  `t('delivery.fee_for', { province })`. The stored string contains `{{title}}`;
+  `useCmsValue` returns overrides verbatim with no interpolation, so making
+  these editable would silently break the substitution.
+- **Attribute strings** — `placeholder={t(...)}`, titles, aria labels. An
+  attribute is not a text node, so there is nothing on the page to click.
+- **AdminLayout** — an internal tool, not marketing copy.
+- **Product / blog / testimonial records** — real data with their own admin CRUD.
+
 **Adoption pattern** (About.tsx is the worked example):
 ```tsx
 <h1 className="…">{t('about.story')}</h1>

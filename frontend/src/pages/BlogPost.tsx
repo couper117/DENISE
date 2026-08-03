@@ -7,6 +7,7 @@ import { Blog } from '../types';
 import { formatDate } from '../lib/utils';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Seo from '../components/Seo';
+import { EditableText } from '../cms';
 
 const BlogPost = () => {
   const { t } = useTranslation();
@@ -19,7 +20,7 @@ const BlogPost = () => {
   });
 
   if (isLoading) return <div className="min-h-screen flex items-center justify-center"><LoadingSpinner size="lg" /></div>;
-  if (!data) return <div className="text-center py-20">{t('blog.not_found')} <Link to="/blog" className="text-primary">{t('blog.back')}</Link></div>;
+  if (!data) return <div className="text-center py-20"><EditableText id="blog.not_found" /> <Link to="/blog" className="text-primary"><EditableText id="blog.back" /></Link></div>;
 
   const post = data;
 
@@ -33,7 +34,7 @@ const BlogPost = () => {
         type="article"
       />
       <Link to="/blog" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-primary mb-6 transition-colors">
-        <ChevronLeft size={14} /> {t('blog.back')}
+        <ChevronLeft size={14} /> <EditableText id="blog.back" />
       </Link>
 
       {data.imageUrl && (
@@ -42,8 +43,8 @@ const BlogPost = () => {
 
       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
         <div className="flex items-center gap-1"><Calendar size={13} />{data.publishedAt ? formatDate(data.publishedAt) : ''}</div>
-        <div className="flex items-center gap-1"><Eye size={13} />{data.viewCount} {t('blog.views')}</div>
-        <span>{t('blog.by')} {data.authorName}</span>
+        <div className="flex items-center gap-1"><Eye size={13} />{data.viewCount} <EditableText id="blog.views" /></div>
+        <span><EditableText id="blog.by" /> {data.authorName}</span>
       </div>
 
       <h1 className="font-serif text-3xl md:text-4xl font-bold mb-6">{data.title}</h1>

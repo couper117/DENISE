@@ -13,6 +13,7 @@ import { formatDate, getStatusColor, getStatusLabel } from '../lib/utils';
 import { WHATSAPP_LINK, buildMobileMoneyDial, MobileMoneyMethod } from '../lib/config';
 import Seo from '../components/Seo';
 import QRCode from 'qrcode.react';
+import { EditableText } from '../cms';
 
 // Status pipeline per fulfillment type
 const STATUS_PIPELINES: Record<FulfillmentType, string[]> = {
@@ -163,9 +164,9 @@ const ReservationTracking = () => {
         description="Track your DENISE Textile reservation or delivery by reference number."
       />
       <div className="text-center mb-6">
-        <h1 className="font-serif text-3xl font-bold mb-2">{t('reservation.track_title')}</h1>
+        <EditableText id="reservation.track_title" as="h1" className="font-serif text-3xl font-bold mb-2" />
         <p className="text-muted-foreground">
-          {t('reservation.track_subtitle')}
+          <EditableText id="reservation.track_subtitle" />
         </p>
       </div>
 
@@ -219,14 +220,14 @@ const ReservationTracking = () => {
 
       {notFound && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center text-sm text-red-600 mb-6">
-          {t('reservation.track_not_found')}
+          <EditableText id="reservation.track_not_found" />
         </div>
       )}
 
       {/* Multiple matches — pick one */}
       {results.length > 1 && (
         <div className="space-y-2 mb-8">
-          <p className="text-sm text-muted-foreground">{t('reservation.track_select')}</p>
+          <EditableText id="reservation.track_select" as="p" className="text-sm text-muted-foreground" />
           {results.map((r) => (
             <button
               key={r.id}
@@ -249,16 +250,16 @@ const ReservationTracking = () => {
           {/* Pay now — shown once the order is confirmed and still unpaid */}
           {pay && (
             <div className="bg-primary/5 border-2 border-primary/30 rounded-2xl p-6 text-center">
-              <h2 className="font-semibold text-lg mb-1">{t('reservation.pay_now')}</h2>
-              <p className="text-sm text-muted-foreground mb-4">{t('reservation.pay_momo_instructions')}</p>
+              <EditableText id="reservation.pay_now" as="h2" className="font-semibold text-lg mb-1" />
+              <EditableText id="reservation.pay_momo_instructions" as="p" className="text-sm text-muted-foreground mb-4" />
               <a
                 href={pay.href}
                 className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors text-lg"
               >
-                <Smartphone size={20} /> {t('reservation.pay_dial')} {pay.label} · {(reservation.totalAmount ?? 0).toLocaleString()} {t('common.rwf')}
+                <Smartphone size={20} /> <EditableText id="reservation.pay_dial" /> {pay.label} · {(reservation.totalAmount ?? 0).toLocaleString()} <EditableText id="common.rwf" />
               </a>
               <p className="text-xs text-muted-foreground mt-3">
-                {t('reservation.pay_iphone_hint')}{' '}
+                <EditableText id="reservation.pay_iphone_hint" />{' '}
                 <span className="font-mono font-semibold select-all">{pay.ussd}</span>
               </p>
             </div>

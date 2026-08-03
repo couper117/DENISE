@@ -2,15 +2,18 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
+// Category and step icons are no longer imported here: they are stored by name
+// in the editable collections and resolved through cms/icons.ts, so an editor
+// can change them without a code change.
 import {
-  ArrowRight, Star, CheckCircle2, MapPin, Phone, MessageCircle,
-  Blinds, Shirt, Layers, Package, Search, CalendarCheck, Store, PackageOpen,
+  ArrowRight, Star, CheckCircle2, MapPin, Phone, MessageCircle, PackageOpen,
 } from 'lucide-react';
 import { productsApi, contentApi } from '../lib/api';
 import { Product, Testimonial } from '../types';
 import ProductCard from '../components/products/ProductCard';
 import { ProductGridSkeleton } from '../components/ui/SkeletonCard';
 import Seo from '../components/Seo';
+import { EditableIcon, EditableList, EditableText } from '../cms';
 import {
   BUSINESS_PHONE, BUSINESS_PHONE_CLEAN, WHATSAPP_LINK,
   BUSINESS_LAT, BUSINESS_LNG,
@@ -23,36 +26,55 @@ const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 const heroSrc = (w: number) =>
   `https://images.unsplash.com/photo-1783538690103-782ddd5404c1?fm=jpg&q=60&w=${w}&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA==`;
 
-/* Section heading used by both product rails, so they stay identical. */
+/* Section heading used by both product rails, so they stay identical.
+   Takes content *keys* rather than resolved strings so each rail's copy is
+   independently editable on the page. */
 const RailHeading = ({
-  title, subtitle, viewAllTo, viewAllLabel,
-}: { title: string; subtitle: string; viewAllTo: string; viewAllLabel: string }) => (
+  titleKey, subtitleKey, viewAllTo,
+}: { titleKey: string; subtitleKey: string; viewAllTo: string }) => (
   <div className="flex items-end justify-between gap-4 mb-8">
     <div>
-      <h2 className="font-serif text-3xl font-bold">{title}</h2>
-      <p className="text-muted-foreground mt-1">{subtitle}</p>
+      <EditableText id={titleKey} as="h2" className="font-serif text-3xl font-bold" />
+      <EditableText id={subtitleKey} as="p" className="text-muted-foreground mt-1" />
     </div>
     <Link
       to={viewAllTo}
       className="hidden sm:inline-flex shrink-0 items-center gap-1.5 px-4 py-2 border border-border rounded-lg text-sm font-medium hover:border-primary hover:text-primary transition-colors"
     >
-      {viewAllLabel} <ArrowRight size={14} />
+      <EditableText id="common.view_all" /> <ArrowRight size={14} />
     </Link>
   </div>
 );
 
+interface Step { icon: string; title: string; desc: string }
+interface Category { name: string; desc: string; slug: string; icon: string; color: string }
+
+const STEP_FIELDS = [
+  { name: 'title', type: 'TEXT' as const, label: 'Title' },
+  { name: 'desc', type: 'TEXT' as const, label: 'Description' },
+  { name: 'icon', type: 'ICON' as const, label: 'Icon' },
+];
+
+const CATEGORY_FIELDS = [
+  { name: 'name', type: 'TEXT' as const, label: 'Name' },
+  { name: 'desc', type: 'TEXT' as const, label: 'Description' },
+  { name: 'icon', type: 'ICON' as const, label: 'Icon' },
+  { name: 'color', type: 'COLOR' as const, label: 'Accent colour' },
+  { name: 'slug', type: 'TEXT' as const, label: 'Category slug', placeholder: 'curtains' },
+];
+
 /* Shown when a rail has no products — previously these grids rendered blank. */
-const EmptyRail = ({ label, cta }: { label: string; cta: string }) => (
+const EmptyRail = () => (
   <div className="rounded-xl border border-dashed border-border bg-card py-16 text-center">
     <span className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
       <PackageOpen size={22} strokeWidth={1.7} />
     </span>
-    <p className="mt-4 text-muted-foreground">{label}</p>
+    <EditableText id="products.no_products" as="p" className="mt-4 text-muted-foreground" />
     <Link
       to="/products"
       className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline underline-offset-4"
     >
-      {cta} <ArrowRight size={14} />
+      <EditableText id="hero.cta_browse" /> <ArrowRight size={14} />
     </Link>
   </div>
 );
@@ -76,17 +98,20 @@ const Home = () => {
     staleTime: 10 * 60 * 1000,
   });
 
-  const steps = [
-    { icon: Search, title: t('home.step1_title'), desc: t('home.step1_desc') },
-    { icon: CalendarCheck, title: t('home.step2_title'), desc: t('home.step2_desc') },
-    { icon: Store, title: t('home.step3_title'), desc: t('home.step3_desc') },
+  // Translated defaults for the two editable collections. Icons are stored by
+  // name so the whole list is plain JSON and an editor can add or reorder
+  // entries; see cms/icons.ts for the registry.
+  const steps: Step[] = [
+    { icon: 'Search', title: t('home.step1_title'), desc: t('home.step1_desc') },
+    { icon: 'CalendarCheck', title: t('home.step2_title'), desc: t('home.step2_desc') },
+    { icon: 'Store', title: t('home.step3_title'), desc: t('home.step3_desc') },
   ];
 
-  const categories = [
-    { nameKey: 'home.cat_curtains_name', descKey: 'home.cat_curtains_desc', slug: 'curtains', icon: Blinds, color: '#8B1A1A' },
-    { nameKey: 'home.cat_traditional_name', descKey: 'home.cat_traditional_desc', slug: 'traditional-attire', icon: Shirt, color: '#006B3C' },
-    { nameKey: 'home.cat_fabrics_name', descKey: 'home.cat_fabrics_desc', slug: 'fabrics', icon: Layers, color: '#C8972A' },
-    { nameKey: 'home.cat_accessories_name', descKey: 'home.cat_accessories_desc', slug: 'accessories', icon: Package, color: '#0057A8' },
+  const categories: Category[] = [
+    { name: t('home.cat_curtains_name'), desc: t('home.cat_curtains_desc'), slug: 'curtains', icon: 'Blinds', color: '#8B1A1A' },
+    { name: t('home.cat_traditional_name'), desc: t('home.cat_traditional_desc'), slug: 'traditional-attire', icon: 'Shirt', color: '#006B3C' },
+    { name: t('home.cat_fabrics_name'), desc: t('home.cat_fabrics_desc'), slug: 'fabrics', icon: 'Layers', color: '#C8972A' },
+    { name: t('home.cat_accessories_name'), desc: t('home.cat_accessories_desc'), slug: 'accessories', icon: 'Package', color: '#0057A8' },
   ];
 
   const featuredEmpty = !featuredLoading && (featuredData?.length ?? 0) === 0;
@@ -134,12 +159,15 @@ const Home = () => {
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-gold" />
                   <span className="w-1.5 h-1.5 rounded-full bg-brand-green" />
                 </span>
-                {t('hero.badge')}
+                <EditableText id="hero.badge" label="Hero badge" />
               </span>
 
-              <h1 className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-[1.08] tracking-tight text-balance">
-                {t('hero.title')}
-              </h1>
+              <EditableText
+                id="hero.title"
+                as="h1"
+                label="Hero title"
+                className="font-serif text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-6 leading-[1.08] tracking-tight text-balance"
+              />
 
               {/* Tricolour rule, echoing the flag. */}
               <div className="flex gap-1.5 mb-7" aria-hidden="true">
@@ -148,17 +176,21 @@ const Home = () => {
                 <span className="h-1 w-5 rounded-full bg-brand-green" />
               </div>
 
-              <p className="text-white/85 text-lg mb-9 max-w-xl leading-relaxed">
-                {t('hero.subtitle')}
-              </p>
+              <EditableText
+                id="hero.subtitle"
+                as="p"
+                multiline
+                label="Hero subtitle"
+                className="text-white/85 text-lg mb-9 max-w-xl leading-relaxed"
+              />
 
               <div className="flex flex-wrap gap-3">
                 <Link to="/reservation" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-primary font-semibold rounded-xl hover:bg-brand-cream transition-all shadow-lg hover:shadow-xl hover:-translate-y-0.5">
-                  {t('hero.cta_reserve')}
+                  <EditableText id="hero.cta_reserve" label="Hero primary button" />
                   <ArrowRight size={18} />
                 </Link>
                 <Link to="/products" className="inline-flex items-center gap-2 px-7 py-3.5 bg-white/10 text-white font-medium rounded-xl backdrop-blur-sm hover:bg-white/20 transition-all border border-white/25">
-                  {t('hero.cta_browse')}
+                  <EditableText id="hero.cta_browse" label="Hero secondary button" />
                 </Link>
               </div>
 
@@ -168,7 +200,7 @@ const Home = () => {
                 {['home.trust_reserve', 'home.trust_delivery', 'home.trust_languages'].map((key) => (
                   <li key={key} className="flex items-center gap-2 text-sm text-white/80">
                     <CheckCircle2 size={16} className="text-brand-gold shrink-0" />
-                    {t(key)}
+                    <EditableText id={key} />
                   </li>
                 ))}
               </ul>
@@ -181,30 +213,34 @@ const Home = () => {
       <section className="py-16 md:py-20 bg-muted/30">
         <div className="container mx-auto px-4">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
-            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-2">{t('home.collections_title')}</h2>
-            <p className="text-muted-foreground">{t('home.collections_subtitle')}</p>
+            <EditableText id="home.collections_title" as="h2" className="font-serif text-3xl md:text-4xl font-bold mb-2" />
+            <EditableText id="home.collections_subtitle" as="p" className="text-muted-foreground" />
           </motion.div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
-            {categories.map((cat, i) => {
-              const Icon = cat.icon;
-              return (
-                <motion.div key={cat.slug} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
-                  <Link to={`/products?category=${cat.slug}`}
-                    className="group flex flex-col h-full bg-card border border-border rounded-xl p-6 text-center items-center hover:border-primary/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
-                    <span
-                      className="w-14 h-14 rounded-full flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110"
-                      style={{ backgroundColor: `${cat.color}1A`, color: cat.color }}
-                    >
-                      <Icon size={24} strokeWidth={1.7} />
-                    </span>
-                    <h3 className="font-semibold text-sm md:text-base mb-1 group-hover:text-primary transition-colors">{t(cat.nameKey)}</h3>
-                    <p className="text-xs text-muted-foreground leading-relaxed">{t(cat.descKey)}</p>
-                  </Link>
-                </motion.div>
-              );
-            })}
-          </div>
+          <EditableList<Category>
+            id="home.category_cards"
+            label="Collection cards"
+            as="div"
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-5"
+            fields={CATEGORY_FIELDS}
+            fallback={categories}
+          >
+            {(cat, i) => (
+              <motion.div key={`${cat.slug}-${i}`} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.08 }}>
+                <Link to={`/products?category=${cat.slug}`}
+                  className="group flex flex-col h-full bg-card border border-border rounded-xl p-6 text-center items-center hover:border-primary/50 hover:shadow-lg hover:-translate-y-1 transition-all duration-300">
+                  <span
+                    className="w-14 h-14 rounded-full flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110"
+                    style={{ backgroundColor: `${cat.color}1A`, color: cat.color }}
+                  >
+                    <EditableIcon id={`home.category_cards.${i}.icon`} fallback={cat.icon} size={24} />
+                  </span>
+                  <h3 className="font-semibold text-sm md:text-base mb-1 group-hover:text-primary transition-colors">{cat.name}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{cat.desc}</p>
+                </Link>
+              </motion.div>
+            )}
+          </EditableList>
         </div>
       </section>
 
@@ -212,16 +248,15 @@ const Home = () => {
       <section className="py-16 md:py-20">
         <div className="container mx-auto px-4">
           <RailHeading
-            title={t('home.featured')}
-            subtitle={t('home.featured_subtitle')}
+            titleKey="home.featured"
+            subtitleKey="home.featured_subtitle"
             viewAllTo="/products?featured=true"
-            viewAllLabel={t('common.view_all')}
           />
 
           {featuredLoading ? (
             <ProductGridSkeleton count={4} />
           ) : featuredEmpty ? (
-            <EmptyRail label={t('products.no_products')} cta={t('hero.cta_browse')} />
+            <EmptyRail />
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
               {featuredData?.slice(0, 8).map((product, i) => <ProductCard key={product.id} product={product} index={i} />)}
@@ -230,7 +265,7 @@ const Home = () => {
 
           <div className="mt-8 text-center sm:hidden">
             <Link to="/products?featured=true" className="inline-flex items-center gap-1.5 px-5 py-2.5 border border-border rounded-lg text-sm font-medium">
-              {t('common.view_all')} <ArrowRight size={14} />
+              <EditableText id="common.view_all" /> <ArrowRight size={14} />
             </Link>
           </div>
         </div>
@@ -240,21 +275,25 @@ const Home = () => {
       <section className="py-16 md:py-20 bg-gradient-to-br from-primary/5 to-brand-gold/5 border-y border-border">
         <div className="container mx-auto px-4">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-14">
-            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-2">{t('home.how_it_works')}</h2>
-            <p className="text-muted-foreground">{t('home.no_payment')}</p>
+            <EditableText id="home.how_it_works" as="h2" className="font-serif text-3xl md:text-4xl font-bold mb-2" />
+            <EditableText id="home.no_payment" as="p" className="text-muted-foreground" />
           </motion.div>
 
           <div className="relative grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8 max-w-5xl mx-auto">
             {/* Connector line behind the three steps on desktop. */}
             <span aria-hidden="true" className="hidden md:block absolute top-8 left-[16%] right-[16%] h-px bg-border" />
 
-            {steps.map((step, i) => {
-              const Icon = step.icon;
-              return (
+            <EditableList<Step>
+              id="home.steps"
+              label="How it works steps"
+              fields={STEP_FIELDS}
+              fallback={steps}
+            >
+              {(step, i) => (
                 <motion.div key={i} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.12 }}
                   className="relative text-center">
                   <div className="relative z-10 mx-auto w-16 h-16 rounded-full bg-card border-2 border-primary/20 flex items-center justify-center text-primary shadow-sm">
-                    <Icon size={24} strokeWidth={1.7} />
+                    <EditableIcon id={`home.steps.${i}.icon`} fallback={step.icon} size={24} />
                     <span className="absolute -top-1.5 -right-1.5 w-7 h-7 rounded-full bg-primary text-white text-xs font-bold flex items-center justify-center border-2 border-background">
                       {i + 1}
                     </span>
@@ -262,13 +301,13 @@ const Home = () => {
                   <h3 className="font-semibold text-lg mt-5 mb-2">{step.title}</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed max-w-xs mx-auto">{step.desc}</p>
                 </motion.div>
-              );
-            })}
+              )}
+            </EditableList>
           </div>
 
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mt-14">
             <Link to="/reservation" className="inline-flex items-center gap-2 px-8 py-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors shadow-md">
-              {t('home.cta_button')} <ArrowRight size={18} />
+              <EditableText id="home.cta_button" /> <ArrowRight size={18} />
             </Link>
           </motion.div>
         </div>
@@ -278,16 +317,15 @@ const Home = () => {
       <section className="py-16 md:py-20">
         <div className="container mx-auto px-4">
           <RailHeading
-            title={t('home.new_arrivals')}
-            subtitle={t('home.new_arrivals_subtitle')}
+            titleKey="home.new_arrivals"
+            subtitleKey="home.new_arrivals_subtitle"
             viewAllTo="/products?newArrival=true"
-            viewAllLabel={t('common.view_all')}
           />
 
           {newLoading ? (
             <ProductGridSkeleton count={4} />
           ) : newArrivalsEmpty ? (
-            <EmptyRail label={t('products.no_products')} cta={t('hero.cta_browse')} />
+            <EmptyRail />
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
               {newArrivalsData?.slice(0, 8).map((product, i) => <ProductCard key={product.id} product={product} index={i} />)}
@@ -301,15 +339,15 @@ const Home = () => {
         <div aria-hidden="true" className="absolute top-0 inset-x-0 h-1 bg-brand-gold" />
         <div className="container mx-auto px-4 text-center relative">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
-            <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4 text-balance">{t('home.cta_title')}</h2>
-            <p className="text-white/80 text-lg mb-9 max-w-lg mx-auto">{t('home.cta_subtitle')}</p>
+            <EditableText id="home.cta_title" as="h2" className="font-serif text-3xl md:text-4xl font-bold mb-4 text-balance" />
+            <EditableText id="home.cta_subtitle" as="p" multiline className="text-white/80 text-lg mb-9 max-w-lg mx-auto" />
             <div className="flex flex-wrap justify-center gap-4">
               <Link to="/reservation" className="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary font-bold rounded-xl hover:bg-brand-cream transition-all shadow-lg hover:-translate-y-0.5 text-lg">
-                {t('home.cta_button')} <ArrowRight size={20} />
+                <EditableText id="home.cta_button" /> <ArrowRight size={20} />
               </Link>
               <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-8 py-4 bg-white/15 text-white font-semibold rounded-xl hover:bg-white/25 transition-all border border-white/30 text-lg backdrop-blur-sm">
-                <MessageCircle size={20} /> {t('home.whatsapp_us')}
+                <MessageCircle size={20} /> <EditableText id="home.whatsapp_us" />
               </a>
             </div>
           </motion.div>
@@ -321,7 +359,7 @@ const Home = () => {
         <section className="py-16 md:py-20 bg-muted/30">
           <div className="container mx-auto px-4">
             <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-12">
-              <h2 className="font-serif text-3xl md:text-4xl font-bold">{t('home.testimonials')}</h2>
+              <EditableText id="home.testimonials" as="h2" className="font-serif text-3xl md:text-4xl font-bold" />
             </motion.div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 max-w-5xl mx-auto">
               {testimonials.slice(0, 3).map((testimonial, i) => (
@@ -351,13 +389,13 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
             <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
-              <h2 className="font-serif text-3xl md:text-4xl font-bold mb-4">{t('home.location')}</h2>
-              <p className="text-muted-foreground mb-8 max-w-md leading-relaxed">{t('home.visit_desc')}</p>
+              <EditableText id="home.location" as="h2" className="font-serif text-3xl md:text-4xl font-bold mb-4" />
+              <EditableText id="home.visit_desc" as="p" multiline className="text-muted-foreground mb-8 max-w-md leading-relaxed" />
 
               <ul className="space-y-4">
                 {[
-                  { icon: MapPin, node: <span>{t('home.address')}</span> },
-                  { icon: CheckCircle2, node: <span>{t('home.hours')}</span> },
+                  { icon: MapPin, node: <EditableText id="home.address" /> },
+                  { icon: CheckCircle2, node: <EditableText id="home.hours" /> },
                   { icon: Phone, node: <a href={`tel:${BUSINESS_PHONE_CLEAN}`} className="hover:text-primary transition-colors">{BUSINESS_PHONE}</a> },
                 ].map(({ icon: Icon, node }, i) => (
                   <li key={i} className="flex items-center gap-3.5 text-sm">
@@ -376,11 +414,11 @@ const Home = () => {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors"
                 >
-                  {t('home.get_directions')} <ArrowRight size={16} />
+                  <EditableText id="home.get_directions" /> <ArrowRight size={16} />
                 </a>
                 <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 px-6 py-3 border border-brand-green/50 text-brand-green font-medium rounded-xl hover:bg-brand-green hover:text-white transition-colors">
-                  <MessageCircle size={16} /> {t('home.whatsapp_us')}
+                  <MessageCircle size={16} /> <EditableText id="home.whatsapp_us" />
                 </a>
               </div>
             </motion.div>

@@ -7,6 +7,7 @@ import {
   BUSINESS_HOURS, WHATSAPP_LINK,
 } from '../lib/config';
 import Seo from '../components/Seo';
+import { EditableText } from '../cms';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -32,8 +33,8 @@ const Contact = () => {
         description="Contact DENISE Textile in Kigali. WhatsApp, call or visit. Curtains, fabrics and traditional Rwandan attire."
       />
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
-        <h1 className="font-serif text-4xl font-bold mb-3">{t('contact.title')}</h1>
-        <p className="text-muted-foreground max-w-lg mx-auto">{t('contact.subtitle')}</p>
+        <EditableText id="contact.title" as="h1" className="font-serif text-4xl font-bold mb-3" />
+        <EditableText id="contact.subtitle" as="p" className="text-muted-foreground max-w-lg mx-auto" />
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -58,12 +59,12 @@ const Contact = () => {
           <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
             className="flex items-center justify-center gap-3 w-full py-4 bg-[#25D366] text-white font-semibold rounded-xl hover:bg-[#22c55e] transition-colors text-lg">
             <MessageCircle size={22} />
-            {t('contact.whatsapp')}
+            <EditableText id="contact.whatsapp" />
           </a>
 
           <Link to="/reservation"
             className="flex items-center justify-center gap-2 w-full py-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors">
-            {t('contact.book_visit')}
+            <EditableText id="contact.book_visit" />
           </Link>
         </motion.div>
 

@@ -8,6 +8,7 @@ import { Blog } from '../types';
 import { formatDate, truncate } from '../lib/utils';
 import { ProductGridSkeleton } from '../components/ui/SkeletonCard';
 import Seo from '../components/Seo';
+import { EditableText } from '../cms';
 
 const BlogPage = () => {
   const { t } = useTranslation();
@@ -29,8 +30,8 @@ const BlogPage = () => {
         description="Interior design ideas, curtain guides, and Rwandan traditional attire inspiration from DENISE Textile, Kigali."
       />
       <div className="text-center mb-10">
-        <h1 className="font-serif text-4xl font-bold mb-3">{t('blog.title')}</h1>
-        <p className="text-muted-foreground">{t('blog.subtitle')}</p>
+        <EditableText id="blog.title" as="h1" className="font-serif text-4xl font-bold mb-3" />
+        <EditableText id="blog.subtitle" as="p" className="text-muted-foreground" />
       </div>
 
       <div className="relative max-w-md mx-auto mb-10">
@@ -56,7 +57,7 @@ const BlogPage = () => {
                 {blog.excerpt && <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{blog.excerpt}</p>}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <div className="flex items-center gap-1"><Calendar size={12} />{blog.publishedAt ? formatDate(blog.publishedAt) : t('blog.draft')}</div>
-                  <div className="flex items-center gap-1"><Eye size={12} />{blog.viewCount} {t('blog.views')}</div>
+                  <div className="flex items-center gap-1"><Eye size={12} />{blog.viewCount} <EditableText id="blog.views" /></div>
                 </div>
               </div>
             </Link>
@@ -64,7 +65,7 @@ const BlogPage = () => {
         </div>
       ) : (
         <div className="text-center py-16 text-muted-foreground">
-          <p>{t('blog.no_articles')}</p>
+          <EditableText id="blog.no_articles" as="p" />
         </div>
       )}
     </div>

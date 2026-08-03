@@ -7,7 +7,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { clearAuthSession, useAuthStore, useCartStore, useThemeStore } from '../../store';
 import { authApi } from '../../lib/api';
 import { cn } from '../../lib/utils';
-import { EditWebsiteButton } from '../../cms';
+import { EditWebsiteButton, EditableText } from '../../cms';
 
 const LANGUAGES = [
   { code: 'en', label: 'English', flag: '🇬🇧' },
@@ -46,13 +46,14 @@ const Header = () => {
     navigate('/login');
   };
 
+  // Keys rather than resolved strings, so each nav label is editable in place.
   const navLinks = [
-    { to: '/', label: t('nav.home'), end: true },
-    { to: '/products', label: t('nav.products') },
-    { to: '/reservation', label: t('nav.reservation') },
-    { to: '/about', label: t('nav.about') },
-    { to: '/blog', label: t('nav.blog') },
-    { to: '/contact', label: t('nav.contact') },
+    { to: '/', labelKey: 'nav.home', end: true },
+    { to: '/products', labelKey: 'nav.products' },
+    { to: '/reservation', labelKey: 'nav.reservation' },
+    { to: '/about', labelKey: 'nav.about' },
+    { to: '/blog', labelKey: 'nav.blog' },
+    { to: '/contact', labelKey: 'nav.contact' },
   ];
 
   return (
@@ -62,7 +63,7 @@ const Header = () => {
     )}>
       {/* Top bar */}
       <div className="bg-primary text-primary-foreground py-1.5 text-center text-xs">
-        <span>{t('header.announcement')}</span>
+        <EditableText id="header.announcement" label="Announcement bar" />
       </div>
 
       <div className="container mx-auto px-4">
@@ -80,12 +81,12 @@ const Header = () => {
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-1">
-            {navLinks.map(({ to, label, end }) => (
+            {navLinks.map(({ to, labelKey, end }) => (
               <NavLink key={to} to={to} end={end} className={({ isActive }) =>
                 cn('px-3 py-2 text-sm font-medium rounded-md transition-colors',
                   isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-accent')
               }>
-                {label}
+                <EditableText id={labelKey} />
               </NavLink>
             ))}
           </nav>
@@ -150,14 +151,14 @@ const Header = () => {
                 <DropdownMenu.Portal>
                   <DropdownMenu.Content align="end" sideOffset={8} className="bg-card border border-border rounded-lg shadow-lg py-1 w-44 z-50">
                   {user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN' ? (
-                    <DropdownMenu.Item asChild><Link to="/admin" className="block px-4 py-2 text-sm outline-none hover:bg-accent focus:bg-accent">{t('header.admin_panel')}</Link></DropdownMenu.Item>
+                    <DropdownMenu.Item asChild><Link to="/admin" className="block px-4 py-2 text-sm outline-none hover:bg-accent focus:bg-accent"><EditableText id="header.admin_panel" /></Link></DropdownMenu.Item>
                   ) : null}
-                  <DropdownMenu.Item asChild><Link to="/account/profile" className="block px-4 py-2 text-sm outline-none hover:bg-accent focus:bg-accent">{t('account.profile')}</Link></DropdownMenu.Item>
-                  <DropdownMenu.Item asChild><Link to="/account/reservations" className="block px-4 py-2 text-sm outline-none hover:bg-accent focus:bg-accent">{t('account.reservations')}</Link></DropdownMenu.Item>
-                  <DropdownMenu.Item asChild><Link to="/account/wishlist" className="block px-4 py-2 text-sm outline-none hover:bg-accent focus:bg-accent">{t('account.wishlist')}</Link></DropdownMenu.Item>
+                  <DropdownMenu.Item asChild><Link to="/account/profile" className="block px-4 py-2 text-sm outline-none hover:bg-accent focus:bg-accent"><EditableText id="account.profile" /></Link></DropdownMenu.Item>
+                  <DropdownMenu.Item asChild><Link to="/account/reservations" className="block px-4 py-2 text-sm outline-none hover:bg-accent focus:bg-accent"><EditableText id="account.reservations" /></Link></DropdownMenu.Item>
+                  <DropdownMenu.Item asChild><Link to="/account/wishlist" className="block px-4 py-2 text-sm outline-none hover:bg-accent focus:bg-accent"><EditableText id="account.wishlist" /></Link></DropdownMenu.Item>
                   <DropdownMenu.Separator className="my-1 h-px bg-border" />
                   <DropdownMenu.Item onSelect={handleLogout} className="flex w-full items-center gap-2 px-4 py-2 text-sm text-destructive outline-none hover:bg-destructive/10 focus:bg-destructive/10 cursor-pointer">
-                    <LogOut size={15} /> {t('admin.logout')}
+                    <LogOut size={15} /> <EditableText id="admin.logout" />
                   </DropdownMenu.Item>
                   </DropdownMenu.Content>
                 </DropdownMenu.Portal>
@@ -165,7 +166,7 @@ const Header = () => {
             ) : (
               <Link to="/login" className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground text-sm font-medium rounded-md hover:bg-primary/90 transition-colors">
                 <User size={15} />
-                {t('nav.login')}
+                <EditableText id="nav.login" />
               </Link>
             )}
 
@@ -182,18 +183,18 @@ const Header = () => {
             <motion.nav initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
               className="lg:hidden overflow-hidden border-t border-border">
               <div className="py-4 space-y-1">
-                {navLinks.map(({ to, label, end }) => (
+                {navLinks.map(({ to, labelKey, end }) => (
                   <NavLink key={to} to={to} end={end} onClick={() => setMenuOpen(false)}
                     className={({ isActive }) =>
                       cn('block px-4 py-2.5 text-sm font-medium rounded-md transition-colors',
                         isActive ? 'text-primary bg-primary/10' : 'text-muted-foreground hover:text-foreground hover:bg-accent')}>
-                    {label}
+                    <EditableText id={labelKey} />
                   </NavLink>
                 ))}
                 {!isAuthenticated && (
                   <div className="pt-2 px-4 flex gap-2">
-                    <Link to="/login" onClick={() => setMenuOpen(false)} className="flex-1 text-center py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md">{t('nav.login')}</Link>
-                    <Link to="/register" onClick={() => setMenuOpen(false)} className="flex-1 text-center py-2 border border-primary text-primary text-sm font-medium rounded-md">{t('nav.register')}</Link>
+                    <Link to="/login" onClick={() => setMenuOpen(false)} className="flex-1 text-center py-2 bg-primary text-primary-foreground text-sm font-medium rounded-md"><EditableText id="nav.login" /></Link>
+                    <Link to="/register" onClick={() => setMenuOpen(false)} className="flex-1 text-center py-2 border border-primary text-primary text-sm font-medium rounded-md"><EditableText id="nav.register" /></Link>
                   </div>
                 )}
               </div>

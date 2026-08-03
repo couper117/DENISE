@@ -14,6 +14,7 @@ import ProductCard from '../components/products/ProductCard';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import Seo from '../components/Seo';
 import { cn } from '../lib/utils';
+import { EditableText } from '../cms';
 
 const PURCHASE_OPTIONS: {
   type: FulfillmentType;
@@ -231,7 +232,7 @@ const ProductDetail = () => {
               </>
             )}
             <div className="absolute top-3 right-3 bg-white/80 text-xs px-2 py-1 rounded-lg flex items-center gap-1">
-              <ZoomIn size={12} /> {t('products.zoom')}
+              <ZoomIn size={12} /> <EditableText id="products.zoom" />
             </div>
             {hasDiscount && (
               <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg">
@@ -308,7 +309,7 @@ const ProductDetail = () => {
           {/* Colors */}
           {product.colors && product.colors.length > 0 && (
             <div className="mb-4">
-              <p className="text-sm font-medium mb-2">{t('products.available_colors')}</p>
+              <EditableText id="products.available_colors" as="p" className="text-sm font-medium mb-2" />
               <div className="flex flex-wrap gap-2">
                 {product.colors.map((c) => (
                   <div key={c.id} className="flex items-center gap-1.5 px-3 py-1 border border-border rounded-full text-xs">
@@ -475,7 +476,7 @@ const ProductDetail = () => {
       {/* Related Products */}
       {product.related && product.related.length > 0 && (
         <section>
-          <h2 className="font-serif text-2xl font-bold mb-6">{t('products.related')}</h2>
+          <EditableText id="products.related" as="h2" className="font-serif text-2xl font-bold mb-6" />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {product.related.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
           </div>

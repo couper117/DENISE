@@ -5,6 +5,15 @@ import {
   BUSINESS_PHONE, BUSINESS_PHONE_CLEAN, BUSINESS_EMAIL,
   BUSINESS_HOURS, BUSINESS_ADDRESS, SOCIAL_LINKS,
 } from '../../lib/config';
+import { EditableList, EditableText } from '../../cms';
+
+interface FooterLink { label: string; href: string }
+
+/* Shape of one footer link, so an editor can add, remove and reorder them. */
+const LINK_FIELDS = [
+  { name: 'label', type: 'TEXT' as const, label: 'Label' },
+  { name: 'href', type: 'TEXT' as const, label: 'Destination', placeholder: '/products' },
+];
 
 const Footer = () => {
   const { t } = useTranslation();
@@ -24,7 +33,7 @@ const Footer = () => {
               <span className="text-xs text-muted-foreground">New Textile Social Co. Ltd</span>
             </div>
           </div>
-          <p className="text-sm text-muted-foreground mb-4">{t('footer.tagline')}</p>
+          <EditableText id="footer.tagline" as="p" multiline label="Footer tagline" className="text-sm text-muted-foreground mb-4" />
           <div className="flex gap-3">
             {SOCIAL_LINKS.facebook && (
               <a href={SOCIAL_LINKS.facebook} target="_blank" rel="noopener noreferrer"
@@ -49,38 +58,52 @@ const Footer = () => {
 
         {/* Products */}
         <div>
-          <h4 className="font-semibold mb-4">{t('footer.products')}</h4>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            {[
-              { to: '/products?category=curtains', label: t('footer.curtains') },
-              { to: '/products?category=fabrics', label: t('footer.fabrics') },
-              { to: '/products?category=traditional-attire', label: t('footer.traditional') },
-              { to: '/products?category=accessories', label: t('footer.accessories') },
-            ].map(({ to, label }) => (
-              <li key={to}><Link to={to} className="hover:text-primary transition-colors">{label}</Link></li>
-            ))}
-          </ul>
+          <EditableText id="footer.products" as="h4" className="font-semibold mb-4" />
+          <EditableList<FooterLink>
+            id="footer.product_links"
+            label="Footer product links"
+            as="ul"
+            className="space-y-2 text-sm text-muted-foreground"
+            fields={LINK_FIELDS}
+            fallback={[
+              { href: '/products?category=curtains', label: t('footer.curtains') },
+              { href: '/products?category=fabrics', label: t('footer.fabrics') },
+              { href: '/products?category=traditional-attire', label: t('footer.traditional') },
+              { href: '/products?category=accessories', label: t('footer.accessories') },
+            ]}
+          >
+            {(link, i) => (
+              <li key={i}><Link to={link.href} className="hover:text-primary transition-colors">{link.label}</Link></li>
+            )}
+          </EditableList>
         </div>
 
         {/* Company */}
         <div>
-          <h4 className="font-semibold mb-4">{t('footer.company')}</h4>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            {[
-              { to: '/about', label: t('footer.about') },
-              { to: '/blog', label: t('footer.blog') },
-              { to: '/contact', label: t('footer.contact') },
-              { to: '/reservation', label: t('footer.reservation') },
-              { to: '/track', label: t('footer.tracking') },
-            ].map(({ to, label }) => (
-              <li key={to}><Link to={to} className="hover:text-primary transition-colors">{label}</Link></li>
-            ))}
-          </ul>
+          <EditableText id="footer.company" as="h4" className="font-semibold mb-4" />
+          <EditableList<FooterLink>
+            id="footer.company_links"
+            label="Footer company links"
+            as="ul"
+            className="space-y-2 text-sm text-muted-foreground"
+            fields={LINK_FIELDS}
+            fallback={[
+              { href: '/about', label: t('footer.about') },
+              { href: '/blog', label: t('footer.blog') },
+              { href: '/contact', label: t('footer.contact') },
+              { href: '/reservation', label: t('footer.reservation') },
+              { href: '/track', label: t('footer.tracking') },
+            ]}
+          >
+            {(link, i) => (
+              <li key={i}><Link to={link.href} className="hover:text-primary transition-colors">{link.label}</Link></li>
+            )}
+          </EditableList>
         </div>
 
         {/* Contact */}
         <div>
-          <h4 className="font-semibold mb-4">{t('contact.title')}</h4>
+          <EditableText id="contact.title" as="h4" className="font-semibold mb-4" />
           <ul className="space-y-3 text-sm text-muted-foreground">
             <li className="flex items-start gap-2">
               <MapPin size={15} className="text-primary shrink-0 mt-0.5" />
@@ -109,9 +132,9 @@ const Footer = () => {
       {/* Bottom bar */}
       <div className="border-t border-border py-4">
         <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
-          <p>© {year} New Textile Social Company Limited (DENISE). {t('footer.rights')}</p>
+          <p>© {year} New Textile Social Company Limited (DENISE). <EditableText id="footer.rights" /></p>
           <div className="flex items-center gap-3">
-            <p>{t('footer.made_in')} 🇷🇼</p>
+            <p><EditableText id="footer.made_in" /> 🇷🇼</p>
             <span>·</span>
             <a href="https://deniseshop.com" className="hover:text-primary transition-colors">deniseshop.com</a>
           </div>

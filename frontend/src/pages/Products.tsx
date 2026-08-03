@@ -9,6 +9,7 @@ import { Product, Category } from '../types';
 import ProductCard from '../components/products/ProductCard';
 import { ProductGridSkeleton } from '../components/ui/SkeletonCard';
 import Seo from '../components/Seo';
+import { EditableText } from '../cms';
 
 const SORT_OPTIONS = [
   { value: 'createdAt-desc', label: 'Newest First' },
@@ -80,7 +81,7 @@ const Products = () => {
       />
       {/* Header */}
       <div className="mb-8">
-        <h1 className="font-serif text-3xl font-bold mb-2">{t('products.title')}</h1>
+        <EditableText id="products.title" as="h1" className="font-serif text-3xl font-bold mb-2" />
         <p className="text-muted-foreground">Discover our complete collection of premium textiles</p>
       </div>
 
@@ -104,7 +105,7 @@ const Products = () => {
         <button onClick={() => setFilterOpen(!filterOpen)}
           className="flex items-center gap-2 px-4 py-2.5 bg-background border border-border rounded-xl text-sm hover:bg-accent transition-colors">
           <SlidersHorizontal size={15} />
-          {t('products.filter')}
+          <EditableText id="products.filter" />
           {activeFiltersCount > 0 && <span className="bg-primary text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">{activeFiltersCount}</span>}
         </button>
 
@@ -132,11 +133,11 @@ const Products = () => {
             <div className="bg-card border border-border rounded-xl p-5 grid grid-cols-2 md:grid-cols-4 gap-4">
               {/* Category */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-2 block">{t('products.categories')}</label>
+                <EditableText id="products.categories" as="label" className="text-xs font-medium text-muted-foreground mb-2 block" />
                 <div className="space-y-1">
                   <button onClick={() => updateFilter('category', '')}
                     className={`w-full text-left px-3 py-1.5 text-sm rounded-lg transition-colors ${!filters.category ? 'bg-primary text-white' : 'hover:bg-accent'}`}>
-                    {t('products.all_categories')}
+                    <EditableText id="products.all_categories" />
                   </button>
                   {categories?.map((cat) => (
                     <button key={cat.id} onClick={() => updateFilter('category', cat.slug)}
@@ -149,15 +150,15 @@ const Products = () => {
 
               {/* Availability */}
               <div>
-                <label className="text-xs font-medium text-muted-foreground mb-2 block">{t('products.availability')}</label>
+                <EditableText id="products.availability" as="label" className="text-xs font-medium text-muted-foreground mb-2 block" />
                 <div className="space-y-1">
                   <button onClick={() => updateFilter('availability', '')}
                     className={`w-full text-left px-3 py-1.5 text-sm rounded-lg transition-colors ${!filters.availability ? 'bg-primary text-white' : 'hover:bg-accent'}`}>
-                    {t('common.all')}
+                    <EditableText id="common.all" />
                   </button>
                   <button onClick={() => updateFilter('availability', 'true')}
                     className={`w-full text-left px-3 py-1.5 text-sm rounded-lg transition-colors ${filters.availability === 'true' ? 'bg-primary text-white' : 'hover:bg-accent'}`}>
-                    {t('products.in_stock')}
+                    <EditableText id="products.in_stock" />
                   </button>
                 </div>
               </div>
@@ -208,7 +209,7 @@ const Products = () => {
       ) : (
         <div className="text-center py-20">
           <div className="text-5xl mb-4">🔍</div>
-          <h3 className="text-lg font-semibold mb-2">{t('products.no_products')}</h3>
+          <EditableText id="products.no_products" as="h3" className="text-lg font-semibold mb-2" />
           <p className="text-muted-foreground mb-4">Try adjusting your search or filters</p>
           <button onClick={clearFilters} className="px-4 py-2 bg-primary text-white rounded-lg text-sm hover:bg-primary/90 transition-colors">
             Clear Filters
