@@ -157,7 +157,7 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
           } : undefined,
         },
         include: {
-          items: { include: { product: { include: { images: { where: { isPrimary: true }, take: 1 } } } } },
+          items: { include: { product: { include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 } } } } },
           deliveryAddress: true,
         },
       });
@@ -228,7 +228,7 @@ export const getReservationByNumber = async (req: Request, res: Response): Promi
     const reservation = await prisma.reservation.findUnique({
       where: { reservationNumber: number },
       include: {
-        items: { include: { product: { include: { images: { where: { isPrimary: true }, take: 1 } } } } },
+        items: { include: { product: { include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 } } } } },
         deliveryAddress: true,
         payments: true,
       },
@@ -261,7 +261,7 @@ export const lookupReservations = async (req: Request, res: Response): Promise<v
       orderBy: { createdAt: 'desc' },
       take: 20,
       include: {
-        items: { include: { product: { include: { images: { where: { isPrimary: true }, take: 1 } } } } },
+        items: { include: { product: { include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 } } } } },
         deliveryAddress: true,
         payments: true,
       },
@@ -287,7 +287,7 @@ export const getMyReservations = async (req: AuthenticatedRequest, res: Response
                 id: true,
                 name: true,
                 slug: true,
-                images: { where: { isPrimary: true }, take: 1 },
+                images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 },
               },
             },
           },

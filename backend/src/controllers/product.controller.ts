@@ -40,7 +40,7 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
         orderBy: { [sortField]: sortDir },
         include: {
           category: { select: { id: true, name: true, slug: true } },
-          images: { where: { isPrimary: true }, take: 1 },
+          images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 },
           colors: true,
           inventory: { select: { stockCount: true, isTracked: true } },
         },
@@ -81,7 +81,7 @@ export const getProductBySlug = async (req: Request, res: Response): Promise<voi
     const related = await prisma.product.findMany({
       where: { categoryId: product.categoryId, id: { not: product.id }, isAvailable: true },
       take: 4,
-      include: { images: { where: { isPrimary: true }, take: 1 }, colors: true },
+      include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 }, colors: true },
     });
 
     res.json({ success: true, data: { ...product, related } });
@@ -96,7 +96,7 @@ export const getFeaturedProducts = async (_req: Request, res: Response): Promise
     const products = await prisma.product.findMany({
       where: { isFeatured: true, isAvailable: true },
       take: 8,
-      include: { images: { where: { isPrimary: true }, take: 1 }, colors: true, category: { select: { name: true, slug: true } } },
+      include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 }, colors: true, category: { select: { name: true, slug: true } } },
     });
     res.json({ success: true, data: products });
   } catch (error) {
@@ -111,7 +111,7 @@ export const getNewArrivals = async (_req: Request, res: Response): Promise<void
       where: { isNewArrival: true, isAvailable: true },
       take: 8,
       orderBy: { createdAt: 'desc' },
-      include: { images: { where: { isPrimary: true }, take: 1 }, colors: true, category: { select: { name: true, slug: true } } },
+      include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 }, colors: true, category: { select: { name: true, slug: true } } },
     });
     res.json({ success: true, data: products });
   } catch (error) {
@@ -285,6 +285,11 @@ export const deleteProductImage = async (req: Request, res: Response): Promise<v
     if (!image) { res.status(404).json({ success: false, message: 'Image not found' }); return; }
     await destroyImage(image.publicId);
     await prisma.productImage.delete({ where: { id: imageId } });
+    // If we removed the primary image, promote the next one so the product still shows a photo.
+    if (image.isPrimary) {
+      const next = await prisma.productImage.findFirst({ where: { productId: image.productId }, orderBy: { sortOrder: 'asc' } });
+      if (next) await prisma.productImage.update({ where: { id: next.id }, data: { isPrimary: true } });
+    }
     res.json({ success: true, message: 'Image deleted' });
   } catch (error) {
     logger.error('DeleteProductImage error:', error);
