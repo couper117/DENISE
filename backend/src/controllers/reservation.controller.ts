@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import QRCode from 'qrcode';
 import prisma from '../config/database';
 import { generateReservationNumber, getPaginationParams, buildPaginationResponse } from '../utils/helpers';
-import { notifyReservationCreated, notifyStatusUpdate } from '../services/notification.service';
+import { notifyReservationCreated, notifyStatusUpdate, notifyPaymentDue } from '../services/notification.service';
 import { AuthenticatedRequest } from '../types';
 import logger from '../utils/logger';
 
@@ -408,6 +408,9 @@ export const updateReservationStatus = async (req: Request, res: Response): Prom
       return;
     }
 
+    // Previous status — so the "pay now" notice only fires on the first confirm.
+    const before = await prisma.reservation.findUnique({ where: { id }, select: { status: true } });
+
     // Auto-compute from product prices on confirm ONLY when the admin didn't set an amount.
     if (status === 'CONFIRMED' && amt === undefined) {
       await recomputeReservationTotal(id).catch((e) => logger.error('Recompute total on confirm failed:', e));
@@ -447,21 +450,40 @@ export const updateReservationStatus = async (req: Request, res: Response): Prom
       }
     }
 
-    const formattedDate = reservation.visitDate
-      ? reservation.visitDate.toLocaleDateString('en-RW')
-      : reservation.fulfillmentType === 'DELIVERY' ? 'Delivery order' : 'Pickup order';
+    // When an online-payment order is first confirmed with a due amount, send the
+    // "pay now" message instead of the generic status text (avoids a double SMS).
+    const dueAmount = (amt !== undefined ? amt : reservation.totalAmount) ?? 0;
+    const sendPaymentDue =
+      status === 'CONFIRMED' && before?.status !== 'CONFIRMED' && dueAmount > 0 &&
+      (reservation.fulfillmentType === 'PICKUP' || reservation.fulfillmentType === 'DELIVERY') &&
+      reservation.paymentStatus !== 'COMPLETED';
 
-    await notifyStatusUpdate({
-      reservationId: reservation.id,
-      customerName: reservation.customerName,
-      customerPhone: reservation.customerPhone,
-      customerEmail: reservation.customerEmail,
-      reservationNumber: reservation.reservationNumber,
-      fulfillmentType: reservation.fulfillmentType,
-      visitDate: formattedDate,
-      visitTime: reservation.visitTime,
-      status,
-    }).catch((e) => logger.error('Status notification failed:', e));
+    if (sendPaymentDue) {
+      await notifyPaymentDue({
+        reservationId: reservation.id,
+        customerName: reservation.customerName,
+        customerPhone: reservation.customerPhone,
+        customerEmail: reservation.customerEmail,
+        reservationNumber: reservation.reservationNumber,
+        amount: dueAmount,
+      }).catch((e) => logger.error('Payment-due notification failed:', e));
+    } else {
+      const formattedDate = reservation.visitDate
+        ? reservation.visitDate.toLocaleDateString('en-RW')
+        : reservation.fulfillmentType === 'DELIVERY' ? 'Delivery order' : 'Pickup order';
+
+      await notifyStatusUpdate({
+        reservationId: reservation.id,
+        customerName: reservation.customerName,
+        customerPhone: reservation.customerPhone,
+        customerEmail: reservation.customerEmail,
+        reservationNumber: reservation.reservationNumber,
+        fulfillmentType: reservation.fulfillmentType,
+        visitDate: formattedDate,
+        visitTime: reservation.visitTime,
+        status,
+      }).catch((e) => logger.error('Status notification failed:', e));
+    }
 
     res.json({ success: true, data: reservation });
   } catch (error) {
