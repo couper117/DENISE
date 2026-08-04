@@ -52,7 +52,7 @@ const WishlistPage = () => {
                       <ShoppingBag size={12} /> {t('products.view_details')}
                     </Link>
                     <button onClick={() => removeMutation.mutate(product.id)} disabled={removeMutation.isPending}
-                      className="w-8 h-8 flex items-center justify-center border border-border rounded-lg hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors text-muted-foreground">
+                      className="w-8 h-8 flex items-center justify-center border border-border rounded-lg hover:bg-red-50 hover:border-red-200 hover:text-red-500 dark:hover:bg-red-500/15 dark:hover:border-red-800 dark:hover:text-red-400 transition-colors text-muted-foreground">
                       <Trash2 size={13} />
                     </button>
                   </div>

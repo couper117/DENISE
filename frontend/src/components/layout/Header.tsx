@@ -65,7 +65,10 @@ const Header = () => {
       scrolled ? 'bg-card/95 backdrop-blur-md shadow-sm border-b border-border' : 'bg-card border-b border-border'
     )}>
       {/* Top bar */}
-      <div className="bg-primary text-primary-foreground py-1.5 text-center text-xs">
+      {/* Solid crimson full-bleed on light; on dark that same fill is the
+          brightest thing on the page and reads as a red stripe above every
+          screen, so it drops to a tinted strip that still carries the brand. */}
+      <div className="bg-primary text-primary-foreground dark:bg-primary/15 dark:text-foreground py-1.5 text-center text-xs">
         <EditableText id="header.announcement" label="Announcement bar" />
       </div>
 

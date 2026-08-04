@@ -1,40 +1,76 @@
 # HANDOFF
 
 ## Current Task
-Checkout redesign: the buying journey now runs
-**browse → configure → add to cart → review cart → checkout → delivery details →
-review order → choose payment → pay → await admin confirmation → track**.
-Payment used to be the *first* question asked (on the product page, and again as
-step 1 of the reservation wizard); it is now the last. Branch `Levi`, merged to
-`main`.
+Dark mode looked red-brown rather than dark. Frontend only, branch `Levi`,
+merged to `main`.
 
 ## Status
-Shipped. Backend and frontend typecheck, the production build passes, and the
-migration applies cleanly to a real Postgres and is safely re-runnable.
+Shipped. `npm run build` (tsc + vite) passes and both themes were screenshotted
+in headless Chrome — home, cart, contact, plus a board rendering every status
+badge with its shipped class string.
 
-**Verified:** 44/44 API checks (server-side pricing, tampered carts, option
-normalisation, stock across lines, delivery fees, status history, admin filters
-and search) and 29/35 browser checks of the journey.
+## Theme — read this before touching colours
 
-**Not verified:** the browser pass was not re-run after the last fix — the user
-asked to skip it and ship. Specifically unverified in a browser: the
-duplicate-submit fix and the confirmation screen behind it. The 6 failures in
-the last recorded browser run were all downstream of the double-submit bug,
-which is fixed but not re-run. **Re-run `browser.js` (recipe at the bottom)
-before trusting the confirmation screen.**
+**Dark surfaces are neutral, not a dark version of the brand.** Every neutral in
+`.dark` (`frontend/src/styles/globals.css`) used to carry the crimson hue
+(`10 8-10%`), so background, every card and every border came out red-brown and
+the brand bled into the chrome. They are now hue `220` at ≤10% saturation —
+neutral grey with a faint cool cast. **Do not put the brand hue back into
+background / card / popover / muted / accent / border / input.** Crimson is
+deliberate in exactly three tokens: `--primary`, `--ring`, `--destructive`.
+
+**Measured dark contrast** (recompute if you retune):
+
+| pair | ratio |
+|---|---|
+| foreground on background | 16.9 |
+| muted-foreground on card | 7.5 |
+| white on primary (buttons) | 5.0 |
+| primary as text on background | 3.7 |
+
+`--primary` was lifted 45% → 50% L so white-on-primary buttons clear 4.5:1.
+That leaves `text-primary` at 3.7:1 — fine for the large titles, icons and
+hover states it is actually used for (AA needs 3:1 there), **not** fine if
+someone starts using it for small body copy. No single red satisfies both
+white-on-primary ≥4.5 and primary-on-background ≥4.5; the buttons won.
+
+**Full-bleed brand fills need a dark pair.** The announcement bar
+(`Header.tsx`) is solid `bg-primary` on light; on dark that is the brightest
+thing on the page, so it drops to `dark:bg-primary/15`. Buttons and badges keep
+their solid fill — only the full-width band was the problem.
+
+**Every `bg-*-100` badge needs a `dark:` pair.** The Tailwind `-100` fills are
+near-white and glow on a dark page. The convention now used everywhere is
+`dark:bg-{c}-500/15 dark:text-{c}-300` (plus `dark:border-{c}-500/25` where the
+badge has a border). `getStatusColor` in `lib/utils.ts` is the shared order-status
+helper and already follows it — **add the dark pair there, not at call sites.**
+
+`color-scheme` is declared on both `:root` and `.dark`; without it Chrome paints
+the checkout date picker, select dropdowns and autofill in light chrome.
 
 ## Progress
-- [x] Product page configures the curtain (colour, width, drop, panels, header,
-      lining, fullness, quantity, notes) with a live total and validation
-- [x] `/cart` — line items with specs, quantity steppers, edit, remove, summary
-- [x] `/checkout` — delivery → review → **payment last** → confirmation
-- [x] Backend prices every line server-side and stores the configuration
-- [x] Order status history, price breakdown, scheduled delivery date persisted
-- [x] Admin: payment method/reference, ordered specs, breakdown, history,
-      payment-status filter, reference search, printable invoice
-- [x] i18n keys in all five locales (en + fr translated; rw/sw/ln fall back —
-      see "Known gaps")
-- [ ] Browser re-run of the full journey after the duplicate-submit fix
+- [x] `.dark` tokens de-tinted to neutral slate
+- [x] `color-scheme` declared for both themes
+- [x] Announcement bar drops to a tinted strip on dark
+- [x] Scrollbar thumb goes neutral on dark (crimson only on light)
+- [x] Dark pairs on every status badge, stat tile and destructive hover
+- [x] Both themes screenshotted; light mode confirmed unchanged
+
+## Working Notes
+Nothing outstanding on the theme. The unrelated checkout item below is still
+open.
+
+- [ ] **Carried over from the checkout task:** the browser pass was never
+      re-run after the duplicate-submit fix. Specifically unverified: the
+      duplicate-submit guard and the confirmation screen behind it. Re-run
+      `browser.js` (recipe at the bottom) before trusting the confirmation
+      screen. This theme change did not touch that code.
+
+The screenshot driver used here is disposable — headless Chrome over raw CDP,
+no dependencies (Node 24 has a global `WebSocket`). It seeds
+`localStorage['denise-theme']` with `{state:{isDark:true},version:0}` before the
+app boots, then navigates. Recreate it in the scratchpad if needed; the Chrome
+extension timed out again, as it did last session.
 
 ## Architecture — read this before changing the checkout
 
@@ -170,7 +206,10 @@ Windows gotchas that cost real time (all still true):
   then dispatch `input` + `change`.
 
 ## Recently Completed
-- Checkout redesign (this task).
+- Dark mode de-tinted (this task).
+- Checkout redesign — browse → configure → cart → checkout → **payment last** →
+  confirm → track. 44/44 API checks passed; browser re-run still outstanding
+  (see Working Notes).
 - Visual CMS, 8 phases (previous task). Its two invariants still hold and were
   re-checked here: `EditorLayer` is still its own lazy chunk and is not
   modulepreloaded in `dist/index.html`, and the new pages emit **0**

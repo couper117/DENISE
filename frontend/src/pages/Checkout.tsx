@@ -326,7 +326,7 @@ const Checkout = () => {
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl mx-auto">
           <div className="text-center mb-8">
             <div className="w-16 h-16 bg-green-100 dark:bg-green-950 rounded-full flex items-center justify-center mx-auto mb-4">
-              <CheckCircle2 size={32} className="text-green-600" />
+              <CheckCircle2 size={32} className="text-green-600 dark:text-green-400" />
             </div>
             <h1 className="font-serif text-2xl sm:text-3xl font-bold mb-2">
               {tr('checkout.success_title', 'Order placed')}

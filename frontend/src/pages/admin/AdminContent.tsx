@@ -61,7 +61,7 @@ const AdminContent = () => {
               </div>
               <button onClick={() => updateMutation.mutate({ key, value: values[key] || '' })}
                 disabled={updateMutation.isPending}
-                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors shrink-0 mt-8 ${saved.includes(key) ? 'bg-green-100 text-green-700' : 'bg-primary text-white hover:bg-primary/90'}`}>
+                className={`flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors shrink-0 mt-8 ${saved.includes(key) ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300' : 'bg-primary text-white hover:bg-primary/90'}`}>
                 <Save size={12} /> {saved.includes(key) ? t('admin.content.saved') : t('admin.save')}
               </button>
             </div>

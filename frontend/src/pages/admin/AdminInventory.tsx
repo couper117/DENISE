@@ -48,7 +48,7 @@ const AdminInventory = () => {
                       <input type="number" value={editValues.stockCount} onChange={(e) => setEditValues(p => ({ ...p, stockCount: e.target.value }))} min="0"
                         className="w-20 px-2 py-1 bg-background border border-border rounded text-sm" />
                     ) : (
-                      <span className={`font-medium ${item.stockCount <= item.lowStockAlert ? 'text-orange-600' : 'text-foreground'}`}>
+                      <span className={`font-medium ${item.stockCount <= item.lowStockAlert ? 'text-orange-600 dark:text-orange-400' : 'text-foreground'}`}>
                         {item.stockCount}
                         {item.stockCount <= item.lowStockAlert && <AlertTriangle size={12} className="inline ml-1 text-orange-500" />}
                       </span>

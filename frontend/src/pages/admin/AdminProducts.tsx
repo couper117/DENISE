@@ -202,11 +202,11 @@ const AdminProducts = () => {
                       <td className="px-4 py-3">
                         <div className="flex gap-1">
                           {product.isFeatured && <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-xs rounded whitespace-nowrap">{t('admin.products.tag_featured')}</span>}
-                          {product.isNewArrival && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded whitespace-nowrap">{t('admin.products.tag_new')}</span>}
+                          {product.isNewArrival && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 text-xs rounded whitespace-nowrap">{t('admin.products.tag_new')}</span>}
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${product.isAvailable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${product.isAvailable ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'}`}>
                           {product.isAvailable ? t('admin.products.available') : t('admin.products.unavailable')}
                         </span>
                       </td>
@@ -221,7 +221,7 @@ const AdminProducts = () => {
                           </button>
                           <button onClick={() => { if (confirm(t('admin.products.delete_confirm'))) deleteMutation.mutate(product.id); }}
                             disabled={deleteMutation.isPending}
-                            className="w-7 h-7 flex items-center justify-center border border-border rounded-lg hover:bg-red-50 hover:border-red-200 hover:text-red-500 transition-colors text-muted-foreground">
+                            className="w-7 h-7 flex items-center justify-center border border-border rounded-lg hover:bg-red-50 hover:border-red-200 hover:text-red-500 dark:hover:bg-red-500/15 dark:hover:border-red-800 dark:hover:text-red-400 transition-colors text-muted-foreground">
                             <Trash2 size={12} />
                           </button>
                         </div>

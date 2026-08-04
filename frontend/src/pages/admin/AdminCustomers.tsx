@@ -65,7 +65,7 @@ const AdminCustomers = () => {
                   <td className="px-4 py-3"><span className="px-2 py-0.5 bg-primary/10 text-primary text-xs rounded-full">{customer._count.reservations}</span></td>
                   <td className="px-4 py-3 text-muted-foreground text-xs">{formatDate(customer.createdAt)}</td>
                   <td className="px-4 py-3">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${customer.isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${customer.isActive ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'}`}>
                       {customer.isActive ? t('admin.customers.active') : t('admin.customers.disabled')}
                     </span>
                   </td>

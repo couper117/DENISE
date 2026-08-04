@@ -83,12 +83,13 @@ const STATUS_ICONS: Record<string, string> = {
   COMPLETED: '⭐',
 };
 
+// Dark pairs on every pill: the -100 fills are near-white and glow on a dark page.
 const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  AWAITING: { label: 'Awaiting Payment', color: 'bg-yellow-100 text-yellow-800' },
-  PENDING: { label: 'Payment Pending', color: 'bg-blue-100 text-blue-800' },
-  COMPLETED: { label: 'Paid', color: 'bg-green-100 text-green-800' },
-  FAILED: { label: 'Payment Failed', color: 'bg-red-100 text-red-800' },
-  REFUNDED: { label: 'Refunded', color: 'bg-purple-100 text-purple-800' },
+  AWAITING: { label: 'Awaiting Payment', color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-300' },
+  PENDING: { label: 'Payment Pending', color: 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300' },
+  COMPLETED: { label: 'Paid', color: 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300' },
+  FAILED: { label: 'Payment Failed', color: 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300' },
+  REFUNDED: { label: 'Refunded', color: 'bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-300' },
 };
 
 const ReservationTracking = () => {
@@ -229,7 +230,7 @@ const ReservationTracking = () => {
       )}
 
       {notFound && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center text-sm text-red-600 mb-6">
+        <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl p-4 text-center text-sm text-red-600 dark:text-red-300 mb-6">
           <EditableText id="reservation.track_not_found" />
         </div>
       )}

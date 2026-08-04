@@ -39,7 +39,7 @@ const ReviewCard = ({ review }: { review: ProductReview }) => (
         <div className="flex items-center gap-2 mb-1">
           <span className="font-medium text-sm">{review.customerName}</span>
           {review.isVerified && (
-            <span className="flex items-center gap-1 text-xs text-green-600">
+            <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
               <CheckCircle size={11} /> Verified
             </span>
           )}
@@ -247,13 +247,13 @@ const ProductDetail = () => {
         <div>
           <div className="flex gap-2 mb-2 flex-wrap">
             {product.isNewArrival && (
-              <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">New Arrival</span>
+              <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 text-xs font-medium rounded-full">New Arrival</span>
             )}
             {product.isFeatured && (
               <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">Featured</span>
             )}
             {product.isOnPromotion && (
-              <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs font-medium rounded-full">
+              <span className="px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300 text-xs font-medium rounded-full">
                 {product.promotionText || 'On Sale'}
               </span>
             )}
@@ -312,7 +312,9 @@ const ProductDetail = () => {
 
           {/* Availability */}
           <div className={cn('inline-flex items-center gap-1.5 text-sm font-medium mb-6 px-3 py-1.5 rounded-full',
-            product.isAvailable ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
+            product.isAvailable
+              ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300'
+              : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300')}>
             <span className={cn('w-2 h-2 rounded-full', product.isAvailable ? 'bg-green-500' : 'bg-red-500')} />
             {product.isAvailable ? t('products.in_stock') : t('products.out_of_stock')}
             {product.inventory?.stockCount !== undefined && product.inventory.stockCount > 0 && (

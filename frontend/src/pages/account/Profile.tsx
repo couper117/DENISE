@@ -92,7 +92,7 @@ const Profile = () => {
           className="w-full py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-70">
           {updateMutation.isPending ? 'Saving...' : t('account.save_changes')}
         </button>
-        {updateMutation.isSuccess && <p className="text-sm text-green-600 text-center">Profile updated successfully!</p>}
+        {updateMutation.isSuccess && <p className="text-sm text-green-600 dark:text-green-400 text-center">Profile updated successfully!</p>}
       </form>
 
       {/* Change password */}
@@ -114,7 +114,7 @@ const Profile = () => {
           className="w-full py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors disabled:opacity-70">
           {passwordMutation.isPending ? 'Updating...' : 'Update Password'}
         </button>
-        {passwordMutation.isSuccess && <p className="text-sm text-green-600 text-center">Password changed successfully!</p>}
+        {passwordMutation.isSuccess && <p className="text-sm text-green-600 dark:text-green-400 text-center">Password changed successfully!</p>}
       </form>
     </div>
   );

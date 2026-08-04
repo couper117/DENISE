@@ -24,28 +24,42 @@
     --input: 30 20% 88%;
     --ring: 0 72% 32%;
     --radius: 0.5rem;
+    color-scheme: light;
   }
 
+  /* Dark mode surfaces are a neutral slate, not a dark version of the brand.
+     Every neutral here used to carry the crimson hue (10) at 8-10% saturation,
+     which tinted the background, every card and every border red-brown — the
+     brand bled into the chrome instead of standing out against it. Surfaces
+     are now hue 220 at <=10% saturation (reads as neutral grey with a faint
+     cool cast); crimson survives only where it is deliberate: primary, ring,
+     destructive. */
   .dark {
-    --background: 10 10% 8%;
-    --foreground: 30 15% 95%;
-    --card: 10 10% 11%;
-    --card-foreground: 30 15% 95%;
-    --popover: 10 10% 11%;
-    --popover-foreground: 30 15% 95%;
-    --primary: 0 65% 45%;
+    --background: 220 10% 8%;
+    --foreground: 210 12% 96%;
+    --card: 220 9% 11%;
+    --card-foreground: 210 12% 96%;
+    --popover: 220 9% 11%;
+    --popover-foreground: 210 12% 96%;
+    /* Lifted from 45% so white-on-primary buttons clear 4.5:1 on this
+       background (was 3.5:1) without turning the crimson pink. */
+    --primary: 0 68% 50%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 40 40% 40%;
-    --secondary-foreground: 0 0% 100%;
-    --muted: 10 8% 18%;
-    --muted-foreground: 30 10% 60%;
-    --accent: 10 8% 18%;
-    --accent-foreground: 30 15% 95%;
-    --destructive: 0 60% 50%;
+    --secondary: 40 55% 52%;
+    --secondary-foreground: 220 15% 10%;
+    --muted: 220 8% 16%;
+    --muted-foreground: 215 12% 68%;
+    --accent: 220 8% 16%;
+    --accent-foreground: 210 12% 96%;
+    --destructive: 0 62% 53%;
     --destructive-foreground: 0 0% 100%;
-    --border: 10 8% 20%;
-    --input: 10 8% 20%;
-    --ring: 0 65% 45%;
+    --border: 220 8% 21%;
+    --input: 220 8% 21%;
+    --ring: 0 68% 50%;
+    /* Without this the browser still paints its own chrome light: the date
+       picker on checkout, select dropdowns, autofilled fields and the Firefox
+       scrollbar all stayed white on a dark page. */
+    color-scheme: dark;
   }
 }
 
@@ -91,6 +105,10 @@
 ::-webkit-scrollbar-track { @apply bg-muted; }
 ::-webkit-scrollbar-thumb { @apply bg-primary/40 rounded-full; }
 ::-webkit-scrollbar-thumb:hover { @apply bg-primary/60; }
+/* The crimson thumb is a brand cue against light pages; on a dark one it is a
+   red stripe down the edge of every screen, so it goes neutral. */
+.dark ::-webkit-scrollbar-thumb { @apply bg-foreground/20; }
+.dark ::-webkit-scrollbar-thumb:hover { @apply bg-foreground/35; }
 
 /* Print styles */
 @media print {

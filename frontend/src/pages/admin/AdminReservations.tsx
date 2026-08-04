@@ -21,9 +21,9 @@ const ALL_STATUSES = [
 const PAYMENT_STATUSES = ['', 'AWAITING', 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'];
 
 const FULFILLMENT_ICONS: Record<string, React.ReactNode> = {
-  RESERVATION: <Store size={12} className="text-green-600" />,
-  PICKUP: <Package size={12} className="text-blue-600" />,
-  DELIVERY: <Truck size={12} className="text-purple-600" />,
+  RESERVATION: <Store size={12} className="text-green-600 dark:text-green-400" />,
+  PICKUP: <Package size={12} className="text-blue-600 dark:text-blue-400" />,
+  DELIVERY: <Truck size={12} className="text-purple-600 dark:text-purple-400" />,
 };
 
 const FULFILLMENT_LABEL_KEYS: Record<string, string> = {
@@ -35,9 +35,14 @@ const FULFILLMENT_LABEL_KEYS: Record<string, string> = {
 const PS_LABELS: Record<string, string> = {
   AWAITING: 'Awaiting', PENDING: 'Payment pending', COMPLETED: 'Paid', FAILED: 'Failed', REFUNDED: 'Refunded',
 };
+// The pastel fills are near-white; without a dark pair every status pill glows
+// on a dark page. Dark keeps the hue as a translucent tint with a light label.
 const PS_COLORS: Record<string, string> = {
-  AWAITING: 'bg-yellow-100 text-yellow-800', PENDING: 'bg-blue-100 text-blue-800',
-  COMPLETED: 'bg-green-100 text-green-800', FAILED: 'bg-red-100 text-red-800', REFUNDED: 'bg-purple-100 text-purple-800',
+  AWAITING: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-500/15 dark:text-yellow-300',
+  PENDING: 'bg-blue-100 text-blue-800 dark:bg-blue-500/15 dark:text-blue-300',
+  COMPLETED: 'bg-green-100 text-green-800 dark:bg-green-500/15 dark:text-green-300',
+  FAILED: 'bg-red-100 text-red-800 dark:bg-red-500/15 dark:text-red-300',
+  REFUNDED: 'bg-purple-100 text-purple-800 dark:bg-purple-500/15 dark:text-purple-300',
 };
 
 const money = (value: number | null | undefined) =>

@@ -21,10 +21,12 @@ const AdminDashboard = () => {
   const { overview, reservations, reservationsByStatus, lowStockProducts, popularProducts, recentReservations } = data || {};
 
   const statsCards = [
-    { label: t('admin.dashboard.total_products'), value: overview?.totalProducts, icon: Package, color: 'text-blue-600', bg: 'bg-blue-100' },
-    { label: t('admin.dashboard.total_reservations'), value: overview?.totalReservations, icon: Calendar, color: 'text-green-600', bg: 'bg-green-100' },
-    { label: t('admin.dashboard.customers'), value: overview?.totalCustomers, icon: Users, color: 'text-purple-600', bg: 'bg-purple-100' },
-    { label: t('admin.dashboard.pending'), value: overview?.pendingReservations, icon: Clock, color: 'text-orange-600', bg: 'bg-orange-100' },
+    // Each tile carries a dark pair: the -100 fills are near-white and would
+    // read as four bright squares on a dark dashboard.
+    { label: t('admin.dashboard.total_products'), value: overview?.totalProducts, icon: Package, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-500/15' },
+    { label: t('admin.dashboard.total_reservations'), value: overview?.totalReservations, icon: Calendar, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-500/15' },
+    { label: t('admin.dashboard.customers'), value: overview?.totalCustomers, icon: Users, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-500/15' },
+    { label: t('admin.dashboard.pending'), value: overview?.pendingReservations, icon: Clock, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-100 dark:bg-orange-500/15' },
   ];
 
   const periodData = [
@@ -96,12 +98,12 @@ const AdminDashboard = () => {
         {/* Low stock */}
         {lowStockProducts && lowStockProducts.length > 0 && (
           <div className="bg-card border border-border rounded-xl p-5">
-            <h3 className="font-semibold mb-4 flex items-center gap-2 text-orange-600"><AlertTriangle size={16} /> {t('admin.dashboard.low_stock_alert')} ({lowStockProducts.length})</h3>
+            <h3 className="font-semibold mb-4 flex items-center gap-2 text-orange-600 dark:text-orange-400"><AlertTriangle size={16} /> {t('admin.dashboard.low_stock_alert')} ({lowStockProducts.length})</h3>
             <div className="space-y-2">
               {lowStockProducts.map((item: { id: string; product: { name: string }; stockCount: number }) => (
                 <div key={item.id} className="flex justify-between items-center py-2 border-b border-border last:border-0">
                   <span className="text-sm">{item.product.name}</span>
-                  <span className="text-xs font-medium px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full">{item.stockCount} {t('admin.dashboard.left')}</span>
+                  <span className="text-xs font-medium px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300 rounded-full">{item.stockCount} {t('admin.dashboard.left')}</span>
                 </div>
               ))}
             </div>
