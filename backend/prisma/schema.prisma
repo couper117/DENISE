@@ -333,6 +333,10 @@ model Payment {
   currency        String        @default("RWF")
   status          PaymentStatus @default(PENDING)
   reference       String?       @unique
+  /// The payment gateway's own transaction id (e.g. Paypack `ref`). Kept
+  /// separate from our `reference` so a webhook — which only knows the
+  /// gateway's id — can find the payment it belongs to.
+  providerRef     String?       @unique
   gatewayResponse Json?
   phoneNumber     String?
   createdAt       DateTime      @default(now())
@@ -342,6 +346,7 @@ model Payment {
 
   @@index([reservationId])
   @@index([reference])
+  @@index([providerRef])
 }
 
 model Reservation {

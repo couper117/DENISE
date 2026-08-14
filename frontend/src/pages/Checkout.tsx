@@ -8,7 +8,7 @@ import {
   Loader2, Mail, MapPin, MessageSquare, Package, Phone, ShieldCheck, Smartphone, Store, Truck, User,
 } from 'lucide-react';
 import { useCartStore } from '../store';
-import { reservationsApi } from '../lib/api';
+import { paymentsApi, reservationsApi } from '../lib/api';
 import { CartItem, DeliveryType, FulfillmentType, PaymentMethod, Reservation } from '../types';
 import { describeConfiguration } from '../lib/productOptions';
 import { generateTimeSlots, getMinReservationDate, cn } from '../lib/utils';
@@ -110,6 +110,15 @@ const Checkout = () => {
   const [confirmed, setConfirmed] = useState<Reservation | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | ''>('');
 
+  // Mobile-money request-to-pay lifecycle, shown on the confirmation screen:
+  //   idle      — not a mobile-money order (or nothing started yet)
+  //   prompting — a push prompt was sent; we're polling for the customer's PIN
+  //   paid      — Paypack confirmed the payment
+  //   failed    — declined, timed out, or the request couldn't be sent
+  //   manual    — no automated gateway available; show the USSD dial to pay
+  const [payState, setPayState] = useState<'idle' | 'prompting' | 'paid' | 'failed' | 'manual'>('idle');
+  const [payRef, setPayRef] = useState<string | null>(null);
+
   // Duplicate-submission guards. Two refs, because they cover different windows
   // and neither alone is enough:
   //
@@ -170,6 +179,36 @@ const Checkout = () => {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
+
+  // While a request-to-pay is out, poll the server for the result. The webhook
+  // usually settles it within seconds; this poll is the fallback and also what
+  // updates the UI. Gives up after ~2 minutes and offers a retry / manual dial.
+  useEffect(() => {
+    if (payState !== 'prompting' || !payRef) return;
+    let active = true;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 30; // 30 × 4s ≈ 2 minutes
+    let timer: ReturnType<typeof setTimeout>;
+
+    const poll = async () => {
+      attempts += 1;
+      try {
+        const { data } = await paymentsApi.verify(payRef);
+        const status = data?.data?.status as string | undefined;
+        if (!active) return;
+        if (status === 'COMPLETED') { setPayState('paid'); return; }
+        if (status === 'FAILED') { setPayState('failed'); return; }
+      } catch {
+        // transient — keep polling until we run out of attempts
+      }
+      if (!active) return;
+      if (attempts >= MAX_ATTEMPTS) { setPayState('failed'); return; }
+      timer = setTimeout(poll, 4000);
+    };
+
+    timer = setTimeout(poll, 4000);
+    return () => { active = false; clearTimeout(timer); };
+  }, [payState, payRef]);
 
   const goods = subtotal();
   const saved = discount();
@@ -236,6 +275,32 @@ const Checkout = () => {
 
   const isMobileMoney = paymentMethod === 'MTN_MOMO' || paymentMethod === 'AIRTEL_MONEY';
 
+  // Kick off (or retry) an automated mobile-money charge for a placed order. If
+  // the gateway isn't available it falls back to the manual USSD dial, so an
+  // order is never left with no way to pay.
+  const startMobileMoneyPayment = async (order: Reservation) => {
+    setPayState('prompting');
+    try {
+      const { data } = await paymentsApi.initiate({
+        reservationId: order.id,
+        method: paymentMethod,
+        amount: order.totalAmount,
+        phoneNumber: form.mobileMoneyPhone,
+      });
+      const info = data?.data ?? {};
+      setPayRef(info.reference ?? order.payments?.[0]?.reference ?? null);
+      if (info.provider === 'paypack' && info.requiresConfirmation) {
+        setPayState('prompting'); // poll effect takes over
+      } else {
+        setPayState('manual'); // no gateway — show the dial
+      }
+    } catch {
+      // Couldn't reach the gateway — let the customer pay by USSD instead.
+      setPayRef(order.payments?.[0]?.reference ?? null);
+      setPayState('manual');
+    }
+  };
+
   // ── Order creation ────────────────────────────────────────────────────────
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
@@ -247,6 +312,11 @@ const Checkout = () => {
       setStep('success');
       // Only now — an order that failed must leave the cart exactly as it was.
       clearCart();
+      // For mobile money, send the request-to-pay right away so the customer
+      // gets the prompt on the confirmation screen.
+      if (isMobileMoney && (order.totalAmount ?? 0) > 0 && order.paymentStatus !== 'COMPLETED') {
+        startMobileMoneyPayment(order);
+      }
     },
     onError: () => {
       // Released so the customer can genuinely retry.
@@ -314,8 +384,11 @@ const Checkout = () => {
 
   // ── Success ───────────────────────────────────────────────────────────────
   if (step === 'success' && confirmed) {
-    const paidOnline = confirmed.paymentStatus === 'COMPLETED';
     const amount = confirmed.totalAmount ?? 0;
+    const paidOnline = confirmed.paymentStatus === 'COMPLETED' || payState === 'paid';
+    // The USSD dial is the manual fallback: shown when the automated gateway
+    // isn't available, when a request-to-pay failed, or as a "didn't get the
+    // prompt?" alternative while we wait.
     const dial = isMobileMoney && amount > 0 && !paidOnline
       ? buildMobileMoneyDial(paymentMethod as MobileMoneyMethod, amount)
       : null;
@@ -370,22 +443,80 @@ const Checkout = () => {
             </dl>
           </div>
 
-          {/* What happens next — different for every payment route, and the
-              single most common support question. */}
-          <div className={cn(card, 'mb-4 bg-primary/5 border-primary/20')}>
-            <h2 className="font-semibold mb-2 text-sm">{tr('checkout.next_title', 'What happens next')}</h2>
-            <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
-              <li>{tr('checkout.next_confirm', 'Our team reviews and confirms your order.')}</li>
-              {dial
-                ? <li>{tr('checkout.next_pay_momo', 'Pay with Mobile Money using the button below, or from Track Order at any time.')}</li>
-                : paymentMethod === 'BANK_TRANSFER'
-                  ? <li>{tr('checkout.next_bank', 'We send you our bank details for the transfer.')}</li>
-                  : <li>{tr('checkout.next_pay_person', 'You pay in person — nothing is charged online.')}</li>}
-              <li>{tr('checkout.next_prepare', 'We prepare your order and keep you updated at every step.')}</li>
-            </ol>
-          </div>
+          {/* ── Payment received ─────────────────────────────────────────── */}
+          {paidOnline && (
+            <div className={cn(card, 'mb-4 text-center border-2 border-green-500/40 bg-green-50 dark:bg-green-950/30')}>
+              <CheckCircle2 size={28} className="text-green-600 mx-auto mb-2" />
+              <h2 className="font-semibold text-green-800 dark:text-green-200">
+                {tr('checkout.pay_received_title', 'Payment received')}
+              </h2>
+              <p className="text-sm text-green-700 dark:text-green-300 mt-1">
+                {tr('checkout.pay_received_desc', 'We\'ve received {{amount}}. Your order is confirmed and being prepared.', { amount: money(amount) })}
+              </p>
+            </div>
+          )}
 
-          {dial && (
+          {/* ── Waiting for the customer to approve on their phone ─────────── */}
+          {isMobileMoney && !paidOnline && payState === 'prompting' && (
+            <div className={cn(card, 'mb-4 text-center border-2 border-primary/40')}>
+              <Loader2 size={28} className="text-primary mx-auto mb-2 animate-spin" />
+              <h2 className="font-semibold">{tr('checkout.pay_prompt_title', 'Check your phone')}</h2>
+              <p className="text-sm text-muted-foreground mt-1 mb-3">
+                {tr('checkout.pay_prompt_desc', 'We sent a payment request for {{amount}} to {{phone}}. Open the prompt and enter your Mobile Money PIN to approve.', { amount: money(amount), phone: form.mobileMoneyPhone })}
+              </p>
+              <p className="text-xs text-muted-foreground animate-pulse">
+                {tr('checkout.pay_waiting', 'Waiting for confirmation…')}
+              </p>
+              {dial && (
+                <a href={dial.href} className="inline-flex items-center justify-center gap-2 mt-4 text-sm font-medium text-primary hover:underline">
+                  <Smartphone size={15} /> {tr('checkout.pay_no_prompt', "Didn't get a prompt? Pay by dialing instead")}
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* ── Request-to-pay failed / timed out ─────────────────────────── */}
+          {isMobileMoney && !paidOnline && payState === 'failed' && (
+            <div className={cn(card, 'mb-4 text-center border-2 border-destructive/40')}>
+              <AlertCircle size={26} className="text-destructive mx-auto mb-2" />
+              <h2 className="font-semibold">{tr('checkout.pay_failed_title', "We couldn't confirm your payment")}</h2>
+              <p className="text-sm text-muted-foreground mt-1 mb-4">
+                {tr('checkout.pay_failed_desc', 'Nothing was charged if you didn\'t approve. You can send the request again, or pay by dialing.')}
+              </p>
+              <button
+                type="button"
+                onClick={() => startMobileMoneyPayment(confirmed)}
+                className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 bg-primary text-primary-foreground font-semibold rounded-xl hover:bg-primary/90 transition-colors"
+              >
+                <Smartphone size={17} /> {tr('checkout.pay_retry', 'Resend payment request')}
+              </button>
+              {dial && (
+                <a href={dial.href} className="inline-flex items-center justify-center gap-2 mt-3 text-sm font-medium text-primary hover:underline">
+                  <Smartphone size={15} /> {tr('checkout.pay_dial_fallback', 'Or pay by dialing')} {dial.ussd}
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* What happens next — shown for the manual routes (bank transfer, pay
+              in person, or MoMo when no automated gateway is configured). */}
+          {!paidOnline && !(isMobileMoney && (payState === 'prompting' || payState === 'failed')) && (
+            <div className={cn(card, 'mb-4 bg-primary/5 border-primary/20')}>
+              <h2 className="font-semibold mb-2 text-sm">{tr('checkout.next_title', 'What happens next')}</h2>
+              <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
+                <li>{tr('checkout.next_confirm', 'Our team reviews and confirms your order.')}</li>
+                {dial
+                  ? <li>{tr('checkout.next_pay_momo', 'Pay with Mobile Money using the button below, or from Track Order at any time.')}</li>
+                  : paymentMethod === 'BANK_TRANSFER'
+                    ? <li>{tr('checkout.next_bank', 'We send you our bank details for the transfer.')}</li>
+                    : <li>{tr('checkout.next_pay_person', 'You pay in person — nothing is charged online.')}</li>}
+                <li>{tr('checkout.next_prepare', 'We prepare your order and keep you updated at every step.')}</li>
+              </ol>
+            </div>
+          )}
+
+          {/* Manual MoMo dial — only when there's no automated gateway running. */}
+          {dial && payState === 'manual' && (
             <div className={cn(card, 'mb-4 text-center border-2 border-primary/30')}>
               <EditableText id="reservation.pay_now" as="h2" className="font-semibold mb-1" />
               <EditableText id="reservation.pay_momo_instructions" as="p" className="text-sm text-muted-foreground mb-4" />

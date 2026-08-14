@@ -126,6 +126,14 @@ const ProductDetail = () => {
     });
   };
 
+  // Buy now: add the configured line, then jump straight to checkout instead of
+  // the cart. Existing cart items still come along — it's the same basket, just
+  // a faster path to payment.
+  const handleBuyNow = (config: Configuration, quantity: number) => {
+    addLine(product, config, quantity);
+    navigate('/checkout');
+  };
+
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -339,6 +347,7 @@ const ProductDetail = () => {
               initialConfig={editingLine?.config}
               initialQuantity={editingLine?.quantity}
               onSubmit={handleConfigured}
+              onBuyNow={editingLine ? undefined : handleBuyNow}
             />
             {!editingLine && linesForProduct > 0 && (
               <Link

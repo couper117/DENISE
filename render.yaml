@@ -55,6 +55,15 @@ services:
         sync: false
       - key: TWILIO_WHATSAPP_NUMBER
         sync: false
+      # Paypack (Mobile Money). Leave unset to fall back to the manual USSD dial.
+      - key: PAYPACK_CLIENT_ID
+        sync: false
+      - key: PAYPACK_CLIENT_SECRET
+        sync: false
+      - key: PAYPACK_WEBHOOK_SECRET
+        sync: false
+      - key: PAYPACK_MODE
+        sync: false
       - key: ADMIN_EMAIL
         sync: false
       - key: ADMIN_PASSWORD

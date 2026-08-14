@@ -23,6 +23,7 @@ import contentRoutes from './routes/content.routes';
 import cmsRoutes from './routes/cms.routes';
 import mediaRoutes from './routes/media.routes';
 import { publishScheduled } from './controllers/cms.controller';
+import { handleWebhook } from './controllers/payments.controller';
 import logger from './utils/logger';
 
 const app = express();
@@ -79,6 +80,12 @@ app.use(cors({
 // Middleware
 app.use(compression());
 app.use(cookieParser());
+
+// Paypack payment webhook. Mounted BEFORE express.json with a raw-body parser:
+// the webhook signature is an HMAC over the exact bytes Paypack sent, so the
+// body must not be parsed and re-serialised before we verify it.
+app.post('/api/payments/webhook', express.raw({ type: '*/*', limit: '1mb' }), handleWebhook);
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));

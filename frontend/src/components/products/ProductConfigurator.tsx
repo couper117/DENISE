@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, Info, Minus, Plus, Ruler, ShoppingBag, AlertCircle } from 'lucide-react';
+import { Check, Info, Minus, Plus, Ruler, ShoppingBag, AlertCircle, Zap } from 'lucide-react';
 import { Product } from '../../types';
 import {
   Configuration, ConfigurationErrors, FULLNESS_CHOICES, HEADER_TYPES, LINING_TYPES,
@@ -16,6 +16,9 @@ interface ProductConfiguratorProps {
   initialQuantity?: number;
   mode?: 'add' | 'edit';
   onSubmit: (config: Configuration, quantity: number) => void;
+  /** When provided, a "Buy now" button appears that skips the cart and takes
+   *  the customer straight to checkout with this single configured item. */
+  onBuyNow?: (config: Configuration, quantity: number) => void;
   /** Keeps the button in a pending state while the parent navigates away. */
   submitting?: boolean;
 }
@@ -100,7 +103,7 @@ const ChoiceGroup = ({
  * find out what something costs.
  */
 const ProductConfigurator = ({
-  product, initialConfig, initialQuantity = 1, mode = 'add', onSubmit, submitting = false,
+  product, initialConfig, initialQuantity = 1, mode = 'add', onSubmit, onBuyNow, submitting = false,
 }: ProductConfiguratorProps) => {
   const { t } = useTranslation();
   const tr = (key: string, fallback: string) => t(key, { defaultValue: fallback });
@@ -127,8 +130,9 @@ const ProductConfigurator = ({
     return Math.min(n, max);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  // Both actions (add to cart / buy now) run the same validation first; only the
+  // handler they call at the end differs.
+  const runValidated = (action: (config: Configuration, quantity: number) => void) => {
     setShowErrors(true);
     if (Object.keys(errors).length > 0) {
       // Put the customer on the first thing that needs fixing rather than
@@ -136,7 +140,12 @@ const ProductConfigurator = ({
       document.querySelector<HTMLElement>('[data-config-error="true"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    onSubmit(config, quantity);
+    action(config, quantity);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    runValidated(onSubmit);
   };
 
   const money = (value: number) => `${value.toLocaleString()} ${product.currency || 'RWF'}`;
@@ -363,6 +372,20 @@ const ProductConfigurator = ({
             ? tr('cart.update_item', 'Update cart')
             : tr('products.add_to_cart', 'Add to Cart')}
       </button>
+
+      {/* Buy now — skips the cart and goes straight to checkout for this one
+          item. Only offered when adding (not editing an existing cart line). */}
+      {onBuyNow && mode !== 'edit' && (
+        <button
+          type="button"
+          onClick={() => runValidated(onBuyNow)}
+          disabled={submitting || !product.isAvailable}
+          className="w-full flex items-center justify-center gap-2 py-3.5 border-2 border-primary text-primary font-semibold rounded-xl hover:bg-primary/5 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
+          <Zap size={17} />
+          {tr('products.buy_now', 'Buy Now')}
+        </button>
+      )}
 
       {showErrors && Object.keys(errors).length > 0 && (
         <p className="flex items-center justify-center gap-1.5 text-xs text-destructive" role="alert">
