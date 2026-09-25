@@ -54,6 +54,18 @@ const Products = () => {
   const products: Product[] = data?.data || [];
   const pagination = data?.pagination;
 
+  // The header's category bar and search box link here with ?category= and
+  // ?search=. When the page is already open the component is reused, so the
+  // state above (seeded once from the URL) would ignore the new link.
+  const urlCategory = params.get('category') || '';
+  const urlSearch = params.get('search') || '';
+  useEffect(() => {
+    setFilters((prev) => (prev.category === urlCategory ? prev : { ...prev, category: urlCategory, page: 1 }));
+  }, [urlCategory]);
+  useEffect(() => {
+    setSearch(urlSearch);
+  }, [urlSearch]);
+
   useEffect(() => {
     const timeout = setTimeout(() => {
       setFilters((prev) => ({ ...prev, page: 1 }));

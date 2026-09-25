@@ -12,11 +12,13 @@
     "logout": "Bima",
     "cart": "Kapo",
     "wishlist": "Biloko Nalingaka",
-    "track": "Landa commande"
+    "track": "Landa commande",
+    "shop_all": "Shop all"
   },
   "header": {
     "announcement": "Lipamboli ya liberé • Bómba na internet, sosomba na boutique • Kigali, Rwanda",
-    "admin_panel": "Lolenge ya Mokonzi"
+    "admin_panel": "Lolenge ya Mokonzi",
+    "search_placeholder": "Search curtains, fabrics, attire…"
   },
   "hero": {
     "title": "Biloko ya Nsomi ya Rwanda",
@@ -273,7 +275,15 @@
     "address": "Kigali, Rwanda",
     "hours": "Mokolo 1–6: 8:00 – 18:00",
     "rights": "Makoki nyonso ebatemi.",
-    "made_in": "Esalemi na Rwanda"
+    "made_in": "Esalemi na Rwanda",
+    "help_title": "Not sure what you need?",
+    "help_desc": "Tell us about your windows, your room or your occasion and we will help you choose the right fabric, size and style.",
+    "visit_title": "Visit the shop",
+    "pay_with": "We accept",
+    "pay_momo": "MTN MoMo",
+    "pay_airtel": "Airtel Money",
+    "pay_bank": "Bank transfer",
+    "pay_in_store": "Pay in store"
   },
   "common": {
     "loading": "Tozali kobenda...",

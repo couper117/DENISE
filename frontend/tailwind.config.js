@@ -53,14 +53,18 @@ export default {
           dark: '#1A0A0A',
         },
       },
+      boxShadow: {
+        soft: '0 1px 2px rgb(20 12 8 / 0.04), 0 8px 24px -12px rgb(20 12 8 / 0.12)',
+        lift: '0 2px 4px rgb(20 12 8 / 0.05), 0 18px 40px -16px rgb(20 12 8 / 0.22)',
+      },
       borderRadius: {
         lg: 'var(--radius)',
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', 'sans-serif'],
-        serif: ['Playfair Display', 'Georgia', 'serif'],
+        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        serif: ['Fraunces', 'Georgia', 'Times New Roman', 'serif'],
       },
       keyframes: {
         'accordion-down': { from: { height: '0' }, to: { height: 'var(--radix-accordion-content-height)' } },

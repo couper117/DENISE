@@ -12,11 +12,13 @@
     "logout": "Sohoka",
     "cart": "Agatebo",
     "wishlist": "Ibyo Nkunda",
-    "track": "Kurikirana"
+    "track": "Kurikirana",
+    "shop_all": "Shop all"
   },
   "header": {
     "announcement": "Inama ziharirwa • Fata icyiciro kuri interineti, ugure mu iduka • Kigali, Rwanda",
-    "admin_panel": "Ubuyobozi"
+    "admin_panel": "Ubuyobozi",
+    "search_placeholder": "Search curtains, fabrics, attire…"
   },
   "hero": {
     "title": "Inzego Nziza z'Imyenda ya Rwanda",
@@ -273,7 +275,15 @@
     "address": "Kigali, Rwanda",
     "hours": "Ku wa mbere–Ku wa gatandatu: 8:00 – 18:00",
     "rights": "Uburenganzira bwose bwihariwe.",
-    "made_in": "Byakozwe muri Rwanda"
+    "made_in": "Byakozwe muri Rwanda",
+    "help_title": "Not sure what you need?",
+    "help_desc": "Tell us about your windows, your room or your occasion and we will help you choose the right fabric, size and style.",
+    "visit_title": "Visit the shop",
+    "pay_with": "We accept",
+    "pay_momo": "MTN MoMo",
+    "pay_airtel": "Airtel Money",
+    "pay_bank": "Bank transfer",
+    "pay_in_store": "Pay in store"
   },
   "common": {
     "loading": "Birimo gutangira...",

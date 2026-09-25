@@ -3,27 +3,31 @@
 @tailwind utilities;
 
 @layer base {
+  /* Light theme: a warm "boutique" ground (off-white with a hint of linen)
+     so product photography carries the colour, with crimson kept for actions
+     and gold as the secondary accent. Muted text is darker than before
+     (40% L) so small grey copy clears 4.5:1 on the warm background. */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 10 5% 10%;
+    --background: 36 33% 98%;
+    --foreground: 20 14% 10%;
     --card: 0 0% 100%;
-    --card-foreground: 10 5% 10%;
+    --card-foreground: 20 14% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 10 5% 10%;
+    --popover-foreground: 20 14% 10%;
     --primary: 0 72% 32%;
     --primary-foreground: 0 0% 100%;
     --secondary: 40 50% 47%;
     --secondary-foreground: 0 0% 100%;
-    --muted: 30 20% 95%;
-    --muted-foreground: 30 10% 45%;
-    --accent: 30 20% 93%;
-    --accent-foreground: 10 5% 10%;
+    --muted: 34 30% 94%;
+    --muted-foreground: 25 8% 38%;
+    --accent: 34 28% 92%;
+    --accent-foreground: 20 14% 10%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 30 20% 88%;
-    --input: 30 20% 88%;
+    --border: 32 18% 87%;
+    --input: 32 18% 84%;
     --ring: 0 72% 32%;
-    --radius: 0.5rem;
+    --radius: 0.75rem;
     color-scheme: light;
   }
 
@@ -70,6 +74,39 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
   html { scroll-behavior: smooth; }
+  h1, h2, h3 { text-wrap: balance; }
+}
+
+/* Shared storefront building blocks. Pages compose these instead of repeating
+   long utility strings, so a button or a section heading looks the same on
+   every page and a restyle happens in one place. */
+@layer components {
+  .shop-container { @apply container mx-auto px-4 sm:px-6 lg:px-8; }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold
+      transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
+      focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50;
+  }
+  .btn-lg { @apply px-8 py-4 text-base; }
+  .btn-sm { @apply px-4 py-2 text-xs; }
+  .btn-primary { @apply bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-md; }
+  .btn-dark { @apply bg-foreground text-background hover:bg-foreground/85; }
+  .btn-outline { @apply border border-foreground/15 bg-transparent text-foreground hover:border-foreground/40 hover:bg-foreground/[0.03]; }
+  .btn-light { @apply bg-white text-brand-dark shadow-sm hover:bg-brand-cream; }
+  .btn-glass { @apply border border-white/30 bg-white/10 text-white backdrop-blur-sm hover:bg-white/20; }
+
+  .icon-btn {
+    @apply relative inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground/75
+      transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  /* Small uppercase label that sits above a section title. */
+  .eyebrow { @apply text-xs font-semibold uppercase tracking-[0.18em] text-primary; }
+  .section-title { @apply font-serif text-3xl font-semibold tracking-tight md:text-4xl; }
+  .section-lead { @apply mt-3 max-w-2xl text-base leading-relaxed text-muted-foreground; }
+
+  .surface { @apply rounded-2xl border border-border bg-card; }
 }
 
 @layer utilities {
@@ -101,7 +138,7 @@
 }
 
 /* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { @apply bg-muted; }
 ::-webkit-scrollbar-thumb { @apply bg-primary/40 rounded-full; }
 ::-webkit-scrollbar-thumb:hover { @apply bg-primary/60; }

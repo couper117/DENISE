@@ -12,11 +12,13 @@
     "logout": "Logout",
     "cart": "Cart",
     "wishlist": "Wishlist",
-    "track": "Track Order"
+    "track": "Track Order",
+    "shop_all": "Shop all"
   },
   "header": {
-    "announcement": "Free consultation • Reserve online, buy in-store • Kigali, Rwanda",
-    "admin_panel": "Admin Panel"
+    "announcement": "Delivery across Rwanda • Pay with MTN MoMo • Visit our shop in Kigali",
+    "admin_panel": "Admin Panel",
+    "search_placeholder": "Search curtains, fabrics, attire…"
   },
   "hero": {
     "title": "Rwanda's Finest Textile Collection",
@@ -332,7 +334,7 @@
     "book_visit": "Book a Shop Visit"
   },
   "footer": {
-    "tagline": "Rwanda's premier textile destination",
+    "tagline": "Curtains made to measure, fabrics by the metre and Rwandan traditional attire — from our shop in Kigali to homes across Rwanda.",
     "products": "Products",
     "curtains": "Curtains",
     "fabrics": "Fabrics",
@@ -350,7 +352,15 @@
     "address": "Kigali, Rwanda",
     "hours": "Mon–Sat: 8:00 AM – 6:00 PM",
     "rights": "All rights reserved.",
-    "made_in": "Made in Rwanda"
+    "made_in": "Made in Rwanda",
+    "help_title": "Not sure what you need?",
+    "help_desc": "Tell us about your windows, your room or your occasion and we will help you choose the right fabric, size and style.",
+    "visit_title": "Visit the shop",
+    "pay_with": "We accept",
+    "pay_momo": "MTN MoMo",
+    "pay_airtel": "Airtel Money",
+    "pay_bank": "Bank transfer",
+    "pay_in_store": "Pay in store"
   },
   "common": {
     "loading": "Loading...",

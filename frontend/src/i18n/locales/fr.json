@@ -12,11 +12,13 @@
     "logout": "Déconnexion",
     "cart": "Panier",
     "wishlist": "Liste de Souhaits",
-    "track": "Suivre la commande"
+    "track": "Suivre la commande",
+    "shop_all": "Tout voir"
   },
   "header": {
-    "announcement": "Consultation gratuite • Réservez en ligne, achetez en boutique • Kigali, Rwanda",
-    "admin_panel": "Panneau Admin"
+    "announcement": "Livraison partout au Rwanda • Paiement MTN MoMo • Boutique à Kigali",
+    "admin_panel": "Panneau Admin",
+    "search_placeholder": "Rechercher rideaux, tissus, tenues…"
   },
   "hero": {
     "title": "La Meilleure Collection Textile du Rwanda",
@@ -255,7 +257,7 @@
     "book_visit": "Réserver une Visite"
   },
   "footer": {
-    "tagline": "La destination textile de référence au Rwanda",
+    "tagline": "Rideaux sur mesure, tissus au mètre et tenues traditionnelles rwandaises — de notre boutique de Kigali aux foyers de tout le Rwanda.",
     "products": "Produits",
     "curtains": "Rideaux",
     "fabrics": "Tissus",
@@ -273,7 +275,15 @@
     "address": "Kigali, Rwanda",
     "hours": "Lun–Sam: 8h00 – 18h00",
     "rights": "Tous droits réservés.",
-    "made_in": "Fabriqué au Rwanda"
+    "made_in": "Fabriqué au Rwanda",
+    "help_title": "Vous ne savez pas quoi choisir ?",
+    "help_desc": "Parlez-nous de vos fenêtres, de votre pièce ou de votre événement et nous vous aiderons à choisir le bon tissu, la bonne taille et le bon style.",
+    "visit_title": "Visiter la boutique",
+    "pay_with": "Nous acceptons",
+    "pay_momo": "MTN MoMo",
+    "pay_airtel": "Airtel Money",
+    "pay_bank": "Virement bancaire",
+    "pay_in_store": "Paiement en boutique"
   },
   "common": {
     "loading": "Chargement...",

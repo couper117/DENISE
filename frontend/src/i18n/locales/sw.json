@@ -12,11 +12,13 @@
     "logout": "Toka",
     "cart": "Kikapu",
     "wishlist": "Orodha ya Matakwa",
-    "track": "Fuatilia Oda"
+    "track": "Fuatilia Oda",
+    "shop_all": "Shop all"
   },
   "header": {
     "announcement": "Ushauri wa bure • Hifadhi mtandaoni, nunua dukani • Kigali, Rwanda",
-    "admin_panel": "Paneli ya Msimamizi"
+    "admin_panel": "Paneli ya Msimamizi",
+    "search_placeholder": "Search curtains, fabrics, attire…"
   },
   "hero": {
     "title": "Mkusanyiko Bora wa Nguo Rwanda",
@@ -273,7 +275,15 @@
     "address": "Kigali, Rwanda",
     "hours": "Juma 1–6: 8:00 – 18:00",
     "rights": "Haki zote zimehifadhiwa.",
-    "made_in": "Imefanywa Rwanda"
+    "made_in": "Imefanywa Rwanda",
+    "help_title": "Not sure what you need?",
+    "help_desc": "Tell us about your windows, your room or your occasion and we will help you choose the right fabric, size and style.",
+    "visit_title": "Visit the shop",
+    "pay_with": "We accept",
+    "pay_momo": "MTN MoMo",
+    "pay_airtel": "Airtel Money",
+    "pay_bank": "Bank transfer",
+    "pay_in_store": "Pay in store"
   },
   "common": {
     "loading": "Inapakia...",
