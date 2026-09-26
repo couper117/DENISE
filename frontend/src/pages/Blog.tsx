@@ -51,7 +51,7 @@ const BlogPage = () => {
                 {blog.imageUrl ? (
                   <img src={blog.imageUrl} alt={blog.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-4xl">📝</div>
+                  <div className="w-full h-full flex items-center justify-center font-serif text-4xl text-muted-foreground/30">D</div>
                 )}
               </div>
               <div className="p-5">

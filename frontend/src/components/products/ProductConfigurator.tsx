@@ -5,7 +5,7 @@ import { Product } from '../../types';
 import {
   Configuration, ConfigurationErrors, FULLNESS_CHOICES, HEADER_TYPES, LINING_TYPES,
   MAX_DIMENSION_CM, MAX_METERS, MAX_QUANTITY, PANEL_LAYOUTS, OptionChoice,
-  defaultConfiguration, fieldsFor, priceConfiguration, validate, computeRodLengthCm, ROD_OVERHANG_CM,
+  defaultConfiguration, fieldsFor, priceConfiguration, validate, computeRodLengthCm, ROD_OVERHANG_CM, STANDARD_ATTIRE_METERS,
 } from '../../lib/productOptions';
 import { cn } from '../../lib/utils';
 
@@ -111,6 +111,10 @@ const ProductConfigurator = ({
   const fields = useMemo(() => fieldsFor(product), [product]);
   const [config, setConfig] = useState<Configuration>(initialConfig ?? defaultConfiguration(product));
   const [quantity, setQuantity] = useState(initialQuantity);
+  // Traditional attire starts at one standard outfit; "my own metres" unlocks the input.
+  const [customMeters, setCustomMeters] = useState(
+    fields.kind === 'ATTIRE' && initialConfig?.meters != null && initialConfig.meters !== STANDARD_ATTIRE_METERS
+  );
   // Errors are only shown after a submit attempt: nagging someone about a field
   // they have not reached yet is noise, not help.
   const [showErrors, setShowErrors] = useState(false);
@@ -254,20 +258,66 @@ const ProductConfigurator = ({
         </div>
       )}
 
-      {/* ── Fabric length (cut-to-length products) ─────────────────────────── */}
+      {/* ── Metres (fabric by the metre, traditional attire) ───────────────── */}
       {fields.meters && (
         <div data-config-error={!!visibleErrors.meters}>
-          <label htmlFor="config-meters" className="text-sm font-medium block mb-1.5">
-            {tr('config.meters', 'How many meters?')} <span className="text-destructive">*</span>
-          </label>
-          <input
-            id="config-meters" type="number" inputMode="decimal" min={0.1} max={MAX_METERS} step="0.1"
-            value={config.meters ?? ''} placeholder="3.5"
-            onChange={(e) => set('meters', parseDimension(e.target.value, MAX_METERS))}
-            className={cn(fieldClass, visibleErrors.meters && 'border-destructive')}
-            aria-invalid={!!visibleErrors.meters}
-          />
-          <FieldError message={visibleErrors.meters} />
+          {fields.kind === 'ATTIRE' && (
+            <fieldset className="mb-4">
+              <legend className="text-sm font-medium mb-2">{tr('attire.how_much', 'How much fabric?')}</legend>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {[
+                  { custom: false, title: tr('attire.standard', 'Standard outfit'), detail: tr('attire.standard_detail', '{{m}} m — enough for one traditional outfit').replace('{{m}}', String(STANDARD_ATTIRE_METERS)) },
+                  { custom: true, title: tr('attire.custom', 'My own metres'), detail: tr('attire.custom_detail', 'For a larger outfit or several pieces') },
+                ].map((opt) => {
+                  const selected = opt.custom ? customMeters : !customMeters;
+                  return (
+                    <label key={String(opt.custom)} className={cn(
+                      'flex cursor-pointer flex-col gap-0.5 rounded-xl border-2 p-3 transition-colors focus-within:ring-2 focus-within:ring-primary/30',
+                      selected ? 'border-foreground bg-foreground/[0.03]' : 'border-border hover:border-foreground/30'
+                    )}>
+                      <input type="radio" name="attire-amount" className="sr-only" checked={selected}
+                        onChange={() => { setCustomMeters(opt.custom); if (!opt.custom) set('meters', STANDARD_ATTIRE_METERS); }} />
+                      <span className="flex items-center gap-1.5 text-sm font-semibold">{selected && <Check size={13} />} {opt.title}</span>
+                      <span className="text-xs text-muted-foreground">{opt.detail}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
+          )}
+
+          {(fields.kind !== 'ATTIRE' || customMeters) && (
+            <>
+              <label htmlFor="config-meters" className="text-sm font-medium block mb-2">
+                {tr('config.meters', 'How many meters?')} <span className="text-destructive">*</span>
+              </label>
+              <div className="flex items-stretch gap-2">
+                <button type="button" onClick={() => set('meters', Math.max(0.5, Math.round(((config.meters ?? 1) - 0.5) * 10) / 10))}
+                  aria-label={tr('cart.decrease', 'Decrease quantity')} className="icon-btn h-12 w-12 shrink-0 border border-border"><Minus size={16} /></button>
+                <div className="relative flex-1">
+                  <input
+                    id="config-meters" type="number" inputMode="decimal" min={0.5} max={MAX_METERS} step="0.5"
+                    value={config.meters ?? ''} placeholder="3"
+                    onChange={(e) => set('meters', parseDimension(e.target.value, MAX_METERS))}
+                    className={cn(fieldClass, 'h-12 pr-10 text-center text-base font-semibold', visibleErrors.meters && 'border-destructive')}
+                    aria-invalid={!!visibleErrors.meters}
+                  />
+                  <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">m</span>
+                </div>
+                <button type="button" onClick={() => set('meters', Math.min(MAX_METERS, Math.round(((config.meters ?? 0) + 0.5) * 10) / 10))}
+                  aria-label={tr('cart.increase', 'Increase quantity')} className="icon-btn h-12 w-12 shrink-0 border border-border"><Plus size={16} /></button>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {(fields.kind === 'ATTIRE' ? [4, 6, 8, 10] : [1, 2, 3, 5, 10]).map((m) => (
+                  <button key={m} type="button" onClick={() => set('meters', m)}
+                    className={cn('rounded-full border px-3 py-1 text-xs font-medium', config.meters === m ? 'border-foreground bg-foreground text-background' : 'border-border hover:border-foreground/30')}>
+                    {m} m
+                  </button>
+                ))}
+              </div>
+              <FieldError message={visibleErrors.meters} />
+            </>
+          )}
         </div>
       )}
 
@@ -320,7 +370,12 @@ const ProductConfigurator = ({
         <textarea
           id="config-notes" rows={2} value={config.notes ?? ''}
           onChange={(e) => set('notes', e.target.value)}
-          placeholder={tr('config.notes_placeholder', 'e.g. for the living room window facing the street')}
+          placeholder={
+            fields.kind === 'ATTIRE' ? tr('config.notes_placeholder_attire', 'e.g. for a wedding or gusaba, preferred style or size')
+              : fields.kind === 'FABRIC' ? tr('config.notes_placeholder_fabric', 'e.g. what you are making, or cut into two pieces')
+                : fields.kind === 'CURTAIN' || fields.kind === 'ROD' ? tr('config.notes_placeholder', 'e.g. for the living room window facing the street')
+                  : tr('config.notes_placeholder_simple', 'Anything we should know')
+          }
           className={cn(fieldClass, 'resize-none')}
           maxLength={500}
         />
@@ -328,7 +383,7 @@ const ProductConfigurator = ({
 
       {/* ── Quantity + running total ───────────────────────────────────────── */}
       <div className="bg-muted/40 border border-border rounded-xl p-4 space-y-4">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className={cn('flex items-center justify-between gap-4 flex-wrap', fields.meters && 'hidden')}>
           <span className="text-sm font-medium">{tr('config.quantity', 'Quantity')}</span>
           <div className="flex items-center border border-border rounded-xl bg-background">
             <button
@@ -356,14 +411,14 @@ const ProductConfigurator = ({
           </div>
         </div>
 
-        <div className="border-t border-border pt-3 space-y-1.5 text-sm" aria-live="polite">
+        <div className={cn('space-y-1.5 text-sm', !fields.meters && 'border-t border-border pt-3')} aria-live="polite">
           {priced.meters != null && priced.meters > 0 && (
             <div className="flex justify-between text-muted-foreground">
-              <span>{tr('config.fabric_needed', 'Fabric needed (each)')}</span>
+              <span>{fields.meters ? tr('config.metres', 'Metres') : tr('config.fabric_needed', 'Fabric needed (each)')}</span>
               <span className="font-medium text-foreground">{priced.meters} m</span>
             </div>
           )}
-          {priced.unitPrice != null && (
+          {priced.unitPrice != null && !fields.meters && (
             <div className="flex justify-between text-muted-foreground">
               <span>{tr('config.unit_price', 'Price each')}</span>
               <span className="font-medium text-foreground">{money(priced.unitPrice)}</span>
@@ -377,7 +432,9 @@ const ProductConfigurator = ({
           ) : (
             <p className="flex items-start gap-1.5 text-xs text-muted-foreground">
               <Info size={12} className="shrink-0 mt-0.5" />
-              {tr('config.quote_note', 'This item is priced on request. Add it to your cart and our team will confirm the price before any payment.')}
+              {fields.mode === 'PER_METER'
+                ? tr('config.enter_meters_hint', 'Choose how many metres to see the price.')
+                : tr('config.quote_note', 'This item is priced on request. Add it to your cart and our team will confirm the price before any payment.')}
             </p>
           )}
         </div>

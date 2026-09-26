@@ -17,7 +17,7 @@
  */
 import { Product } from '../types';
 
-export type ProductKind = 'CURTAIN' | 'ROD' | 'FABRIC' | 'SIMPLE';
+export type ProductKind = 'CURTAIN' | 'ROD' | 'ATTIRE' | 'FABRIC' | 'SIMPLE';
 /** Night curtain (heavy, "rideau de nuit") or day curtain (sheer, "rideau du jour"). */
 export type CurtainRole = 'HARD' | 'SOFT';
 /** Which part of a window set a line is. */
@@ -80,6 +80,36 @@ const SOFT_HINTS = ['soft', 'sheer', 'voile', 'jour', 'day', 'tulle', 'lace'];
 /** How far a rod runs past the window on each side, so a drawn curtain clears the glass. */
 export const ROD_OVERHANG_CM = 15;
 
+/** Traditional attire is cut by the metre; one standard outfit takes this much. */
+export const STANDARD_ATTIRE_METERS = 4;
+const ATTIRE_HINTS = ['traditional', 'attire', 'gakondo', 'umushanana', 'mushanana', 'imikenyero', 'mukenyero'];
+
+/**
+ * How the night and day curtains share one window or door. `hard` / `soft`
+ * are the share of the opening's width each curtain covers — the metres are
+ * worked out from that share — and `rod` says whether both hang on one track
+ * or need a double rod. Mirrors the backend; change both together.
+ */
+export const ARRANGEMENTS = {
+  NIGHT_ONLY: { label: 'Night curtain only', hard: 1, soft: 0, rod: 'SINGLE', hardPanels: 'PAIR', softPanels: null },
+  DAY_ONLY: { label: 'Day curtain only', hard: 0, soft: 1, rod: 'SINGLE', hardPanels: null, softPanels: 'PAIR' },
+  LAYERED: { label: 'Day curtain behind, night curtain in front', hard: 1, soft: 1, rod: 'DOUBLE', hardPanels: 'PAIR', softPanels: 'PAIR' },
+  DAY_CENTER: { label: 'Night curtains at the sides, day curtain in the middle', hard: 0.5, soft: 0.5, rod: 'SINGLE', hardPanels: 'PAIR', softPanels: 'SINGLE' },
+  NIGHT_CENTER: { label: 'Day curtains at the sides, night curtain in the middle', hard: 0.5, soft: 0.5, rod: 'SINGLE', hardPanels: 'SINGLE', softPanels: 'PAIR' },
+  SIDE_BY_SIDE: { label: 'Night and day curtain side by side', hard: 0.5, soft: 0.5, rod: 'SINGLE', hardPanels: 'SINGLE', softPanels: 'SINGLE' },
+} as const;
+export type Arrangement = keyof typeof ARRANGEMENTS;
+
+export const isArrangement = (value: unknown): value is Arrangement =>
+  typeof value === 'string' && Object.prototype.hasOwnProperty.call(ARRANGEMENTS, value);
+
+/** Share of the opening's width a curtain of this role covers (1 when no arrangement was chosen). */
+export const arrangementShare = (arrangement: unknown, role: CurtainRole): number => {
+  if (!isArrangement(arrangement)) return 1;
+  const share = role === 'HARD' ? ARRANGEMENTS[arrangement].hard : ARRANGEMENTS[arrangement].soft;
+  return share > 0 ? share : 1;
+};
+
 const haystackOf = (product: Product) =>
   `${product.category?.slug ?? ''} ${product.category?.name ?? ''} ${product.name}`.toLowerCase();
 
@@ -95,6 +125,7 @@ export const detectKind = (product: Product): ProductKind => {
   const haystack = haystackOf(product);
   if (hasHint(haystack, ROD_HINTS)) return 'ROD';
   if (CURTAIN_HINTS.some((hint) => haystack.includes(hint))) return 'CURTAIN';
+  if (product.pricePerMeter != null && hasHint(haystack, ATTIRE_HINTS)) return 'ATTIRE';
   if (product.pricePerMeter != null) return 'FABRIC';
   return 'SIMPLE';
 };
@@ -143,6 +174,9 @@ export interface Configuration {
   /** Lines bought together for one window (night + day curtain + rod) share this. */
   setId?: string;
   setRole?: SetRole;
+  arrangement?: Arrangement;
+  /** Which window or door this line is for, e.g. "Window 2". */
+  openingLabel?: string;
 }
 
 export interface PricedConfiguration {
@@ -178,6 +212,7 @@ export const defaultConfiguration = (product: Product): Configuration => {
     ...(fields.curtainMakeUp
       ? { headerType: 'EYELET', lining: 'NONE', panelLayout: 'PAIR', fullness: 2 }
       : {}),
+    ...(fields.kind === 'ATTIRE' && fields.meters ? { meters: STANDARD_ATTIRE_METERS } : {}),
   };
 };
 
@@ -193,7 +228,7 @@ export const priceConfiguration = (
   if (fields.mode === 'PER_METER') {
     if (fields.kind === 'CURTAIN') {
       meters = config.widthCm && config.dropCm
-        ? computeCurtainMeters(config.widthCm, config.dropCm, config.fullness ?? 2)
+        ? computeCurtainMeters(config.widthCm * arrangementShare(config.arrangement, curtainRole(product)), config.dropCm, config.fullness ?? 2)
         : null;
     } else if (fields.kind === 'ROD' && config.widthCm) {
       meters = computeRodLengthCm(config.widthCm) / 100;
@@ -279,6 +314,8 @@ export const describeConfiguration = (config: Configuration, tr: Translate = ide
   const push = (labelKey: string, label: string, value: string | undefined) => {
     if (value) out.push({ label: tr(labelKey, label), value });
   };
+  if (config.openingLabel) push('curtain.spec_opening', 'For', config.openingLabel);
+  if (config.arrangement) push('curtain.spec_arrangement', 'Arrangement', tr(`curtain.arr_${config.arrangement}`, ARRANGEMENTS[config.arrangement].label));
   if (config.setRole === 'HARD') push('config.spec_curtain', 'Curtain', tr('curtain.role_hard', 'Night curtain (rideau de nuit)'));
   if (config.setRole === 'SOFT') push('config.spec_curtain', 'Curtain', tr('curtain.role_soft', 'Day curtain (rideau du jour)'));
   if (config.setRole === 'ROD' && config.widthCm) {
@@ -314,4 +351,6 @@ export const configurationKey = (productId: string, config: Configuration): stri
     config.fullness ?? '',
     (config.notes ?? '').trim().toLowerCase(),
     config.setId ?? '',
+    config.arrangement ?? '',
+    config.openingLabel ?? '',
   ].join('|');

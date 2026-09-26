@@ -376,6 +376,8 @@ const Checkout = () => {
           dropCm: line.config.dropCm,
           meters: line.config.meters,
           setId: line.config.setId,
+          arrangement: line.config.arrangement,
+          openingLabel: line.config.openingLabel,
         },
       })),
     };
@@ -1150,7 +1152,7 @@ const Checkout = () => {
             {isReservation && (
               <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800 rounded-2xl p-4 text-sm">
                 <p className="font-medium mb-1 text-green-800 dark:text-green-200">
-                  💡 <EditableText id="reservation.no_online_payment" />
+                  <EditableText id="reservation.no_online_payment" />
                 </p>
                 <p className="text-green-700 dark:text-green-300 text-xs">
                   <EditableText id="reservation.no_online_payment_desc" />

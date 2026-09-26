@@ -5,6 +5,7 @@ import { useMutation } from '@tanstack/react-query';
 import {
   Search, Package, Calendar, Clock, User, Phone, Mail,
   MapPin, Truck, Store, CreditCard, CheckCircle2, Smartphone,
+  ClipboardList, Settings, PackageCheck, Home as HomeIcon, Star, Circle, MessageCircle, LucideIcon,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { reservationsApi } from '../lib/api';
@@ -71,16 +72,20 @@ const STATUS_DESCRIPTIONS: Record<string, Record<FulfillmentType, string>> = {
   },
 };
 
-const STATUS_ICONS: Record<string, string> = {
-  PENDING: '📋',
-  CONFIRMED: '✅',
-  PREPARING: '📦',
-  PROCESSING: '⚙️',
-  PACKED: '📫',
-  READY_FOR_PICKUP: '🏪',
-  OUT_FOR_DELIVERY: '🚚',
-  DELIVERED: '🎉',
-  COMPLETED: '⭐',
+const STATUS_ICONS: Record<string, LucideIcon> = {
+  PENDING: ClipboardList,
+  CONFIRMED: CheckCircle2,
+  PREPARING: Package,
+  PROCESSING: Settings,
+  PACKED: PackageCheck,
+  READY_FOR_PICKUP: Store,
+  OUT_FOR_DELIVERY: Truck,
+  DELIVERED: HomeIcon,
+  COMPLETED: Star,
+};
+const StatusIcon = ({ status, size = 14 }: { status: string; size?: number }) => {
+  const Icon = STATUS_ICONS[status] ?? Circle;
+  return <Icon size={size} />;
 };
 
 // Dark pairs on every pill: the -100 fills are near-white and glow on a dark page.
@@ -279,18 +284,18 @@ const ReservationTracking = () => {
           {/* Header card */}
           <div className="bg-card border border-border rounded-2xl p-6 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
-              <span className="text-lg">
-                {isDelivery ? '🚚' : isPickup ? '📦' : '🏪'}
+              <span className="text-primary">
+                {isDelivery ? <Truck size={18} /> : isPickup ? <Package size={18} /> : <Store size={18} />}
               </span>
               <span className="text-sm font-medium text-muted-foreground">
-                {isDelivery ? 'Delivery Order' : isPickup ? 'Pickup Order' : 'Shop Reservation'}
+                {isDelivery ? t('tracking.type_delivery', { defaultValue: 'Delivery order' }) : isPickup ? t('tracking.type_pickup', { defaultValue: 'Pickup order' }) : t('tracking.type_reservation', { defaultValue: 'Shop reservation' })}
               </span>
             </div>
             <p className="text-2xl font-mono font-bold text-primary mb-4">
               {reservation.reservationNumber}
             </p>
             <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(reservation.status)}`}>
-              {STATUS_ICONS[reservation.status] ?? '•'} {getStatusLabel(reservation.status)}
+              <StatusIcon status={reservation.status} /> {getStatusLabel(reservation.status)}
             </span>
 
             {/* Payment status badge (for paid orders) */}
@@ -298,7 +303,7 @@ const ReservationTracking = () => {
               <div className="mt-3 flex justify-center">
                 <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${PAYMENT_STATUS_LABELS[reservation.paymentStatus]?.color ?? 'bg-muted'}`}>
                   <CreditCard size={11} />
-                  {PAYMENT_STATUS_LABELS[reservation.paymentStatus]?.label ?? reservation.paymentStatus}
+                  {PAYMENT_STATUS_LABELS[reservation.paymentStatus] ? t(`tracking.pay_${reservation.paymentStatus}`, { defaultValue: PAYMENT_STATUS_LABELS[reservation.paymentStatus].label }) : reservation.paymentStatus}
                 </span>
               </div>
             )}
@@ -308,7 +313,7 @@ const ReservationTracking = () => {
           {/* Progress timeline */}
           {reservation.status !== 'CANCELLED' && (
             <div className="bg-card border border-border rounded-xl p-6">
-              <h3 className="font-semibold mb-5">Order Progress</h3>
+              <h3 className="font-semibold mb-5">{t('tracking.progress', { defaultValue: 'Order progress' })}</h3>
               <div className="relative">
                 <div className="absolute left-4 top-4 bottom-4 w-0.5 bg-border" />
                 <div className="space-y-5">
@@ -323,14 +328,14 @@ const ReservationTracking = () => {
                           active ? 'bg-primary text-white ring-4 ring-primary/20' :
                           'bg-muted text-muted-foreground border border-border'
                         }`}>
-                          {done ? <CheckCircle2 size={14} /> : STATUS_ICONS[status] ?? i + 1}
+                          {done ? <CheckCircle2 size={14} /> : <StatusIcon status={status} />}
                         </div>
                         <div className="pt-1">
                           <p className={`font-medium text-sm ${active ? 'text-primary' : ''}`}>
                             {getStatusLabel(status)}
                           </p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            {STATUS_DESCRIPTIONS[status]?.[fulfillmentType] ?? ''}
+                            {STATUS_DESCRIPTIONS[status]?.[fulfillmentType] ? t(`tracking.desc_${status}_${fulfillmentType}`, { defaultValue: STATUS_DESCRIPTIONS[status][fulfillmentType] }) : ''}
                           </p>
                         </div>
                       </div>
@@ -413,7 +418,7 @@ const ReservationTracking = () => {
             )}
             {(reservation.totalAmount !== undefined && reservation.totalAmount !== null) && (
               <div className="flex items-center justify-between text-sm pt-2 border-t border-border">
-                <span className="font-semibold">Total Amount:</span>
+                <span className="font-semibold">{t('tracking.total', { defaultValue: 'Total amount' })}:</span>
                 <span className="font-bold text-primary">
                   {reservation.totalAmount.toLocaleString()} RWF
                 </span>
@@ -469,14 +474,14 @@ const ReservationTracking = () => {
 
           {/* Contact CTA */}
           <div className="bg-muted/50 rounded-xl p-4 text-center text-sm">
-            <p className="text-muted-foreground mb-2">Need help with your order?</p>
+            <p className="text-muted-foreground mb-2">{t('tracking.need_help', { defaultValue: 'Need help with your order?' })}</p>
             <a
               href={WHATSAPP_LINK}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white font-medium rounded-lg hover:bg-green-600 transition-colors text-sm"
+              className="btn btn-sm bg-[#1f8f4e] text-white hover:bg-[#197a42]"
             >
-              💬 WhatsApp Us
+              <MessageCircle size={15} /> <EditableText id="home.whatsapp_us" />
             </a>
           </div>
         </motion.div>

@@ -81,6 +81,10 @@ and verify on deniseshop.com.
   sub-categories selectable in the admin product form, window-set chips in admin
   orders and invoices, "Made by Malhottech Company Ltd" in the footer, full
   translation pass (fr/rw/sw/ln) and fixes to old Kinyarwanda/Lingala errors.
+- [x] Buying-flow pass (between phases): curtain wizard with arrangement and
+  fullness pictures, multiple windows/doors in metres, rods sized from them;
+  fabric = metres + colour; traditional attire = 4 m standard or custom;
+  emoji and unverified claims removed; admin product management rebuilt.
 - [ ] Phase 4
 - [ ] Phase 5
 - [ ] Phase 6

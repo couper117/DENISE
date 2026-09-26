@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, MessageCircle, Minus, Pencil, Plus, Ruler, ShieldCheck, ShoppingBag, Trash2, Truck } from 'lucide-react';
 import { useCartStore } from '../store';
 import { CartItem } from '../types';
-import { describeConfiguration, MAX_QUANTITY } from '../lib/productOptions';
+import { describeConfiguration, fieldsFor, MAX_QUANTITY } from '../lib/productOptions';
 import { toast } from '../components/ui/Toaster';
 import Breadcrumbs from '../components/Breadcrumbs';
 import Seo from '../components/Seo';
@@ -36,6 +36,7 @@ const CartLine = ({ item }: { item: CartItem }) => {
   const image = item.product.images?.find((i) => i.isPrimary) || item.product.images?.[0];
   const specs = describeConfiguration(item.config, (k, d) => t(k, { defaultValue: d }));
   const currency = item.product.currency || 'RWF';
+  const soldByMetre = fieldsFor(item.product).meters;
 
   return (
     <motion.li
@@ -51,7 +52,7 @@ const CartLine = ({ item }: { item: CartItem }) => {
             {image ? (
               <img src={image.url} alt={item.product.name} className="w-full h-full object-cover" loading="lazy" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center text-2xl">🧵</div>
+              <div className="w-full h-full flex items-center justify-center font-serif text-xl text-muted-foreground/40">D</div>
             )}
           </div>
         </Link>
@@ -99,7 +100,9 @@ const CartLine = ({ item }: { item: CartItem }) => {
 
           <div className="flex flex-wrap items-center justify-between gap-3 mt-3">
             <div className="flex items-center gap-3">
-              <div className="flex items-center border border-border rounded-lg">
+              {/* Fabric and attire are bought by the metre — the metres are the
+                  amount, changed through Edit — so no quantity stepper. */}
+              <div className={cn('flex items-center border border-border rounded-lg', soldByMetre && 'hidden')}>
                 <button
                   type="button"
                   onClick={() => setQuantity(item.id, item.quantity - 1)}
@@ -129,12 +132,14 @@ const CartLine = ({ item }: { item: CartItem }) => {
                 </button>
               </div>
 
-              <Link
+              {/* A curtain-set line is one part of a window's night + day + rod;
+                  editing it alone would break the set, so it is only removable. */}
+              {!item.config.setId && <Link
                 to={`/products/${item.product.slug}?line=${item.id}`}
                 className="flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
               >
                 <Pencil size={12} /> {t('cart.edit', { defaultValue: 'Edit' })}
-              </Link>
+              </Link>}
             </div>
 
             <div className="text-right">
@@ -294,7 +299,7 @@ const Cart = () => {
 
                 <p className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mt-3">
                   <ShieldCheck size={13} className="text-primary" />
-                  {t('cart.tax_note', { defaultValue: 'Prices include VAT where applicable' })}
+                  {t('cart.pay_note', { defaultValue: 'Pay with MTN MoMo, bank transfer or in store' })}
                 </p>
               </div>
 

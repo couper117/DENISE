@@ -94,6 +94,7 @@ export const productsApi = {
   delete: (id: string) => api.delete(`/products/${id}`),
   addImages: (id: string, data: FormData) => api.post(`/products/${id}/images`, data, { headers: { 'Content-Type': 'multipart/form-data' } }),
   deleteImage: (imageId: string) => api.delete(`/products/images/${imageId}`),
+  setPrimaryImage: (imageId: string) => api.put(`/products/images/${imageId}/primary`),
 };
 
 // Categories
@@ -162,6 +163,8 @@ export const contentApi = {
 // Admin
 export const adminApi = {
   getDashboard: () => api.get('/admin/dashboard'),
+  /** Every product, hidden ones included, with all images (admin only). */
+  getProducts: (params?: Record<string, unknown>) => api.get('/admin/products', { params }),
   getCustomers: (params?: Record<string, unknown>) => api.get('/admin/customers', { params }),
   toggleCustomerStatus: (id: string) => api.put(`/admin/customers/${id}/toggle-status`),
   getContent: (language?: string) => api.get('/admin/content', { params: { language } }),

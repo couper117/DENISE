@@ -148,7 +148,7 @@ const OrderInvoice = ({ order }: { order: Reservation }) => {
         {order.notes && <p><strong>Customer notes:</strong> {order.notes}</p>}
         {order.adminNotes && <p><strong>Note to customer:</strong> {order.adminNotes}</p>}
         <p className="pt-2">
-          Prices are in Rwandan Francs and include VAT where applicable. Thank you for shopping with {BUSINESS_NAME}.
+          Prices are in Rwandan Francs. Thank you for shopping with {BUSINESS_NAME}.
         </p>
       </section>
     </div>

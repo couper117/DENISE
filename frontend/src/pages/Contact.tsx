@@ -4,7 +4,7 @@ import { MapPin, Phone, Mail, Clock, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
   BUSINESS_PHONE, BUSINESS_PHONE_CLEAN, BUSINESS_EMAIL,
-  BUSINESS_HOURS, WHATSAPP_LINK,
+  BUSINESS_HOURS, WHATSAPP_LINK, BUSINESS_LAT, BUSINESS_LNG,
 } from '../lib/config';
 import Seo from '../components/Seo';
 import Breadcrumbs from '../components/Breadcrumbs';
@@ -64,10 +64,12 @@ const Contact = () => {
             <EditableText id="contact.whatsapp" />
           </a>
 
-          <Link to="/reservation"
+          {/* Was "Book a shop visit" → /reservation, which lands on an empty cart.
+              Visiting needs no booking; directions are what people want here. */}
+          <a href={`https://www.google.com/maps/dir/?api=1&destination=${BUSINESS_LAT},${BUSINESS_LNG}`} target="_blank" rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full py-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors">
-            <EditableText id="contact.book_visit" />
-          </Link>
+            <MapPin size={18} /> <EditableText id="home.get_directions" />
+          </a>
         </motion.div>
 
         {/* Google Maps embed */}

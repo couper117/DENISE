@@ -124,7 +124,7 @@ export const getNewArrivals = async (_req: Request, res: Response): Promise<void
 
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, description, specifications, material, priceRange, price, salePrice, pricePerMeter, categoryId, isFeatured, isNewArrival, isOnPromotion, promotionText, metaTitle, metaDescription, metaKeywords, colors, stockCount, metersAvailable } = req.body;
+    const { name, description, specifications, material, priceRange, price, salePrice, pricePerMeter, categoryId, isFeatured, isNewArrival, isAvailable, isOnPromotion, promotionText, metaTitle, metaDescription, metaKeywords, colors, stockCount, metersAvailable } = req.body;
 
     const slug = generateSlug(name);
     const existingSlug = await prisma.product.findUnique({ where: { slug } });
@@ -138,6 +138,8 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
         name, slug: finalSlug, description, specifications, material, priceRange,
         price: num(price), salePrice: num(salePrice), pricePerMeter: num(pricePerMeter),
         categoryId, isFeatured: isFeatured === 'true', isNewArrival: isNewArrival === 'true',
+        // Omitted = on sale (the old behaviour); the admin form can create a hidden draft.
+        isAvailable: isAvailable === undefined ? true : isAvailable === 'true' || isAvailable === true,
         isOnPromotion: isOnPromotion === 'true', promotionText, metaTitle, metaDescription, metaKeywords,
         images: {
           create: filesToImages(req, files).map((img, i) => ({
@@ -147,7 +149,7 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
             sortOrder: i,
           })),
         },
-        colors: colors ? { create: JSON.parse(colors).map((c: { name: string; hexCode?: string }) => ({ name: c.name, hexCode: c.hexCode })) } : undefined,
+        colors: colors ? { create: JSON.parse(colors).map((c: { name: string; hexCode?: string }) => ({ name: c.name.trim(), hexCode: c.hexCode || null })) } : undefined,
         inventory: { create: { stockCount: parseInt(stockCount || '0'), metersAvailable: metersAvailable ? parseFloat(metersAvailable) : null } },
       },
       include: { images: true, colors: true, inventory: true, category: true },
@@ -193,14 +195,25 @@ export const updateProduct = async (req: Request, res: Response): Promise<void> 
       metaKeywords: updates.metaKeywords,
     };
 
-    if (updates.name) data.slug = generateSlug(updates.name);
+    // Only re-slug when the name actually changes, and keep the slug unique —
+    // regenerating it on every save used to collide with a sibling product
+    // whose slug had been suffixed, failing the whole update.
+    if (updates.name) {
+      const current = await prisma.product.findUnique({ where: { id }, select: { name: true } });
+      if (!current) { res.status(404).json({ success: false, message: 'Product not found' }); return; }
+      if (current.name !== updates.name) {
+        const base = generateSlug(updates.name);
+        const clash = await prisma.product.findFirst({ where: { slug: base, id: { not: id } }, select: { id: true } });
+        data.slug = clash ? `${base}-${Date.now()}` : base;
+      }
+    }
 
     // Replace colours when provided (accepts a JSON string or an array)
     if (updates.colors !== undefined) {
       const colors = typeof updates.colors === 'string' ? JSON.parse(updates.colors) : updates.colors;
       data.colors = {
         deleteMany: {},
-        create: (colors as { name: string; hexCode?: string }[]).map((c) => ({ name: c.name, hexCode: c.hexCode })),
+        create: (colors as { name: string; hexCode?: string }[]).map((c) => ({ name: c.name.trim(), hexCode: c.hexCode || null })),
       };
     }
 
@@ -244,6 +257,20 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
     const product = await prisma.product.findUnique({ where: { id }, include: { images: true } });
     if (!product) { res.status(404).json({ success: false, message: 'Product not found' }); return; }
 
+    // Orders keep a reference to the product they were placed for, so a product
+    // that has been ordered cannot be removed without losing order history.
+    // Tell the admin to hide it instead of failing with a generic 500.
+    const orderCount = await prisma.reservationItem.count({ where: { productId: id } });
+    if (orderCount > 0) {
+      res.status(409).json({
+        success: false,
+        code: 'PRODUCT_HAS_ORDERS',
+        orderCount,
+        message: `This product appears in ${orderCount} order(s) and cannot be deleted. Hide it from the shop instead.`,
+      });
+      return;
+    }
+
     for (const image of product.images) {
       await destroyImage(image.publicId);
     }
@@ -256,14 +283,69 @@ export const deleteProduct = async (req: Request, res: Response): Promise<void> 
   }
 };
 
+/**
+ * Admin catalogue listing. Unlike the public `getProducts` it includes hidden
+ * (unavailable) products and every image, so the admin can manage them all.
+ */
+export const getAdminProducts = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { page = 1, limit = 20, search, category, status } = req.query;
+    const where: Record<string, unknown> = {};
+
+    if (search) {
+      where.OR = [
+        { name: { contains: String(search), mode: 'insensitive' } },
+        { description: { contains: String(search), mode: 'insensitive' } },
+        { material: { contains: String(search), mode: 'insensitive' } },
+      ];
+    }
+    if (category) where.category = { OR: [{ slug: String(category) }, { parent: { slug: String(category) } }] };
+    if (status === 'available') where.isAvailable = true;
+    if (status === 'hidden') where.isAvailable = false;
+    if (status === 'featured') where.isFeatured = true;
+    if (status === 'new') where.isNewArrival = true;
+
+    const { skip, take } = getPaginationParams(Number(page), Number(limit));
+
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        skip,
+        take,
+        orderBy: [{ updatedAt: 'desc' }],
+        include: {
+          category: { select: { id: true, name: true, slug: true, parentId: true } },
+          images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }] },
+          colors: true,
+          inventory: { select: { stockCount: true, metersAvailable: true, isTracked: true } },
+          _count: { select: { reservationItems: true } },
+        },
+      }),
+      prisma.product.count({ where }),
+    ]);
+
+    res.json({ success: true, data: products, pagination: buildPaginationResponse(total, Number(page), Number(limit)) });
+  } catch (error) {
+    logger.error('GetAdminProducts error:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch products' });
+  }
+};
+
 export const addProductImages = async (req: Request, res: Response): Promise<void> => {
   try {
     const { id } = req.params;
     const files = req.files as Express.Multer.File[];
 
+    const exists = await prisma.product.findUnique({ where: { id }, select: { id: true } });
+    if (!exists) {
+      for (const img of filesToImages(req, files)) await destroyImage(img.publicId);
+      res.status(404).json({ success: false, message: 'Product not found' });
+      return;
+    }
+
     const existingCount = await prisma.productImage.count({ where: { productId: id } });
 
-    const images = await prisma.productImage.createMany({
+    await prisma.productImage.createMany({
       data: filesToImages(req, files).map((img, i) => ({
         productId: id,
         url: img.url,
@@ -273,6 +355,12 @@ export const addProductImages = async (req: Request, res: Response): Promise<voi
       })),
     });
 
+    // Return the product's full, ordered image list so the admin can act on the
+    // new photos (e.g. make one the main image) without a second request.
+    const images = await prisma.productImage.findMany({
+      where: { productId: id },
+      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+    });
     res.json({ success: true, data: images });
   } catch (error) {
     logger.error('AddProductImages error:', error);
@@ -296,5 +384,28 @@ export const deleteProductImage = async (req: Request, res: Response): Promise<v
   } catch (error) {
     logger.error('DeleteProductImage error:', error);
     res.status(500).json({ success: false, message: 'Failed to delete image' });
+  }
+};
+
+/** Make one image the product's main photo (shown on cards and first in the gallery). */
+export const setPrimaryProductImage = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { imageId } = req.params;
+    const image = await prisma.productImage.findUnique({ where: { id: imageId } });
+    if (!image) { res.status(404).json({ success: false, message: 'Image not found' }); return; }
+
+    await prisma.$transaction([
+      prisma.productImage.updateMany({ where: { productId: image.productId, isPrimary: true }, data: { isPrimary: false } }),
+      prisma.productImage.update({ where: { id: imageId }, data: { isPrimary: true } }),
+    ]);
+
+    const images = await prisma.productImage.findMany({
+      where: { productId: image.productId },
+      orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }],
+    });
+    res.json({ success: true, data: images });
+  } catch (error) {
+    logger.error('SetPrimaryProductImage error:', error);
+    res.status(500).json({ success: false, message: 'Failed to set main image' });
   }
 };

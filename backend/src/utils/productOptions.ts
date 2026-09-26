@@ -19,7 +19,7 @@
  * here (and in the frontend mirror) — nothing else has to change.
  */
 
-export type ProductKind = 'CURTAIN' | 'ROD' | 'FABRIC' | 'SIMPLE';
+export type ProductKind = 'CURTAIN' | 'ROD' | 'ATTIRE' | 'FABRIC' | 'SIMPLE';
 /** Night curtain (heavy, "rideau de nuit") or day curtain (sheer, "rideau du jour"). */
 export type CurtainRole = 'HARD' | 'SOFT';
 /** Which part of a window set a line is. */
@@ -90,6 +90,37 @@ const SOFT_HINTS = ['soft', 'sheer', 'voile', 'jour', 'day', 'tulle', 'lace'];
 /** How far a rod runs past the window on each side, so a drawn curtain clears the glass. */
 export const ROD_OVERHANG_CM = 15;
 
+/** Traditional attire is cut by the metre; one standard outfit takes this much. */
+export const STANDARD_ATTIRE_METERS = 4;
+const ATTIRE_HINTS = ['traditional', 'attire', 'gakondo', 'umushanana', 'mushanana', 'imikenyero', 'mukenyero'];
+
+/**
+ * How the night and day curtains share one window or door. `hard` / `soft`
+ * are the share of the opening's width each curtain covers — the metres are
+ * worked out from that share — and `rod` says whether both hang on one track
+ * or need a double rod. The shares are the shop's rule of thumb; change them
+ * here and in the frontend mirror.
+ */
+export const ARRANGEMENTS = {
+  NIGHT_ONLY: { label: 'Night curtain only', hard: 1, soft: 0, rod: 'SINGLE', hardPanels: 'PAIR', softPanels: null },
+  DAY_ONLY: { label: 'Day curtain only', hard: 0, soft: 1, rod: 'SINGLE', hardPanels: null, softPanels: 'PAIR' },
+  LAYERED: { label: 'Day curtain behind, night curtain in front', hard: 1, soft: 1, rod: 'DOUBLE', hardPanels: 'PAIR', softPanels: 'PAIR' },
+  DAY_CENTER: { label: 'Night curtains at the sides, day curtain in the middle', hard: 0.5, soft: 0.5, rod: 'SINGLE', hardPanels: 'PAIR', softPanels: 'SINGLE' },
+  NIGHT_CENTER: { label: 'Day curtains at the sides, night curtain in the middle', hard: 0.5, soft: 0.5, rod: 'SINGLE', hardPanels: 'SINGLE', softPanels: 'PAIR' },
+  SIDE_BY_SIDE: { label: 'Night and day curtain side by side', hard: 0.5, soft: 0.5, rod: 'SINGLE', hardPanels: 'SINGLE', softPanels: 'SINGLE' },
+} as const;
+export type Arrangement = keyof typeof ARRANGEMENTS;
+
+export const isArrangement = (value: unknown): value is Arrangement =>
+  typeof value === 'string' && Object.prototype.hasOwnProperty.call(ARRANGEMENTS, value);
+
+/** Share of the opening's width a curtain of this role covers (1 when no arrangement was chosen). */
+export const arrangementShare = (arrangement: unknown, role: CurtainRole): number => {
+  if (!isArrangement(arrangement)) return 1;
+  const share = role === 'HARD' ? ARRANGEMENTS[arrangement].hard : ARRANGEMENTS[arrangement].soft;
+  return share > 0 ? share : 1;
+};
+
 const haystackOf = (product: ProductLike) =>
   `${product.category?.slug ?? ''} ${product.category?.name ?? ''} ${product.name}`.toLowerCase();
 
@@ -105,6 +136,7 @@ export const detectKind = (product: ProductLike): ProductKind => {
   const haystack = haystackOf(product);
   if (hasHint(haystack, ROD_HINTS)) return 'ROD';
   if (CURTAIN_HINTS.some((hint) => haystack.includes(hint))) return 'CURTAIN';
+  if (product.pricePerMeter != null && hasHint(haystack, ATTIRE_HINTS)) return 'ATTIRE';
   if (product.pricePerMeter != null) return 'FABRIC';
   return 'SIMPLE';
 };
@@ -174,6 +206,11 @@ export interface NormalizedOptions {
   setRole?: SetRole;
   /** Rod length for the window, in cm. */
   rodLengthCm?: number;
+  /** How night and day curtains are arranged on the opening. */
+  arrangement?: Arrangement;
+  arrangementLabel?: string;
+  /** Which window or door this line is for, e.g. "Window 2" / "Door 1". */
+  openingLabel?: string;
   color?: string;
   fabric?: string;
   headerType?: string;
@@ -266,6 +303,16 @@ export const priceLine = (product: ProductLike, item: RawItemInput): PricedLine 
   const fullness = fullnessChoice ? Number(fullnessChoice.value) : 2;
   if (kind === 'CURTAIN') options.fullness = fullness;
 
+  if ((kind === 'CURTAIN' || kind === 'ROD') && isArrangement(raw.arrangement)) {
+    options.arrangement = raw.arrangement;
+    options.arrangementLabel = ARRANGEMENTS[raw.arrangement].label;
+  }
+  // Free text from the customer, so only a short, plain label is kept.
+  if (typeof raw.openingLabel === 'string') {
+    const label = raw.openingLabel.trim().replace(/\s+/g, ' ');
+    if (label && label.length <= 40 && /^[\p{L}\p{N} .#'’-]+$/u.test(label)) options.openingLabel = label;
+  }
+
   // ── Metres ────────────────────────────────────────────────────────────────
   // For a made-to-measure curtain the metres are *derived* from the dimensions,
   // never taken from the client. Everything else uses the metres the customer
@@ -276,7 +323,10 @@ export const priceLine = (product: ProductLike, item: RawItemInput): PricedLine 
 
   let meters: number | null = null;
   if (mode === 'PER_METER') {
-    if (kind === 'CURTAIN' && widthCm && dropCm) meters = computeCurtainMeters(widthCm, dropCm, fullness);
+    // The curtain covers only its share of the opening in split arrangements.
+    if (kind === 'CURTAIN' && widthCm && dropCm) {
+      meters = computeCurtainMeters(widthCm * arrangementShare(raw.arrangement, curtainRole(product)), dropCm, fullness);
+    }
     else if (kind === 'ROD' && options.rodLengthCm) meters = options.rodLengthCm / 100;
     else meters = clampNumber(item.metersRequired, MAX_METERS);
     if (meters) options.meters = meters;
@@ -314,6 +364,8 @@ export const priceLine = (product: ProductLike, item: RawItemInput): PricedLine 
 export const describeOptions = (options: NormalizedOptions | null | undefined): string => {
   if (!options) return '';
   const parts: string[] = [];
+  if (options.openingLabel) parts.push(options.openingLabel);
+  if (options.arrangementLabel) parts.push(options.arrangementLabel);
   if (options.curtainRole) parts.push(options.curtainRole === 'SOFT' ? 'Day curtain (rideau du jour)' : 'Night curtain (rideau de nuit)');
   if (options.color) parts.push(options.color);
   if (options.kind === 'ROD' && options.rodLengthCm) parts.push(`Rod ${options.rodLengthCm / 100} m`);

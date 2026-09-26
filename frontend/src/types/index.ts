@@ -62,7 +62,7 @@ export interface Product {
   promotionText?: string;
   canBeDelivered: boolean;
   canBuyOnline: boolean;
-  category: { id: string; name: string; slug: string };
+  category: { id: string; name: string; slug: string; parentId?: string | null };
   images: ProductImage[];
   colors: ProductColor[];
   inventory?: Inventory;
@@ -71,6 +71,10 @@ export interface Product {
   reviews?: ProductReview[];
   reviewStats?: { avg: number; count: number };
   related?: Product[];
+  metaTitle?: string;
+  metaDescription?: string;
+  /** Only on the admin listing (GET /api/admin/products). */
+  _count?: { reservationItems: number };
 }
 
 export interface ProductReview {

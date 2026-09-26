@@ -2,15 +2,17 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import {
-  AlertCircle, Check, ChevronDown, Info, Minus, Moon, Plus, Ruler, ShoppingBag, Sun, Zap,
+  AlertCircle, ArrowLeft, ArrowRight, Check, ChevronDown, DoorOpen, Info, Minus, Plus, ShoppingBag, AppWindow, Trash2, Zap,
 } from 'lucide-react';
 import { Product } from '../../types';
 import { productsApi } from '../../lib/api';
+import { WHATSAPP_LINK } from '../../lib/config';
 import {
-  Configuration, CurtainRole, FULLNESS_CHOICES, HEADER_TYPES, LINING_TYPES, MAX_DIMENSION_CM, MAX_QUANTITY,
-  OptionChoice, PANEL_LAYOUTS, ROD_OVERHANG_CM, computeRodLengthCm, curtainRole, detectKind, priceConfiguration,
+  ARRANGEMENTS, Arrangement, Configuration, CurtainRole, FULLNESS_CHOICES, HEADER_TYPES, LINING_TYPES, OptionChoice,
+  ROD_OVERHANG_CM, computeRodLengthCm, curtainRole, detectKind, priceConfiguration,
 } from '../../lib/productOptions';
 import { cn } from '../../lib/utils';
+import CurtainIllustration from './CurtainIllustration';
 
 /** One line the builder puts in the cart. */
 export interface BuiltLine {
@@ -24,46 +26,31 @@ interface CurtainBuilderProps {
   onAdd: (lines: BuiltLine[], buyNow: boolean) => void;
 }
 
+type OpeningKind = 'WINDOW' | 'DOOR';
+interface Opening { id: number; kind: OpeningKind; width: string; height: string; count: number }
+type StepId = 'measure' | 'style' | 'fullness' | 'rod' | 'review';
+const STEPS: StepId[] = ['measure', 'style', 'fullness', 'rod', 'review'];
+
+/** Largest opening accepted, in metres (the API caps dimensions at 20 m). */
+const MAX_M = 20;
+
 const money = (value: number) => `${Math.round(value).toLocaleString()} RWF`;
+const newSetId = () => `set-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+const parseM = (raw: string): number | null => {
+  const n = Number(raw.replace(',', '.'));
+  return Number.isFinite(n) && n > 0 && n <= MAX_M ? n : null;
+};
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
+/** A double rod is a single product; anything else is one rail, and a
+ *  layered window needs two of them. */
+const isDoubleRod = (rod: Product) => /double|dual|2 ?rail/i.test(rod.name);
+const primaryImage = (p: Product) => (p.images?.find((i) => i.isPrimary) || p.images?.[0])?.url;
+const swatchOf = (p: Product | null | undefined, colorName?: string) =>
+  p?.colors?.find((c) => c.name === colorName)?.hexCode || p?.colors?.[0]?.hexCode || undefined;
 
 const fieldClass =
-  'w-full rounded-xl border border-input bg-background px-4 py-3 text-base font-medium focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/15 sm:text-sm';
-
-const newSetId = () => `set-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
-
-const parseCm = (raw: string): number | undefined => {
-  if (raw.trim() === '') return undefined;
-  const n = Number(raw);
-  if (!Number.isFinite(n) || n <= 0) return undefined;
-  return Math.min(Math.round(n), MAX_DIMENSION_CM);
-};
-
-/** A double rod (one rail for each curtain) is a single product; anything else
- *  is a single rail, and a window with two curtains needs two of them. */
-const isDoubleRod = (rod: Product) => /double|dual|2 ?rail/i.test(rod.name);
-
-const Step = ({ n, title, subtitle, children }: { n: number; title: string; subtitle?: string; children: React.ReactNode }) => (
-  <section className="relative pl-10">
-    <span className="absolute left-0 top-0 flex h-7 w-7 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">{n}</span>
-    <h3 className="text-[15px] font-semibold leading-7">{title}</h3>
-    {subtitle && <p className="mb-3 text-xs text-muted-foreground">{subtitle}</p>}
-    <div className={cn(!subtitle && 'mt-3')}>{children}</div>
-  </section>
-);
-
-/** Simple window drawing with the two measurements, so "width" and "height"
- *  cannot be confused. */
-const WindowDiagram = ({ width, height }: { width?: number; height?: number }) => (
-  <svg viewBox="0 0 160 120" className="h-24 w-32 shrink-0 text-muted-foreground" aria-hidden="true">
-    <rect x="30" y="16" width="100" height="80" rx="3" fill="none" stroke="currentColor" strokeWidth="2" />
-    <line x1="80" y1="16" x2="80" y2="96" stroke="currentColor" strokeWidth="1.5" />
-    <line x1="30" y1="56" x2="130" y2="56" stroke="currentColor" strokeWidth="1.5" />
-    <line x1="30" y1="8" x2="130" y2="8" stroke="hsl(var(--primary))" strokeWidth="2" />
-    <text x="80" y="6" textAnchor="middle" fontSize="9" fill="hsl(var(--primary))" fontWeight="700">{width ? `${width} cm` : 'W'}</text>
-    <line x1="142" y1="16" x2="142" y2="96" stroke="hsl(var(--primary))" strokeWidth="2" />
-    <text x="150" y="60" textAnchor="middle" fontSize="9" fill="hsl(var(--primary))" fontWeight="700" transform="rotate(90 150 60)">{height ? `${height} cm` : 'H'}</text>
-  </svg>
-);
+  'h-12 w-full rounded-xl border border-input bg-background px-3 text-base font-medium focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/15 sm:text-sm';
 
 const ColorPicker = ({ product, value, onChange, error }: { product: Product; value?: string; onChange: (v: string) => void; error?: boolean }) => (
   <div className="flex flex-wrap gap-2">
@@ -87,16 +74,38 @@ const ColorPicker = ({ product, value, onChange, error }: { product: Product; va
   </div>
 );
 
-/** Selectable product tile used for the companion curtain and the rod. */
-const OptionTile = ({
-  selected, onSelect, image, title, detail, price,
-}: { selected: boolean; onSelect: () => void; image?: string; title: string; detail?: string; price?: string }) => (
+/** Selectable picture card (arrangement, fullness). */
+const PictureCard = ({ selected, onSelect, children, title, detail }: { selected: boolean; onSelect: () => void; children: React.ReactNode; title: string; detail?: React.ReactNode }) => (
   <button
     type="button"
     onClick={onSelect}
     aria-pressed={selected}
     className={cn(
-      'group relative flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-all',
+      'group relative flex flex-col overflow-hidden rounded-xl border text-left transition-all',
+      selected ? 'border-foreground ring-2 ring-foreground' : 'border-border hover:border-foreground/40'
+    )}
+  >
+    <span className="block bg-muted">{children}</span>
+    <span className="block px-3 py-2.5">
+      <span className="block text-[13px] font-semibold leading-snug">{title}</span>
+      {detail && <span className="mt-0.5 block text-xs text-muted-foreground">{detail}</span>}
+    </span>
+    {selected && (
+      <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-foreground text-background shadow">
+        <Check size={13} />
+      </span>
+    )}
+  </button>
+);
+
+/** Selectable product row (companion curtain, rod). */
+const ProductTile = ({ selected, onSelect, image, title, detail, price }: { selected: boolean; onSelect: () => void; image?: string; title: string; detail?: string; price?: string }) => (
+  <button
+    type="button"
+    onClick={onSelect}
+    aria-pressed={selected}
+    className={cn(
+      'flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition-all',
       selected ? 'border-foreground bg-foreground/[0.03] ring-1 ring-foreground' : 'border-border hover:border-foreground/30'
     )}
   >
@@ -114,9 +123,7 @@ const OptionTile = ({
   </button>
 );
 
-const ChoiceRow = ({
-  legend, choices, value, onChange, tr,
-}: { legend: string; choices: OptionChoice[]; value?: string; onChange: (v: string) => void; tr: (k: string, d: string) => string }) => (
+const ChoiceRow = ({ legend, choices, value, onChange, tr }: { legend: string; choices: OptionChoice[]; value?: string; onChange: (v: string) => void; tr: (k: string, d: string) => string }) => (
   <fieldset>
     <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{legend}</legend>
     <div className="flex flex-wrap gap-2">
@@ -137,12 +144,16 @@ const ChoiceRow = ({
 );
 
 /**
- * The curtain buying flow. A window usually takes a night curtain (heavy,
- * "rideau de nuit"), a day curtain (sheer, "rideau du jour") and a rod, so the
- * customer measures the window once and the builder works out the fabric for
- * each curtain and the rod length, offers the companion curtain, and puts the
- * whole set in the cart as linked lines. Prices are estimates from
- * `lib/productOptions.ts`; the server re-prices every line at checkout.
+ * The curtain buying flow, one decision per step:
+ *   1. measure every window and door (metres),
+ *   2. choose how night (rideau de nuit) and day (rideau du jour) curtains are
+ *      arranged — from pictures — and the colours / matching curtain,
+ *   3. choose the fullness (fronce / igikubo), again from pictures drawn in
+ *      the chosen arrangement, each showing the metres it needs,
+ *   4. choose a rod, already sized from the measurements,
+ *   5. review and add everything to the cart.
+ * Prices are estimates from `lib/productOptions.ts`; the server re-prices
+ * every line with the same rules at checkout.
  */
 const CurtainBuilder = ({ product, onAdd }: CurtainBuilderProps) => {
   const { t } = useTranslation();
@@ -151,20 +162,20 @@ const CurtainBuilder = ({ product, onAdd }: CurtainBuilderProps) => {
   const mainRole: CurtainRole = curtainRole(product);
   const companionRole: CurtainRole = mainRole === 'HARD' ? 'SOFT' : 'HARD';
 
-  const [widthCm, setWidthCm] = useState<number | undefined>();
-  const [dropCm, setDropCm] = useState<number | undefined>();
+  const [step, setStep] = useState<StepId>('measure');
+  const [reached, setReached] = useState(0);
+  const [openings, setOpenings] = useState<Opening[]>([{ id: 1, kind: 'WINDOW', width: '', height: '', count: 1 }]);
+  const [arrangement, setArrangement] = useState<Arrangement | null>(null);
   const [color, setColor] = useState<string | undefined>(product.colors?.length === 1 ? product.colors[0].name : undefined);
   const [companionId, setCompanionId] = useState<string | null>(null);
   const [companionColor, setCompanionColor] = useState<string | undefined>();
-  const [rodId, setRodId] = useState<string | null>(null);
-  const [windows, setWindows] = useState(1);
-  const [makeUp, setMakeUp] = useState({ headerType: 'EYELET', lining: 'NONE', panelLayout: 'PAIR', fullness: 2 });
-  const [showMakeUp, setShowMakeUp] = useState(false);
+  const [fullness, setFullness] = useState<number | null>(null);
+  const [rodId, setRodId] = useState<string | null | undefined>(undefined);
+  const [finish, setFinish] = useState({ headerType: 'EYELET', lining: 'NONE' });
+  const [showFinish, setShowFinish] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
 
-  // Every curtain (the parent category includes night and day sub-categories)
-  // and every rod; roles are worked out client-side so products still filed
-  // under plain "Curtains" are offered too.
+  // ── Catalogue for the companion curtain and the rods ──────────────────────
   const { data: curtains = [] } = useQuery({
     queryKey: ['products', 'builder-curtains'],
     queryFn: () => productsApi.getAll({ category: 'curtains', limit: 60 }).then((r) => r.data.data as Product[]),
@@ -182,286 +193,432 @@ const CurtainBuilder = ({ product, onAdd }: CurtainBuilderProps) => {
     },
     staleTime: 5 * 60 * 1000,
   });
-
   const companions = useMemo(
     () => curtains.filter((p) => p.id !== product.id && p.isAvailable && detectKind(p) === 'CURTAIN' && curtainRole(p) === companionRole),
     [curtains, product.id, companionRole]
   );
   const rods = useMemo(() => rodCandidates.filter((p) => p.isAvailable && detectKind(p) === 'ROD'), [rodCandidates]);
 
-  const companion = companions.find((p) => p.id === companionId) ?? null;
-  const rod = rods.find((p) => p.id === rodId) ?? null;
-  const measured = !!widthCm && !!dropCm;
-  const rodLengthCm = widthCm ? computeRodLengthCm(widthCm) : 0;
-  const rodsPerWindow = rod ? (companion && !isDoubleRod(rod) ? 2 : 1) : 0;
+  // ── Derived ────────────────────────────────────────────────────────────────
+  const arrangementIds: Arrangement[] = mainRole === 'HARD'
+    ? ['NIGHT_ONLY', 'LAYERED', 'DAY_CENTER', 'NIGHT_CENTER', 'SIDE_BY_SIDE']
+    : ['DAY_ONLY', 'LAYERED', 'DAY_CENTER', 'NIGHT_CENTER', 'SIDE_BY_SIDE'];
+  const arr = arrangement ? ARRANGEMENTS[arrangement] : null;
+  const needsCompanion = !!arr && arr.hard > 0 && arr.soft > 0;
+  const companion = needsCompanion ? companions.find((p) => p.id === companionId) ?? null : null;
+  const hardProduct = mainRole === 'HARD' ? product : companion;
+  const softProduct = mainRole === 'SOFT' ? product : companion;
+  const hardColorName = mainRole === 'HARD' ? color : companionColor;
+  const softColorName = mainRole === 'SOFT' ? color : companionColor;
+  const rod = rodId ? rods.find((p) => p.id === rodId) ?? null : null;
 
-  // ── Lines ─────────────────────────────────────────────────────────────────
-  const curtainConfig = (role: CurtainRole, c?: string): Configuration => ({
-    color: c, widthCm, dropCm, ...makeUp, setRole: role,
-  });
-  const lines = useMemo(() => {
-    const out: (BuiltLine & { label: string; meters: number | null; total: number | null })[] = [];
-    const add = (p: Product, config: Configuration, quantity: number, label: string) => {
-      const priced = priceConfiguration(p, config, quantity);
-      out.push({ product: p, config, quantity, label, meters: priced.meters, total: priced.lineTotal });
-    };
-    const roleLabel = (r: CurtainRole) => (r === 'HARD' ? tr('curtain.role_hard', 'Night curtain (rideau de nuit)') : tr('curtain.role_soft', 'Day curtain (rideau du jour)'));
-    add(product, curtainConfig(mainRole, color), windows, roleLabel(mainRole));
-    if (companion) add(companion, curtainConfig(companionRole, companionColor), windows, roleLabel(companionRole));
-    if (rod) add(rod, { widthCm, setRole: 'ROD' }, rodsPerWindow * windows, tr('curtain.rod', 'Curtain rod'));
-    return out;
+  const measured = openings.map((o) => ({ ...o, w: parseM(o.width), h: parseM(o.height) }));
+  const measuresValid = measured.every((o) => o.w && o.h);
+  const openingLabel = (o: Opening) => {
+    const n = openings.filter((x) => x.kind === o.kind && x.id <= o.id).length;
+    return o.kind === 'DOOR' ? tr('curtain.door_n', 'Door {{n}}', { n }) : tr('curtain.window_n', 'Window {{n}}', { n });
+  };
+
+  /** Every cart line the current choices produce, one set per opening. */
+  const buildLines = (full: number | null, withRod: boolean) => {
+    const lines: (BuiltLine & { role: 'HARD' | 'SOFT' | 'ROD'; openingId: number; meters: number | null; total: number | null })[] = [];
+    if (!arr || !measuresValid) return lines;
+    measured.forEach((o) => {
+      const base = { widthCm: Math.round(o.w! * 100), dropCm: Math.round(o.h! * 100), arrangement: arrangement!, openingLabel: openingLabel(o) };
+      const add = (p: Product, config: Configuration, qty: number, role: 'HARD' | 'SOFT' | 'ROD') => {
+        const priced = priceConfiguration(p, config, qty);
+        lines.push({ product: p, config, quantity: qty, role, openingId: o.id, meters: priced.meters, total: priced.lineTotal });
+      };
+      const curtainCfg = (role: CurtainRole, colorName?: string): Configuration => ({
+        ...base, color: colorName, fullness: full ?? 2, ...finish,
+        panelLayout: (role === 'HARD' ? arr.hardPanels : arr.softPanels) ?? 'PAIR', setRole: role,
+      });
+      if (arr.hard > 0 && hardProduct) add(hardProduct, curtainCfg('HARD', hardColorName), o.count, 'HARD');
+      if (arr.soft > 0 && softProduct) add(softProduct, curtainCfg('SOFT', softColorName), o.count, 'SOFT');
+      if (withRod && rod) {
+        const perOpening = arr.rod === 'DOUBLE' && !isDoubleRod(rod) ? 2 : 1;
+        add(rod, { widthCm: base.widthCm, arrangement: arrangement!, openingLabel: base.openingLabel, setRole: 'ROD' }, perOpening * o.count, 'ROD');
+      }
+    });
+    return lines;
+  };
+
+  const metersFor = (full: number) => {
+    const lines = buildLines(full, false);
+    const sum = (role: 'HARD' | 'SOFT') => round1(lines.filter((l) => l.role === role).reduce((s, l) => s + (l.meters ?? 0) * l.quantity, 0));
+    const total = lines.reduce((s, l) => s + (l.total ?? 0), 0);
+    return { hard: sum('HARD'), soft: sum('SOFT'), total };
+  };
+
+  const lines = useMemo(() => buildLines(fullness, true),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product, companion, rod, widthCm, dropCm, color, companionColor, makeUp, windows, rodsPerWindow, t]);
-
-  const total = lines.reduce((sum, l) => sum + (l.total ?? 0), 0);
+    [openings, arrangement, companion, color, companionColor, fullness, rod, finish, t]);
+  const total = lines.reduce((s, l) => s + (l.total ?? 0), 0);
   const hasQuoted = lines.some((l) => l.total == null);
 
-  // ── Validation ────────────────────────────────────────────────────────────
-  const errors = {
-    width: !widthCm,
-    drop: !dropCm,
-    color: (product.colors?.length ?? 0) > 0 && !color,
-    companionColor: !!companion && (companion.colors?.length ?? 0) > 0 && !companionColor,
+  // ── Step validation ───────────────────────────────────────────────────────
+  const stepErrors: Record<StepId, string | null> = {
+    measure: measuresValid ? null : tr('curtain.err_measure_m', 'Enter the width and height of every window or door, in metres (for example 2.4).'),
+    style: !arrangement
+      ? tr('curtain.err_arrangement', 'Choose how you want the curtains arranged.')
+      : (product.colors?.length ?? 0) > 0 && !color
+        ? tr('config.err_color', 'Choose a colour')
+        : needsCompanion && !companion
+          ? (companionRole === 'SOFT' ? tr('curtain.err_pick_soft', 'Choose the day curtain.') : tr('curtain.err_pick_hard', 'Choose the night curtain.'))
+          : companion && (companion.colors?.length ?? 0) > 0 && !companionColor
+            ? tr('curtain.err_companion_color', 'Choose a colour for the second curtain.')
+            : null,
+    fullness: fullness ? null : tr('curtain.err_fullness', 'Choose the fullness.'),
+    rod: rodId === undefined ? tr('curtain.err_rod', 'Choose a rod, or tell us you already have one.') : null,
+    review: null,
   };
-  const hasErrors = Object.values(errors).some(Boolean);
-  const shown = showErrors ? errors : { width: false, drop: false, color: false, companionColor: false };
+  const index = STEPS.indexOf(step);
+
+  const goTo = (target: StepId) => {
+    setShowErrors(false);
+    setStep(target);
+    document.getElementById('curtain-builder')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  const next = () => {
+    if (stepErrors[step]) { setShowErrors(true); return; }
+    const n = Math.min(index + 1, STEPS.length - 1);
+    setReached((r) => Math.max(r, n));
+    goTo(STEPS[n]);
+  };
 
   const submit = (buyNow: boolean) => {
-    setShowErrors(true);
-    if (hasErrors) {
-      document.querySelector('[data-builder-error="true"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      return;
-    }
     const setId = newSetId();
     onAdd(lines.map(({ product: p, config, quantity }) => ({ product: p, config: { ...config, setId }, quantity })), buyNow);
   };
 
-  const primaryImage = (p: Product) => (p.images?.find((i) => i.isPrimary) || p.images?.[0])?.url;
-  const perMeter = (p: Product) =>
-    p.pricePerMeter != null
-      ? tr('curtain.per_meter', '{{price}} / m', { price: money(p.pricePerMeter) })
-      : p.salePrice ?? p.price
-        ? money((p.salePrice ?? p.price)!)
-        : tr('products.price_on_request', 'Price on request');
+  const updateOpening = (id: number, patch: Partial<Opening>) =>
+    setOpenings((list) => list.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+  const addOpening = (kind: OpeningKind) =>
+    setOpenings((list) => [...list, { id: Math.max(...list.map((o) => o.id)) + 1, kind, width: '', height: kind === 'DOOR' ? '2.2' : '', count: 1 }]);
 
-  const MainIcon = mainRole === 'HARD' ? Moon : Sun;
-  const CompanionIcon = companionRole === 'HARD' ? Moon : Sun;
+  const perMeter = (p: Product) =>
+    p.pricePerMeter != null ? tr('curtain.per_meter', '{{price}} / m', { price: money(p.pricePerMeter) })
+      : p.salePrice ?? p.price ? money((p.salePrice ?? p.price)!) : tr('products.price_on_request', 'Price on request');
+
+  const hardSwatch = swatchOf(hardProduct, hardColorName);
+  const softSwatch = swatchOf(softProduct, softColorName);
+  const stepTitles: Record<StepId, string> = {
+    measure: tr('curtain.s_measure', 'Measure'),
+    style: tr('curtain.s_style', 'Style'),
+    fullness: tr('curtain.s_fullness', 'Fullness'),
+    rod: tr('curtain.s_rod', 'Rod'),
+    review: tr('curtain.s_review', 'Review'),
+  };
 
   return (
-    <div className="space-y-8">
-      {/* ① Window */}
-      <Step
-        n={1}
-        title={tr('curtain.step_measure', 'Measure your window')}
-        subtitle={tr('curtain.step_measure_sub', 'We calculate the fabric and the rod for you.')}
-      >
-        <div className="flex items-start gap-4">
-          <div className="grid flex-1 grid-cols-2 items-end gap-3" data-builder-error={shown.width || shown.drop}>
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{tr('curtain.window_width', 'Window width')} (cm)</span>
-              <input
-                type="number" inputMode="numeric" min={1} max={MAX_DIMENSION_CM} placeholder="200"
-                value={widthCm ?? ''} onChange={(e) => setWidthCm(parseCm(e.target.value))}
-                className={cn(fieldClass, shown.width && 'border-destructive')} aria-invalid={shown.width}
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{tr('curtain.window_height', 'Height (rod to floor)')} (cm)</span>
-              <input
-                type="number" inputMode="numeric" min={1} max={MAX_DIMENSION_CM} placeholder="260"
-                value={dropCm ?? ''} onChange={(e) => setDropCm(parseCm(e.target.value))}
-                className={cn(fieldClass, shown.drop && 'border-destructive')} aria-invalid={shown.drop}
-              />
-            </label>
-          </div>
-          <div className="hidden sm:block"><WindowDiagram width={widthCm} height={dropCm} /></div>
-        </div>
-        {(shown.width || shown.drop) && (
-          <p className="mt-2 flex items-center gap-1.5 text-xs text-destructive" role="alert">
-            <AlertCircle size={12} /> {tr('curtain.err_measure', 'Enter the width and height of your window.')}
+    <div id="curtain-builder" className="scroll-mt-40">
+      {/* Progress */}
+      <ol className="mb-6 grid grid-cols-5 gap-1.5" aria-label={tr('curtain.progress', 'Steps')}>
+        {STEPS.map((s, i) => {
+          const done = i < index;
+          const reachable = i <= reached;
+          return (
+            <li key={s}>
+              <button
+                type="button"
+                disabled={!reachable}
+                onClick={() => reachable && goTo(s)}
+                aria-current={s === step ? 'step' : undefined}
+                className="group w-full text-left disabled:cursor-default"
+              >
+                <span className={cn('block h-1 rounded-full', i <= index ? 'bg-foreground' : 'bg-border')} />
+                <span className={cn('mt-1.5 flex items-center gap-1 text-[11px] font-medium', s === step ? 'text-foreground' : 'text-muted-foreground')}>
+                  {done && <Check size={11} />} <span className="truncate">{stepTitles[s]}</span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+
+      {/* ① Measure */}
+      {step === 'measure' && (
+        <section>
+          <h3 className="text-lg font-semibold">{tr('curtain.q_measure', 'Measure your windows and doors')}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {tr('curtain.q_measure_sub', 'In metres. Width of the opening, and height from where the rod will hang down to where the curtain should end.')}
           </p>
-        )}
 
-        {/* Immediate answer: how many metres. */}
-        <div className="mt-4 grid gap-2 sm:grid-cols-2" aria-live="polite">
-          <div className="flex items-center gap-3 rounded-xl bg-muted/60 px-4 py-3">
-            <MainIcon size={18} className="text-primary" />
-            <div className="min-w-0">
-              <p className="truncate text-xs text-muted-foreground">{lines[0].label}</p>
-              <p className="text-lg font-semibold">{measured && lines[0].meters ? `${lines[0].meters} m` : '— m'}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 rounded-xl bg-muted/60 px-4 py-3">
-            <Ruler size={18} className="text-primary" />
-            <div>
-              <p className="text-xs text-muted-foreground">{tr('curtain.rod_length', 'Rod length')}</p>
-              <p className="text-lg font-semibold">{widthCm ? `${rodLengthCm / 100} m` : '— m'}</p>
-            </div>
-          </div>
-        </div>
-        <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
-          <Info size={12} className="mt-0.5 shrink-0" />
-          {tr('curtain.measure_note', 'Fabric = width × {{fullness}} (fullness) × (height + 30 cm hems). The rod is the width plus {{cm}} cm on each side. Our team confirms every measurement before cutting.', { fullness: makeUp.fullness, cm: ROD_OVERHANG_CM })}
-        </p>
-      </Step>
+          <ul className="mt-5 space-y-3">
+            {openings.map((o) => {
+              const m = measured.find((x) => x.id === o.id)!;
+              const bad = showErrors && (!m.w || !m.h);
+              return (
+                <li key={o.id} className={cn('rounded-xl border p-3.5', bad ? 'border-destructive' : 'border-border')}>
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <div className="flex rounded-full bg-muted p-0.5 text-xs font-medium">
+                      {(['WINDOW', 'DOOR'] as const).map((k) => (
+                        <button key={k} type="button" onClick={() => updateOpening(o.id, { kind: k })}
+                          className={cn('flex items-center gap-1.5 rounded-full px-3 py-1.5', o.kind === k ? 'bg-background shadow-sm' : 'text-muted-foreground')}>
+                          {k === 'WINDOW' ? <AppWindow size={13} /> : <DoorOpen size={13} />}
+                          {k === 'WINDOW' ? tr('curtain.window', 'Window') : tr('curtain.door', 'Door')}
+                        </button>
+                      ))}
+                    </div>
+                    <span className="text-xs font-semibold text-muted-foreground">{openingLabel(o)}</span>
+                    {openings.length > 1 && (
+                      <button type="button" onClick={() => setOpenings((l) => l.filter((x) => x.id !== o.id))} className="icon-btn h-8 w-8" aria-label={tr('curtain.remove_opening', 'Remove')}>
+                        <Trash2 size={15} />
+                      </button>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium text-muted-foreground">{tr('curtain.width_m', 'Width (m)')}</span>
+                      <input type="text" inputMode="decimal" placeholder="2.40" value={o.width}
+                        onChange={(e) => updateOpening(o.id, { width: e.target.value })} className={fieldClass} aria-invalid={bad && !m.w} />
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-medium text-muted-foreground">{tr('curtain.height_m', 'Height (m)')}</span>
+                      <input type="text" inputMode="decimal" placeholder="2.60" value={o.height}
+                        onChange={(e) => updateOpening(o.id, { height: e.target.value })} className={fieldClass} aria-invalid={bad && !m.h} />
+                    </label>
+                  </div>
+                  <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>{tr('curtain.same_size', 'How many of this size?')}</span>
+                    <div className="flex items-center rounded-full border border-border">
+                      <button type="button" onClick={() => updateOpening(o.id, { count: Math.max(1, o.count - 1) })} disabled={o.count <= 1} className="p-2 disabled:opacity-40" aria-label={tr('cart.decrease', 'Decrease quantity')}><Minus size={13} /></button>
+                      <span className="w-6 text-center text-sm font-semibold text-foreground">{o.count}</span>
+                      <button type="button" onClick={() => updateOpening(o.id, { count: Math.min(50, o.count + 1) })} className="p-2" aria-label={tr('cart.increase', 'Increase quantity')}><Plus size={13} /></button>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
 
-      {/* ② Colour */}
-      {(product.colors?.length ?? 0) > 0 && (
-        <Step n={2} title={tr('curtain.step_color', 'Choose the colour')}>
-          <div data-builder-error={shown.color}>
-            <ColorPicker product={product} value={color} onChange={setColor} error={shown.color} />
-            {shown.color && <p className="mt-2 text-xs text-destructive" role="alert">{tr('config.err_color', 'Choose a colour')}</p>}
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => addOpening('WINDOW')} className="btn btn-outline btn-sm"><Plus size={14} /> {tr('curtain.add_window', 'Add a window')}</button>
+            <button type="button" onClick={() => addOpening('DOOR')} className="btn btn-outline btn-sm"><Plus size={14} /> {tr('curtain.add_door', 'Add a door')}</button>
           </div>
-        </Step>
+          <p className="mt-3 flex items-start gap-1.5 text-xs text-muted-foreground">
+            <Info size={12} className="mt-0.5 shrink-0" />
+            {tr('curtain.measure_trust', 'Not sure? Measure as well as you can — our team confirms every measurement before cutting.')}
+          </p>
+        </section>
       )}
 
-      {/* ③ Companion curtain */}
-      <Step
-        n={(product.colors?.length ?? 0) > 0 ? 3 : 2}
-        title={companionRole === 'SOFT'
-          ? tr('curtain.ask_soft', 'Add a day curtain (rideau du jour)?')
-          : tr('curtain.ask_hard', 'Add a night curtain (rideau de nuit)?')}
-        subtitle={companionRole === 'SOFT'
-          ? tr('curtain.ask_soft_sub', 'A light sheer that hangs in front of the window by day, behind the night curtain.')
-          : tr('curtain.ask_hard_sub', 'A heavy curtain that closes at night for darkness and privacy.')}
-      >
-        <div className="grid gap-2">
-          <OptionTile
-            selected={!companion}
-            onSelect={() => { setCompanionId(null); setCompanionColor(undefined); }}
-            title={tr('curtain.no_thanks', 'No, only this curtain')}
-          />
-          {companions.map((p) => {
-            const priced = measured ? priceConfiguration(p, curtainConfig(companionRole), windows) : null;
-            return (
-              <OptionTile
-                key={p.id}
-                selected={companion?.id === p.id}
-                onSelect={() => { setCompanionId(p.id); setCompanionColor(p.colors?.length === 1 ? p.colors[0].name : undefined); }}
-                image={primaryImage(p)}
-                title={p.name}
-                detail={priced?.meters ? `${priced.meters} m · ${perMeter(p)}` : perMeter(p)}
-                price={priced?.lineTotal != null ? `+ ${money(priced.lineTotal)}` : undefined}
-              />
-            );
-          })}
-          {companions.length === 0 && (
-            <p className="text-xs text-muted-foreground">{tr('curtain.no_companions', 'Ask us on WhatsApp for matching curtains in store.')}</p>
-          )}
-        </div>
-        {companion && (companion.colors?.length ?? 0) > 1 && (
-          <div className="mt-3 rounded-xl border border-border p-3" data-builder-error={shown.companionColor}>
-            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold"><CompanionIcon size={13} /> {companion.name}</p>
-            <ColorPicker product={companion} value={companionColor} onChange={setCompanionColor} error={shown.companionColor} />
+      {/* ② Style */}
+      {step === 'style' && (
+        <section>
+          <h3 className="text-lg font-semibold">{tr('curtain.q_style', 'How should the curtains hang?')}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{tr('curtain.q_style_sub', 'Choose the arrangement of night curtain (rideau de nuit) and day curtain (rideau du jour).')}</p>
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            {arrangementIds.map((id) => (
+              <PictureCard key={id} selected={arrangement === id} onSelect={() => { setArrangement(id); setFullness(null); }}
+                title={tr(`curtain.arr_${id}`, ARRANGEMENTS[id].label)}
+                detail={ARRANGEMENTS[id].rod === 'DOUBLE' ? tr('curtain.double_rod', 'Double rod') : undefined}>
+                <CurtainIllustration arrangement={id} hardColor={hardSwatch} softColor={softSwatch} className="aspect-[4/3] w-full" />
+              </PictureCard>
+            ))}
           </div>
-        )}
-      </Step>
+
+          {(product.colors?.length ?? 0) > 0 && (
+            <div className="mt-6">
+              <p className="mb-2 text-sm font-semibold">{tr('curtain.color_of', 'Colour — {{name}}', { name: product.name })}</p>
+              <ColorPicker product={product} value={color} onChange={setColor} error={showErrors && !color} />
+            </div>
+          )}
+
+          {needsCompanion && (
+            <div className="mt-6">
+              <p className="mb-2 text-sm font-semibold">
+                {companionRole === 'SOFT' ? tr('curtain.pick_soft', 'Choose the day curtain (rideau du jour)') : tr('curtain.pick_hard', 'Choose the night curtain (rideau de nuit)')}
+              </p>
+              <div className="grid gap-2">
+                {companions.map((p) => (
+                  <ProductTile key={p.id} selected={companion?.id === p.id}
+                    onSelect={() => { setCompanionId(p.id); setCompanionColor(p.colors?.length === 1 ? p.colors[0].name : undefined); }}
+                    image={primaryImage(p)} title={p.name} detail={perMeter(p)} />
+                ))}
+                {companions.length === 0 && (
+                  <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground hover:text-foreground">
+                    {tr('curtain.no_companions', 'Ask us on WhatsApp for matching curtains in store.')}
+                  </a>
+                )}
+              </div>
+              {companion && (companion.colors?.length ?? 0) > 1 && (
+                <div className="mt-3 rounded-xl border border-border p-3">
+                  <p className="mb-2 text-xs font-semibold">{tr('curtain.color_of', 'Colour — {{name}}', { name: companion.name })}</p>
+                  <ColorPicker product={companion} value={companionColor} onChange={setCompanionColor} error={showErrors && !companionColor} />
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ③ Fullness */}
+      {step === 'fullness' && arrangement && (
+        <section>
+          <h3 className="text-lg font-semibold">{tr('curtain.q_fullness', 'How full should the folds be?')}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{tr('curtain.q_fullness_sub', 'Fronce / igikubo: more folds look richer and use more fabric. The metres for your measurements are shown under each choice.')}</p>
+          <div className="mt-4 grid grid-cols-2 gap-2.5">
+            {FULLNESS_CHOICES.map((c) => {
+              const f = Number(c.value);
+              const m = metersFor(f);
+              return (
+                <PictureCard key={c.value} selected={fullness === f} onSelect={() => setFullness(f)}
+                  title={tr(c.labelKey, c.label)}
+                  detail={
+                    <>
+                      {m.hard > 0 && <span className="block">{tr('curtain.night_m', 'Night curtain: {{m}} m', { m: m.hard })}</span>}
+                      {m.soft > 0 && <span className="block">{tr('curtain.day_m', 'Day curtain: {{m}} m', { m: m.soft })}</span>}
+                      {m.total > 0 && <span className="mt-0.5 block font-semibold text-foreground">{money(m.total)}</span>}
+                    </>
+                  }>
+                  <CurtainIllustration arrangement={arrangement} fullness={f} hardColor={hardSwatch} softColor={softSwatch} className="aspect-[4/3] w-full" />
+                </PictureCard>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* ④ Rod */}
-      <Step
-        n={(product.colors?.length ?? 0) > 0 ? 4 : 3}
-        title={tr('curtain.step_rod', 'Curtain rod')}
-        subtitle={widthCm
-          ? (companion
-              ? tr('curtain.rod_double', '{{m}} m — a double rod (or two rods) to hang both curtains.', { m: rodLengthCm / 100 })
-              : tr('curtain.rod_single', '{{m}} m for your window.', { m: rodLengthCm / 100 }))
-          : tr('curtain.rod_wait', 'Enter your window width to size the rod.')}
-      >
-        <div className="grid gap-2">
-          <OptionTile selected={!rod} onSelect={() => setRodId(null)} title={tr('curtain.have_rod', 'I already have a rod')} />
-          {rods.map((p) => {
-            const count = companion && !isDoubleRod(p) ? 2 : 1;
-            const priced = widthCm ? priceConfiguration(p, { widthCm, setRole: 'ROD' }, count * windows) : null;
-            return (
-              <OptionTile
-                key={p.id}
-                selected={rod?.id === p.id}
-                onSelect={() => setRodId(p.id)}
-                image={primaryImage(p)}
-                title={p.name}
-                detail={widthCm ? `${count > 1 ? `2 × ` : ''}${rodLengthCm / 100} m · ${perMeter(p)}` : perMeter(p)}
-                price={priced?.lineTotal != null ? `+ ${money(priced.lineTotal)}` : undefined}
-              />
-            );
-          })}
-        </div>
-      </Step>
-
-      {/* ⑤ Finishing */}
-      <div className="rounded-xl border border-border">
-        <button
-          type="button"
-          onClick={() => setShowMakeUp((v) => !v)}
-          aria-expanded={showMakeUp}
-          className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium"
-        >
-          <span>
-            {tr('curtain.finishing', 'Finishing options')}
-            <span className="ml-2 text-xs font-normal text-muted-foreground">
-              {tr(`config.panels.${makeUp.panelLayout}`, PANEL_LAYOUTS.find((c) => c.value === makeUp.panelLayout)?.label ?? '')} · {tr(`config.header.${makeUp.headerType}`, HEADER_TYPES.find((c) => c.value === makeUp.headerType)?.label ?? '')} · {makeUp.fullness}×
-            </span>
-          </span>
-          <ChevronDown size={16} className={cn('transition-transform', showMakeUp && 'rotate-180')} />
-        </button>
-        {showMakeUp && (
-          <div className="space-y-4 border-t border-border px-4 py-4">
-            <ChoiceRow legend={tr('config.panels_label', 'Panels')} choices={PANEL_LAYOUTS} value={makeUp.panelLayout} onChange={(v) => setMakeUp((m) => ({ ...m, panelLayout: v }))} tr={tr} />
-            <ChoiceRow legend={tr('config.header_label', 'Header type')} choices={HEADER_TYPES} value={makeUp.headerType} onChange={(v) => setMakeUp((m) => ({ ...m, headerType: v }))} tr={tr} />
-            <ChoiceRow legend={tr('config.lining_label', 'Lining')} choices={LINING_TYPES} value={makeUp.lining} onChange={(v) => setMakeUp((m) => ({ ...m, lining: v }))} tr={tr} />
-            <ChoiceRow legend={tr('config.fullness_label', 'Fullness')} choices={FULLNESS_CHOICES} value={String(makeUp.fullness)} onChange={(v) => setMakeUp((m) => ({ ...m, fullness: Number(v) }))} tr={tr} />
+      {step === 'rod' && arr && (
+        <section>
+          <h3 className="text-lg font-semibold">{tr('curtain.q_rod', 'Choose your rod')}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {arr.rod === 'DOUBLE'
+              ? tr('curtain.rod_double_sub', 'Your arrangement needs a double rod (two rails): one for each curtain. Each rod is the width plus {{cm}} cm on each side.', { cm: ROD_OVERHANG_CM })
+              : tr('curtain.rod_single_sub', 'One rod per opening, the width plus {{cm}} cm on each side.', { cm: ROD_OVERHANG_CM })}
+          </p>
+          <ul className="mt-3 flex flex-wrap gap-2 text-xs">
+            {measured.map((o) => (
+              <li key={o.id} className="rounded-full bg-muted px-3 py-1.5">
+                {openingLabel(o)}: <span className="font-semibold">{computeRodLengthCm(Math.round(o.w! * 100)) / 100} m</span>{o.count > 1 ? ` × ${o.count}` : ''}
+              </li>
+            ))}
+          </ul>
+          <div className="mt-4 grid gap-2">
+            <ProductTile selected={rodId === null} onSelect={() => setRodId(null)} title={tr('curtain.have_rod', 'I already have a rod')} />
+            {rods.map((p) => {
+              const rodLines = buildLines(fullness, false).length ? (() => {
+                const count = arr.rod === 'DOUBLE' && !isDoubleRod(p) ? 2 : 1;
+                return measured.reduce((s, o) => s + (priceConfiguration(p, { widthCm: Math.round(o.w! * 100), setRole: 'ROD' }, count * o.count).lineTotal ?? 0), 0);
+              })() : 0;
+              return (
+                <ProductTile key={p.id} selected={rodId === p.id} onSelect={() => setRodId(p.id)}
+                  image={primaryImage(p)} title={p.name}
+                  detail={`${perMeter(p)}${arr.rod === 'DOUBLE' && !isDoubleRod(p) ? ` · ${tr('curtain.two_per_opening', '2 per opening')}` : ''}`}
+                  price={rodLines ? `+ ${money(rodLines)}` : undefined} />
+              );
+            })}
           </div>
-        )}
-      </div>
+        </section>
+      )}
 
-      {/* ⑥ Summary */}
-      <div className="rounded-2xl bg-muted/50 p-4 sm:p-5">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <span className="text-sm font-medium">{tr('curtain.windows', 'Number of windows this size')}</span>
-          <div className="flex items-center rounded-full border border-border bg-background">
-            <button type="button" onClick={() => setWindows((w) => Math.max(1, w - 1))} disabled={windows <= 1} aria-label={tr('cart.decrease', 'Decrease quantity')} className="p-2.5 disabled:opacity-40"><Minus size={14} /></button>
-            <span className="w-8 text-center text-sm font-semibold">{windows}</span>
-            <button type="button" onClick={() => setWindows((w) => Math.min(MAX_QUANTITY, w + 1))} aria-label={tr('cart.increase', 'Increase quantity')} className="p-2.5"><Plus size={14} /></button>
+      {/* ⑤ Review */}
+      {step === 'review' && arr && (
+        <section>
+          <h3 className="text-lg font-semibold">{tr('curtain.q_review', 'Your curtains')}</h3>
+          <div className="mt-4 flex items-center gap-3 rounded-xl bg-muted/60 p-3">
+            <CurtainIllustration arrangement={arrangement!} fullness={fullness ?? 2} hardColor={hardSwatch} softColor={softSwatch} className="h-16 w-20 shrink-0 rounded-md" />
+            <div className="min-w-0 text-sm">
+              <p className="font-semibold">{tr(`curtain.arr_${arrangement}`, arr.label)}</p>
+              <p className="text-xs text-muted-foreground">{tr(FULLNESS_CHOICES.find((c) => Number(c.value) === fullness)?.labelKey ?? '', FULLNESS_CHOICES.find((c) => Number(c.value) === fullness)?.label ?? '')}</p>
+            </div>
           </div>
-        </div>
 
-        <ul className="space-y-2 border-t border-border pt-3 text-sm" aria-live="polite">
-          {lines.map((l) => (
-            <li key={l.product.id + l.label} className="flex items-start justify-between gap-3">
-              <span className="min-w-0">
-                <span className="block text-xs text-muted-foreground">{l.label}</span>
-                <span className="block truncate font-medium">{l.product.name}</span>
-                <span className="block text-xs text-muted-foreground">
-                  {l.meters ? `${l.config.setRole === 'ROD' && l.quantity > 1 ? `${l.quantity} × ` : ''}${l.meters} m` : ''}
-                  {l.config.setRole !== 'ROD' && l.quantity > 1 ? ` × ${l.quantity}` : ''}
+          <div className="mt-4 space-y-4">
+            {measured.map((o) => {
+              const own = lines.filter((l) => l.openingId === o.id);
+              return (
+                <div key={o.id}>
+                  <p className="mb-1.5 text-xs text-muted-foreground">
+                    <span className="font-semibold uppercase tracking-wide">{openingLabel(o)}</span> · {o.w} × {o.h} m{o.count > 1 ? ` · × ${o.count}` : ''}
+                  </p>
+                  <ul className="divide-y divide-border rounded-xl border border-border">
+                    {own.map((l, i) => (
+                      <li key={i} className="flex items-start justify-between gap-3 px-3 py-2.5 text-sm">
+                        <span className="min-w-0">
+                          <span className="block text-xs text-muted-foreground">
+                            {l.role === 'HARD' ? tr('curtain.role_hard', 'Night curtain (rideau de nuit)') : l.role === 'SOFT' ? tr('curtain.role_soft', 'Day curtain (rideau du jour)') : tr('curtain.rod', 'Curtain rod')}
+                          </span>
+                          <span className="line-clamp-2 block font-medium">{l.product.name}{l.config.color ? ` · ${l.config.color}` : ''}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            {l.meters ? `${l.role === 'ROD' && l.quantity > 1 ? `${l.quantity} × ` : ''}${l.meters} m` : ''}
+                            {l.role !== 'ROD' && l.quantity > 1 ? ` × ${l.quantity}` : ''}
+                          </span>
+                        </span>
+                        <span className="shrink-0 font-semibold">{l.total != null ? money(l.total) : tr('products.price_on_request', 'Price on request')}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 rounded-xl border border-border">
+            <button type="button" onClick={() => setShowFinish((v) => !v)} aria-expanded={showFinish} className="flex w-full items-center justify-between px-4 py-3 text-sm font-medium">
+              <span>
+                {tr('curtain.finishing', 'Finishing options')}
+                <span className="ml-2 text-xs font-normal text-muted-foreground">
+                  {tr(`config.header.${finish.headerType}`, HEADER_TYPES.find((c) => c.value === finish.headerType)?.label ?? '')} · {tr(`config.lining.${finish.lining}`, LINING_TYPES.find((c) => c.value === finish.lining)?.label ?? '')}
                 </span>
               </span>
-              <span className="shrink-0 font-semibold">{l.total != null ? (measured || l.config.setRole === 'ROD' ? money(l.total) : '—') : tr('products.price_on_request', 'Price on request')}</span>
-            </li>
-          ))}
-        </ul>
+              <ChevronDown size={16} className={cn('transition-transform', showFinish && 'rotate-180')} />
+            </button>
+            {showFinish && (
+              <div className="space-y-4 border-t border-border px-4 py-4">
+                <ChoiceRow legend={tr('config.header_label', 'Header type')} choices={HEADER_TYPES} value={finish.headerType} onChange={(v) => setFinish((f) => ({ ...f, headerType: v }))} tr={tr} />
+                <ChoiceRow legend={tr('config.lining_label', 'Lining')} choices={LINING_TYPES} value={finish.lining} onChange={(v) => setFinish((f) => ({ ...f, lining: v }))} tr={tr} />
+              </div>
+            )}
+          </div>
 
-        <div className="mt-3 flex items-baseline justify-between border-t border-border pt-3">
-          <span className="font-semibold">{tr('config.estimated_total', 'Estimated total')}</span>
-          <span className="text-2xl font-bold text-primary">{measured ? money(total) : '—'}</span>
-        </div>
-        {hasQuoted && (
-          <p className="mt-2 text-xs text-muted-foreground">{tr('config.quote_note', 'This item is priced on request. Add it to your cart and our team will confirm the price before any payment.')}</p>
-        )}
+          <div className="mt-5 flex items-baseline justify-between border-t border-border pt-4">
+            <span className="font-semibold">{tr('config.estimated_total', 'Estimated total')}</span>
+            <span className="text-2xl font-bold text-primary">{money(total)}</span>
+          </div>
+          {hasQuoted && <p className="mt-2 text-xs text-muted-foreground">{tr('config.quote_note', 'This item is priced on request. Add it to your cart and our team will confirm the price before any payment.')}</p>}
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          <button type="button" onClick={() => submit(false)} disabled={!product.isAvailable} className="btn btn-primary w-full py-3.5">
-            <ShoppingBag size={17} /> {tr('curtain.add_set', 'Add to cart')}
-          </button>
-          <button type="button" onClick={() => submit(true)} disabled={!product.isAvailable} className="btn btn-dark w-full py-3.5">
-            <Zap size={17} /> {tr('products.buy_now', 'Buy Now')}
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            <button type="button" onClick={() => submit(false)} disabled={!product.isAvailable} className="btn btn-primary w-full py-3.5">
+              <ShoppingBag size={17} /> {tr('curtain.add_set', 'Add to cart')}
+            </button>
+            <button type="button" onClick={() => submit(true)} disabled={!product.isAvailable} className="btn btn-dark w-full py-3.5">
+              <Zap size={17} /> {tr('products.buy_now', 'Buy Now')}
+            </button>
+          </div>
+        </section>
+      )}
+
+      {/* Navigation */}
+      {showErrors && stepErrors[step] && (
+        <p className="mt-4 flex items-start gap-1.5 text-sm text-destructive" role="alert">
+          <AlertCircle size={15} className="mt-0.5 shrink-0" /> {stepErrors[step]}
+        </p>
+      )}
+      {step !== 'review' && (
+        <div className="mt-6 flex items-center gap-2">
+          {index > 0 && (
+            <button type="button" onClick={() => goTo(STEPS[index - 1])} className="btn btn-outline px-4" aria-label={tr('common.back', 'Back')}>
+              <ArrowLeft size={16} />
+            </button>
+          )}
+          <button type="button" onClick={next} className="btn btn-dark flex-1 py-3.5">
+            {tr('curtain.continue', 'Continue')} <ArrowRight size={16} />
           </button>
         </div>
-        {showErrors && hasErrors && (
-          <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-destructive" role="alert">
-            <AlertCircle size={12} /> {tr('config.fix_errors', 'Please complete the highlighted options before adding to cart.')}
-          </p>
-        )}
-      </div>
+      )}
+      {step === 'review' && (
+        <button type="button" onClick={() => goTo('rod')} className="mt-3 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft size={14} /> {tr('common.back', 'Back')}
+        </button>
+      )}
+      {index >= 2 && step !== 'review' && fullness && (
+        <p className="mt-3 text-center text-xs text-muted-foreground">
+          {tr('curtain.running_total', 'So far: {{total}}', { total: money(total) })}
+        </p>
+      )}
     </div>
   );
 };

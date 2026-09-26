@@ -1,49 +1,52 @@
-import { useState, useRef, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Plus, Search, Edit, Trash2, Eye, Package, X, Upload, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { productsApi, categoriesApi } from '../../lib/api';
-import { Product, Category } from '../../types';
-import LoadingSpinner from '../../components/ui/LoadingSpinner';
+import {
+  Plus, Search, Pencil, Trash2, ExternalLink, Package, Star, Sparkles, ChevronLeft, ChevronRight, X, EyeOff, Loader2,
+} from 'lucide-react';
+import { adminApi, categoriesApi, productsApi } from '../../lib/api';
+import { Category, PaginationMeta, Product } from '../../types';
+import { cn } from '../../lib/utils';
+import { toast } from '../../components/ui/Toaster';
+import ConfirmDialog from '../../components/admin/ConfirmDialog';
+import ProductFormDrawer from '../../components/admin/ProductFormDrawer';
+import { adminPriceLabel, categoryPath, flattenCategories, readApiError, sellModeOf } from '../../components/admin/productAdmin';
 
-type FormState = {
-  name: string;
-  description: string;
-  material: string;
-  priceRange: string;
-  price: string;
-  pricePerMeter: string;
-  categoryId: string;
-  stockCount: string;
-  isFeatured: boolean;
-  isNewArrival: boolean;
-  isAvailable: boolean;
-};
+type StatusFilter = '' | 'available' | 'hidden' | 'featured' | 'new';
+type ToggleField = 'isAvailable' | 'isFeatured' | 'isNewArrival';
+type ListResponse = { data: Product[]; pagination: PaginationMeta };
 
-const emptyForm: FormState = {
-  name: '', description: '', material: '', priceRange: '', price: '', pricePerMeter: '',
-  categoryId: '', stockCount: '', isFeatured: false, isNewArrival: false, isAvailable: true,
-};
+const PAGE_SIZE = 20;
 
 const AdminProducts = () => {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
+
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
+  const [status, setStatus] = useState<StatusFilter>('');
   const [page, setPage] = useState(1);
 
-  // editing: null = closed, 'new' = create, Product = edit
+  // null = closed, 'new' = create, Product = edit
   const [editing, setEditing] = useState<Product | 'new' | null>(null);
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [newImages, setNewImages] = useState<File[]>([]);
-  const [existingImages, setExistingImages] = useState<Product['images']>([]);
-  const [error, setError] = useState('');
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [toDelete, setToDelete] = useState<Product | null>(null);
+  const [deleteBlocked, setDeleteBlocked] = useState<string | null>(null);
 
-  const { data, isLoading } = useQuery({
-    queryKey: ['admin-products', { search, category, page }],
-    queryFn: () => productsApi.getAll({ search: search || undefined, category: category || undefined, page, limit: 15 }).then((r) => r.data),
+  // Debounce typing so every keystroke doesn't hit the API.
+  useEffect(() => {
+    const id = setTimeout(() => { setSearch(searchInput.trim()); setPage(1); }, 300);
+    return () => clearTimeout(id);
+  }, [searchInput]);
+
+  const queryKey = ['admin-products', { search, category, status, page }];
+  const { data, isLoading, isFetching, isError, refetch } = useQuery({
+    queryKey,
+    queryFn: () => adminApi.getProducts({
+      search: search || undefined, category: category || undefined, status: status || undefined, page, limit: PAGE_SIZE,
+    }).then((r) => r.data as ListResponse),
+    placeholderData: keepPreviousData,
   });
 
   const { data: categories } = useQuery({
@@ -51,347 +54,425 @@ const AdminProducts = () => {
     queryFn: () => categoriesApi.getAll().then((r) => r.data.data as Category[]),
   });
 
-  const closeForm = () => {
-    setEditing(null);
-    setForm(emptyForm);
-    setNewImages([]);
-    setExistingImages([]);
-    setError('');
-  };
+  const products = data?.data ?? [];
+  const pagination = data?.pagination;
+  const filtersActive = !!(search || category || status);
 
-  const openCreate = () => {
-    setForm(emptyForm);
-    setNewImages([]);
-    setExistingImages([]);
-    setError('');
-    setEditing('new');
-  };
+  // If deleting the last item on a page leaves it empty, step back a page.
+  useEffect(() => {
+    if (pagination && page > 1 && page > pagination.totalPages) setPage(Math.max(1, pagination.totalPages));
+  }, [pagination, page]);
 
-  const openEdit = (p: Product) => {
-    setForm({
-      name: p.name || '',
-      description: p.description || '',
-      material: p.material || '',
-      priceRange: p.priceRange || '',
-      price: p.price != null ? String(p.price) : '',
-      pricePerMeter: p.pricePerMeter != null ? String(p.pricePerMeter) : '',
-      categoryId: p.category?.id || '',
-      stockCount: p.inventory?.stockCount != null ? String(p.inventory.stockCount) : '',
-      isFeatured: p.isFeatured,
-      isNewArrival: p.isNewArrival,
-      isAvailable: p.isAvailable,
-    });
-    setNewImages([]);
-    setExistingImages(p.images || []);
-    setError('');
-    setEditing(p);
-  };
+  // ── Quick toggles (optimistic) ────────────────────────────────────────────
+  const toggleMutation = useMutation({
+    mutationFn: ({ id, field, value }: { id: string; field: ToggleField; value: boolean }) =>
+      productsApi.update(id, { [field]: value }),
+    onMutate: async ({ id, field, value }) => {
+      await queryClient.cancelQueries({ queryKey });
+      const previous = queryClient.getQueryData<ListResponse>(queryKey);
+      queryClient.setQueryData<ListResponse>(queryKey, (old) => old && ({
+        ...old, data: old.data.map((p) => (p.id === id ? { ...p, [field]: value } : p)),
+      }));
+      return { previous };
+    },
+    onError: (err, _vars, ctx) => {
+      if (ctx?.previous) queryClient.setQueryData(queryKey, ctx.previous);
+      const info = readApiError(err, t('admin.products.toggle_failed', { defaultValue: 'The change could not be saved' }));
+      toast({ variant: 'error', title: t('admin.products.toggle_failed', { defaultValue: 'The change could not be saved' }), description: info.message });
+    },
+    onSuccess: (_res, { field, value }) => {
+      const messages: Record<ToggleField, [string, string]> = {
+        isAvailable: [
+          t('admin.products.now_on_sale', { defaultValue: 'Now on sale in the shop' }),
+          t('admin.products.now_hidden', { defaultValue: 'Hidden from the shop' }),
+        ],
+        isFeatured: [
+          t('admin.products.now_featured', { defaultValue: 'Added to Featured' }),
+          t('admin.products.not_featured', { defaultValue: 'Removed from Featured' }),
+        ],
+        isNewArrival: [
+          t('admin.products.now_new', { defaultValue: 'Marked as New arrival' }),
+          t('admin.products.not_new', { defaultValue: 'No longer a New arrival' }),
+        ],
+      };
+      toast({ variant: 'success', title: messages[field][value ? 0 : 1], duration: 2500 });
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['admin-products'] }),
+  });
 
-  // clean up object URLs
-  useEffect(() => () => newImages.forEach((f) => URL.revokeObjectURL(URL.createObjectURL(f))), [newImages]);
+  const toggle = (p: Product, field: ToggleField) => toggleMutation.mutate({ id: p.id, field, value: !p[field] });
 
+  // ── Delete ────────────────────────────────────────────────────────────────
   const deleteMutation = useMutation({
     mutationFn: (id: string) => productsApi.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-products'] }),
-  });
-
-  const saveMutation = useMutation({
-    mutationFn: async () => {
-      const fields: Record<string, string | boolean> = {
-        name: form.name,
-        description: form.description,
-        material: form.material,
-        priceRange: form.priceRange,
-        price: form.price,
-        pricePerMeter: form.pricePerMeter,
-        categoryId: form.categoryId,
-        stockCount: form.stockCount,
-        isFeatured: form.isFeatured,
-        isNewArrival: form.isNewArrival,
-        isAvailable: form.isAvailable,
-      };
-
-      if (editing === 'new') {
-        const fd = new FormData();
-        Object.entries(fields).forEach(([k, v]) => fd.append(k, String(v)));
-        newImages.forEach((file) => fd.append('images', file));
-        await productsApi.create(fd);
-      } else if (editing) {
-        await productsApi.update(editing.id, fields);
-        if (newImages.length > 0) {
-          const fd = new FormData();
-          newImages.forEach((file) => fd.append('images', file));
-          await productsApi.addImages(editing.id, fd);
-        }
-      }
-    },
     onSuccess: () => {
+      toast({ variant: 'success', title: t('admin.products.deleted_toast', { defaultValue: '“{{name}}” was deleted', name: toDelete?.name }) });
+      setToDelete(null);
       queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      closeForm();
+      queryClient.invalidateQueries({ queryKey: ['admin-inventory'] });
     },
-    onError: () => setError(t('reservation.submit_error')),
+    onError: (err) => {
+      const info = readApiError(err, t('admin.products.delete_failed', { defaultValue: 'The product could not be deleted' }));
+      if (info.code === 'PRODUCT_HAS_ORDERS') {
+        setDeleteBlocked(info.message);
+        return;
+      }
+      toast({ variant: 'error', title: t('admin.products.delete_failed', { defaultValue: 'The product could not be deleted' }), description: info.message });
+    },
   });
 
-  const deleteImageMutation = useMutation({
-    mutationFn: (imageId: string) => productsApi.deleteImage(imageId),
-    onSuccess: (_res, imageId) => {
-      setExistingImages((imgs) => imgs.filter((i) => i.id !== imageId));
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-    },
-  });
+  const closeDelete = () => { setToDelete(null); setDeleteBlocked(null); };
 
-  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    setNewImages((prev) => [...prev, ...files]);
-    if (fileRef.current) fileRef.current.value = '';
+  const hideInstead = () => {
+    if (!toDelete) return;
+    toggleMutation.mutate({ id: toDelete.id, field: 'isAvailable', value: false });
+    closeDelete();
   };
 
-  const products: Product[] = data?.data || [];
-  const pagination = data?.pagination;
+  const clearFilters = () => { setSearchInput(''); setSearch(''); setCategory(''); setStatus(''); setPage(1); };
 
+  const statusChips: { value: StatusFilter; label: string }[] = [
+    { value: '', label: t('admin.products.filter_all', { defaultValue: 'All' }) },
+    { value: 'available', label: t('admin.products.filter_on_sale', { defaultValue: 'On sale' }) },
+    { value: 'hidden', label: t('admin.products.filter_hidden', { defaultValue: 'Hidden' }) },
+    { value: 'featured', label: t('admin.products.tag_featured', { defaultValue: 'Featured' }) },
+    { value: 'new', label: t('admin.products.tag_new', { defaultValue: 'New' }) },
+  ];
+
+  const stockLabel = (p: Product) => {
+    if (sellModeOf(p) === 'METER') {
+      return p.inventory?.metersAvailable != null
+        ? t('admin.products.stock_m', { defaultValue: '{{count}} m', count: p.inventory.metersAvailable })
+        : '—';
+    }
+    return p.inventory?.stockCount != null
+      ? t('admin.products.stock_pcs', { defaultValue: '{{count}} pcs', count: p.inventory.stockCount })
+      : '—';
+  };
+
+  // ── Pieces ────────────────────────────────────────────────────────────────
+  const thumb = (p: Product, size = 'h-12 w-12') => {
+    const img = p.images?.find((i) => i.isPrimary) || p.images?.[0];
+    return (
+      <div className={cn(size, 'shrink-0 overflow-hidden rounded-lg bg-muted')}>
+        {img
+          ? <img src={img.url} alt="" className={cn('h-full w-full object-cover', !p.isAvailable && 'opacity-50 grayscale')} loading="lazy" />
+          : <div className="flex h-full w-full items-center justify-center text-muted-foreground"><Package size={18} /></div>}
+      </div>
+    );
+  };
+
+  const price = (p: Product) => {
+    const label = adminPriceLabel(p, t);
+    return (
+      <div className="leading-tight">
+        <span className="font-medium">{label.main}</span>
+        {label.strike && <span className="ml-1.5 text-xs text-muted-foreground line-through">{label.strike}</span>}
+        {label.sub && <span className="block text-xs text-muted-foreground">{label.sub}</span>}
+      </div>
+    );
+  };
+
+  const availabilitySwitch = (p: Product) => (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={p.isAvailable}
+      onClick={() => toggle(p, 'isAvailable')}
+      title={p.isAvailable ? t('admin.products.click_to_hide', { defaultValue: 'Click to hide from the shop' }) : t('admin.products.click_to_show', { defaultValue: 'Click to put on sale' })}
+      className="inline-flex items-center gap-2 whitespace-nowrap rounded-full py-1 text-xs font-medium"
+    >
+      <span className={cn('relative inline-flex h-5 w-9 shrink-0 rounded-full transition-colors', p.isAvailable ? 'bg-green-600 dark:bg-green-500' : 'bg-muted-foreground/30')}>
+        <span className={cn('absolute top-0.5 h-4 w-4 rounded-full bg-white shadow transition-transform', p.isAvailable ? 'translate-x-[1.125rem]' : 'translate-x-0.5')} />
+      </span>
+      <span className={p.isAvailable ? 'text-green-700 dark:text-green-300' : 'text-muted-foreground'}>
+        {p.isAvailable ? t('admin.products.on_sale', { defaultValue: 'On sale' }) : t('admin.products.hidden', { defaultValue: 'Hidden' })}
+      </span>
+    </button>
+  );
+
+  const flagToggles = (p: Product) => (
+    <div className="flex flex-wrap gap-1.5">
+      <button type="button" onClick={() => toggle(p, 'isFeatured')} aria-pressed={p.isFeatured}
+        title={t('admin.products.toggle_featured', { defaultValue: 'Show on the home page as Featured' })}
+        className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
+          p.isFeatured
+            ? 'border-amber-300 bg-amber-100 text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300'
+            : 'border-dashed border-border text-muted-foreground hover:text-foreground')}>
+        <Star size={11} fill={p.isFeatured ? 'currentColor' : 'none'} /> {t('admin.products.tag_featured', { defaultValue: 'Featured' })}
+      </button>
+      <button type="button" onClick={() => toggle(p, 'isNewArrival')} aria-pressed={p.isNewArrival}
+        title={t('admin.products.toggle_new', { defaultValue: 'Show in New arrivals' })}
+        className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
+          p.isNewArrival
+            ? 'border-sky-300 bg-sky-100 text-sky-800 dark:border-sky-500/30 dark:bg-sky-500/15 dark:text-sky-300'
+            : 'border-dashed border-border text-muted-foreground hover:text-foreground')}>
+        <Sparkles size={11} /> {t('admin.products.tag_new', { defaultValue: 'New' })}
+      </button>
+    </div>
+  );
+
+  const actions = (p: Product) => (
+    <div className="flex items-center gap-1">
+      <button type="button" onClick={() => setEditing(p)} className="btn btn-outline btn-sm !px-3">
+        <Pencil size={13} /> {t('admin.edit', { defaultValue: 'Edit' })}
+      </button>
+      <Link to={`/products/${p.slug}`} target="_blank" rel="noreferrer" className="icon-btn !h-9 !w-9"
+        title={t('admin.products.view_in_shop', { defaultValue: 'View in the shop' })} aria-label={t('admin.products.view_in_shop', { defaultValue: 'View in the shop' })}>
+        <ExternalLink size={15} />
+      </Link>
+      <button type="button" onClick={() => setToDelete(p)} className="icon-btn !h-9 !w-9 hover:!bg-red-50 hover:!text-red-600 dark:hover:!bg-red-500/15 dark:hover:!text-red-400"
+        title={t('admin.products.delete', { defaultValue: 'Delete' })} aria-label={t('admin.products.delete', { defaultValue: 'Delete' })}>
+        <Trash2 size={15} />
+      </button>
+    </div>
+  );
+
+  const colours = (p: Product) => (p.colors?.length ? (
+    <div className="mt-1 flex items-center gap-1">
+      {p.colors.slice(0, 6).map((c) => (
+        <span key={c.id} title={c.name} className="h-3 w-3 rounded-full border border-border"
+          style={{ background: c.hexCode || 'conic-gradient(#f87171,#facc15,#4ade80,#60a5fa,#c084fc,#f87171)' }} />
+      ))}
+      {p.colors.length > 6 && <span className="text-[10px] text-muted-foreground">+{p.colors.length - 6}</span>}
+    </div>
+  ) : null);
+
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t('admin.products.title')}</h1>
-        <button onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors">
-          <Plus size={15} /> {t('admin.products.add')}
+    <>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="eyebrow">{t('admin.products.catalogue', { defaultValue: 'Catalogue' })}</p>
+          <h1 className="font-serif text-2xl font-semibold sm:text-3xl">{t('admin.products.title', { defaultValue: 'Products' })}</h1>
+          {pagination && (
+            <p className="text-sm text-muted-foreground">
+              {t('admin.products.count', { defaultValue: '{{count}} products', count: pagination.total })}
+            </p>
+          )}
+        </div>
+        <button type="button" onClick={() => setEditing('new')} className="btn btn-primary">
+          <Plus size={16} /> {t('admin.products.add', { defaultValue: 'Add Product' })}
         </button>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder={t('admin.products.search')}
-            className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
+      <div className="surface space-y-3 p-3 sm:p-4">
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <div className="relative flex-1">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <input value={searchInput} onChange={(e) => setSearchInput(e.target.value)} type="search"
+              placeholder={t('admin.products.search', { defaultValue: 'Search products...' })}
+              aria-label={t('admin.products.search', { defaultValue: 'Search products...' })}
+              className="w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-9 text-base focus:outline-none focus:ring-2 focus:ring-primary/30 sm:text-sm" />
+            {searchInput && (
+              <button type="button" onClick={() => setSearchInput('')} className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:text-foreground"
+                aria-label={t('admin.products.clear_search', { defaultValue: 'Clear search' })}>
+                <X size={14} />
+              </button>
+            )}
+          </div>
+          <select value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }}
+            aria-label={t('admin.category', { defaultValue: 'Category' })}
+            className="rounded-xl border border-border bg-background px-3 py-2.5 text-base focus:outline-none focus:ring-2 focus:ring-primary/30 sm:w-64 sm:text-sm">
+            <option value="">{t('admin.products.all_categories', { defaultValue: 'All Categories' })}</option>
+            {flattenCategories(categories).map((c) => (
+              <option key={c.id} value={c.slug}>{c.isChild ? `  — ${c.name}` : c.name}</option>
+            ))}
+          </select>
         </div>
-        <select value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-          className="px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-          <option value="">{t('admin.products.all_categories')}</option>
-          {categories?.flatMap((c) => [c, ...(c.children ?? [])]).map((c) => (
-            <option key={c.id} value={c.slug}>{categories.some((top) => top.id === c.id) ? c.name : `\u00a0\u00a0— ${c.name}`}</option>
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-0.5">
+          {statusChips.map((chip) => (
+            <button key={chip.value || 'all'} type="button" onClick={() => { setStatus(chip.value); setPage(1); }}
+              aria-pressed={status === chip.value}
+              className={cn('shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                status === chip.value ? 'border-foreground bg-foreground text-background' : 'border-border text-muted-foreground hover:text-foreground')}>
+              {chip.label}
+            </button>
           ))}
-        </select>
+          {filtersActive && (
+            <button type="button" onClick={clearFilters} className="shrink-0 px-2 text-xs font-medium text-primary hover:underline">
+              {t('admin.products.clear_filters', { defaultValue: 'Clear filters' })}
+            </button>
+          )}
+          {isFetching && !isLoading && <Loader2 size={14} className="ml-auto shrink-0 animate-spin self-center text-muted-foreground" />}
+        </div>
       </div>
 
-      {isLoading ? <LoadingSpinner /> : (
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50 border-b border-border">
-                <tr>
-                  {[t('admin.products.col_product'), t('admin.category'), t('admin.products.price_range'), t('admin.products.col_tags'), t('admin.status'), t('admin.actions')].map((h) => (
-                    <th key={h} className="text-left px-4 py-3 text-xs font-medium text-muted-foreground uppercase tracking-wider whitespace-nowrap">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {products.map((product) => {
-                  const img = product.images?.find((i) => i.isPrimary) || product.images?.[0];
-                  return (
-                    <tr key={product.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-muted rounded-lg overflow-hidden shrink-0">
-                            {img ? <img src={img.url} alt="" className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-lg">🧵</div>}
-                          </div>
-                          <span className="font-medium line-clamp-1">{product.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{product.category?.name}</td>
-                      <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{product.price ? `${product.price.toLocaleString()} RWF` : product.priceRange || '—'}</td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          {product.isFeatured && <span className="px-1.5 py-0.5 bg-primary/10 text-primary text-xs rounded whitespace-nowrap">{t('admin.products.tag_featured')}</span>}
-                          {product.isNewArrival && <span className="px-1.5 py-0.5 bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 text-xs rounded whitespace-nowrap">{t('admin.products.tag_new')}</span>}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${product.isAvailable ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'}`}>
-                          {product.isAvailable ? t('admin.products.available') : t('admin.products.unavailable')}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex gap-1">
-                          <Link to={`/products/${product.slug}`} target="_blank" className="w-7 h-7 flex items-center justify-center border border-border rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
-                            <Eye size={12} />
-                          </Link>
-                          <button onClick={() => openEdit(product)}
-                            className="w-7 h-7 flex items-center justify-center border border-border rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
-                            <Edit size={12} />
-                          </button>
-                          <button onClick={() => { if (confirm(t('admin.products.delete_confirm'))) deleteMutation.mutate(product.id); }}
-                            disabled={deleteMutation.isPending}
-                            className="w-7 h-7 flex items-center justify-center border border-border rounded-lg hover:bg-red-50 hover:border-red-200 hover:text-red-500 dark:hover:bg-red-500/15 dark:hover:border-red-800 dark:hover:text-red-400 transition-colors text-muted-foreground">
-                            <Trash2 size={12} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          {products.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              <Package size={32} className="mx-auto mb-2 opacity-30" />
-              <p>{t('admin.products.no_products')}</p>
+      {isLoading ? (
+        <div className="surface divide-y divide-border">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="flex items-center gap-3 p-4">
+              <div className="skeleton h-12 w-12 rounded-lg" />
+              <div className="flex-1 space-y-2"><div className="skeleton h-3 w-1/2 rounded" /><div className="skeleton h-3 w-1/4 rounded" /></div>
             </div>
+          ))}
+        </div>
+      ) : isError ? (
+        <div className="surface p-8 text-center">
+          <p className="font-medium">{t('admin.products.load_failed', { defaultValue: 'The products could not be loaded.' })}</p>
+          <button type="button" onClick={() => refetch()} className="btn btn-outline btn-sm mt-3">{t('admin.products.retry', { defaultValue: 'Try again' })}</button>
+        </div>
+      ) : products.length === 0 ? (
+        <div className="surface flex flex-col items-center px-6 py-14 text-center">
+          <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary"><Package size={26} /></span>
+          {filtersActive ? (
+            <>
+              <p className="font-semibold">{t('admin.products.no_match', { defaultValue: 'No products match these filters' })}</p>
+              <button type="button" onClick={clearFilters} className="btn btn-outline btn-sm mt-4">{t('admin.products.clear_filters', { defaultValue: 'Clear filters' })}</button>
+            </>
+          ) : (
+            <>
+              <p className="font-semibold">{t('admin.products.empty_title', { defaultValue: 'No products yet' })}</p>
+              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+                {t('admin.products.empty_body', { defaultValue: 'Add your first product with a name, a price and a few photos. You can change everything later.' })}
+              </p>
+              <button type="button" onClick={() => setEditing('new')} className="btn btn-primary mt-5">
+                <Plus size={16} /> {t('admin.products.add', { defaultValue: 'Add Product' })}
+              </button>
+            </>
           )}
         </div>
-      )}
+      ) : (
+        <>
+          {/* Phone: cards */}
+          <ul className="space-y-3 md:hidden">
+            {products.map((p) => (
+              <li key={p.id} className={cn('surface p-3', !p.isAvailable && 'bg-muted/40')}>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setEditing(p)} className="shrink-0" aria-label={t('admin.edit', { defaultValue: 'Edit' })}>
+                    {thumb(p, 'h-16 w-16')}
+                  </button>
+                  <div className="min-w-0 flex-1">
+                    <button type="button" onClick={() => setEditing(p)} className="block w-full text-left">
+                      <span className="line-clamp-2 font-medium leading-snug">{p.name}</span>
+                    </button>
+                    <p className="truncate text-xs text-muted-foreground">{categoryPath(p, categories)}</p>
+                    <div className="mt-1 flex items-baseline justify-between gap-2 text-sm">
+                      {price(p)}
+                      <span className="shrink-0 text-xs text-muted-foreground">{stockLabel(p)}</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
+                  {availabilitySwitch(p)}
+                  {flagToggles(p)}
+                </div>
+                <div className="mt-2 flex justify-end">{actions(p)}</div>
+              </li>
+            ))}
+          </ul>
 
-      {pagination && pagination.totalPages > 1 && (
-        <div className="flex justify-center gap-2">
-          <button disabled={page === 1} onClick={() => setPage((p) => p - 1)} className="px-4 py-2 border border-border rounded-lg text-sm disabled:opacity-50 hover:bg-accent transition-colors">{t('admin.prev')}</button>
-          <span className="px-4 py-2 text-sm">{page} / {pagination.totalPages}</span>
-          <button disabled={page === pagination.totalPages} onClick={() => setPage((p) => p + 1)} className="px-4 py-2 border border-border rounded-lg text-sm disabled:opacity-50 hover:bg-accent transition-colors">{t('admin.next')}</button>
-        </div>
-      )}
-
-      {/* ── Create / Edit drawer ── */}
-      {editing && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div className="absolute inset-0 bg-black/50" onClick={closeForm} />
-          <div className="relative w-full sm:max-w-lg bg-card h-full overflow-y-auto shadow-xl">
-            <div className="sticky top-0 bg-card border-b border-border px-5 py-4 flex items-center justify-between z-10">
-              <h3 className="font-semibold">{editing === 'new' ? t('admin.products.add_new') : t('admin.products.edit_title')}</h3>
-              <button onClick={closeForm} className="text-muted-foreground hover:text-foreground"><X size={20} /></button>
-            </div>
-
-            <form onSubmit={(e) => { e.preventDefault(); saveMutation.mutate(); }} className="p-5 space-y-4">
-              <div>
-                <label className="text-sm font-medium block mb-1">{t('admin.products.name')} *</label>
-                <input required value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium block mb-1">{t('admin.products.category')} *</label>
-                <select required value={form.categoryId} onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
-                  <option value="">{t('admin.products.select_category')}</option>
-                  {/* Sub-categories (e.g. Hard / Soft Curtains) are listed under their parent. */}
-                  {categories?.flatMap((c) => [c, ...(c.children ?? [])]).map((c) => (
-                    <option key={c.id} value={c.id}>{categories.some((top) => top.id === c.id) ? c.name : `\u00a0\u00a0— ${c.name}`}</option>
+          {/* Tablet / desktop: table */}
+          <div className="surface hidden overflow-hidden md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="border-b border-border bg-muted/50">
+                  <tr>
+                    {[
+                      t('admin.products.col_product', { defaultValue: 'Product' }),
+                      t('admin.category', { defaultValue: 'Category' }),
+                      t('admin.products.col_price', { defaultValue: 'Price' }),
+                      t('admin.products.col_stock', { defaultValue: 'Stock' }),
+                      t('admin.products.col_visibility', { defaultValue: 'In the shop' }),
+                      '',
+                    ].map((h, i) => (
+                      <th key={i} className="whitespace-nowrap px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-muted-foreground">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {products.map((p) => (
+                    <tr key={p.id} className={cn('transition-colors hover:bg-muted/30', !p.isAvailable && 'bg-muted/20')}>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          {thumb(p)}
+                          <div className="min-w-0">
+                            <button type="button" onClick={() => setEditing(p)} className="line-clamp-2 text-left font-medium hover:text-primary">{p.name}</button>
+                            {colours(p)}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground">{categoryPath(p, categories)}</td>
+                      <td className="whitespace-nowrap px-4 py-3">{price(p)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-muted-foreground">{stockLabel(p)}</td>
+                      <td className="px-4 py-3">
+                        <div className="space-y-1.5">
+                          {availabilitySwitch(p)}
+                          {flagToggles(p)}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3"><div className="flex justify-end">{actions(p)}</div></td>
+                    </tr>
                   ))}
-                </select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-medium block mb-1">{t('admin.products.price')}</label>
-                  <input type="number" min="0" step="1" inputMode="numeric" value={form.price} onChange={(e) => setForm((p) => ({ ...p, price: e.target.value }))}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">{t('admin.products.stock')}</label>
-                  <input type="number" min="0" step="1" inputMode="numeric" value={form.stockCount} onChange={(e) => setForm((p) => ({ ...p, stockCount: e.target.value }))}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                </div>
-              </div>
-              <p className="text-xs text-muted-foreground -mt-2">{t('admin.products.price_hint')}</p>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-sm font-medium block mb-1">{t('admin.products.price_per_meter')}</label>
-                  <input type="number" min="0" step="1" inputMode="numeric" value={form.pricePerMeter} onChange={(e) => setForm((p) => ({ ...p, pricePerMeter: e.target.value }))}
-                    className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                </div>
-                <div>
-                  <label className="text-sm font-medium block mb-1">{t('admin.products.price_range')}</label>
-                  <input value={form.priceRange} onChange={(e) => setForm((p) => ({ ...p, priceRange: e.target.value }))} placeholder="RWF 5,000 – 15,000/m"
-                    className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium block mb-1">{t('admin.products.material')}</label>
-                <input value={form.material} onChange={(e) => setForm((p) => ({ ...p, material: e.target.value }))} placeholder="100% Cotton"
-                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium block mb-1">{t('admin.products.description')}</label>
-                <textarea value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} rows={3}
-                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-
-              {/* Images */}
-              <div>
-                <label className="text-sm font-medium block mb-1">{t('admin.products.images')}</label>
-
-                {existingImages.length > 0 && (
-                  <div className="grid grid-cols-4 gap-2 mb-2">
-                    {existingImages.map((img) => (
-                      <div key={img.id} className="relative aspect-square rounded-lg overflow-hidden border border-border group">
-                        <img src={img.url} alt="" className="w-full h-full object-cover" />
-                        {img.isPrimary && <span className="absolute top-1 left-1 bg-primary text-white rounded-full p-0.5"><Star size={10} /></span>}
-                        <button type="button" onClick={() => deleteImageMutation.mutate(img.id)}
-                          className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {newImages.length > 0 && (
-                  <div className="grid grid-cols-4 gap-2 mb-2">
-                    {newImages.map((file, i) => (
-                      <div key={i} className="relative aspect-square rounded-lg overflow-hidden border border-primary/40">
-                        <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => setNewImages((imgs) => imgs.filter((_, idx) => idx !== i))}
-                          className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-0.5">
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <button type="button" onClick={() => fileRef.current?.click()}
-                  className="w-full flex flex-col items-center justify-center gap-1 py-6 border-2 border-dashed border-border rounded-xl text-sm text-muted-foreground hover:border-primary/40 hover:text-foreground transition-colors">
-                  <Upload size={20} />
-                  <span>{t('admin.products.add_images')}</span>
-                  <span className="text-xs">{t('admin.products.upload_hint')}</span>
-                </button>
-                <input ref={fileRef} type="file" accept="image/*" multiple onChange={onPickFiles} className="hidden" />
-              </div>
-
-              {/* Flags */}
-              <div className="flex flex-wrap gap-4 pt-1">
-                {[
-                  { field: 'isFeatured', label: t('admin.products.featured') },
-                  { field: 'isNewArrival', label: t('admin.products.new_arrival') },
-                  { field: 'isAvailable', label: t('admin.products.available_label') },
-                ].map(({ field, label }) => (
-                  <label key={field} className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input type="checkbox" checked={form[field as keyof FormState] as boolean}
-                      onChange={(e) => setForm((p) => ({ ...p, [field]: e.target.checked }))} className="accent-primary" />
-                    {label}
-                  </label>
-                ))}
-              </div>
-
-              {error && <p className="text-sm text-destructive">{error}</p>}
-
-              <div className="flex gap-3 pt-2 pb-4">
-                <button type="button" onClick={closeForm} className="px-4 py-2 border border-border rounded-xl text-sm hover:bg-accent transition-colors">{t('admin.cancel')}</button>
-                <button type="submit" disabled={saveMutation.isPending}
-                  className="flex-1 px-6 py-2 bg-primary text-white rounded-xl text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-70">
-                  {saveMutation.isPending
-                    ? t('admin.products.saving')
-                    : editing === 'new' ? t('admin.products.create') : t('admin.products.save')}
-                </button>
-              </div>
-            </form>
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {pagination && pagination.totalPages > 1 && (
+            <nav className="flex items-center justify-between gap-3" aria-label={t('admin.products.pagination', { defaultValue: 'Pages' })}>
+              <p className="text-xs text-muted-foreground">
+                {t('admin.products.showing', {
+                  defaultValue: 'Showing {{from}}–{{to}} of {{total}}',
+                  from: (page - 1) * PAGE_SIZE + 1,
+                  to: Math.min(page * PAGE_SIZE, pagination.total),
+                  total: pagination.total,
+                })}
+              </p>
+              <div className="flex items-center gap-2">
+                <button type="button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} className="btn btn-outline btn-sm !px-3">
+                  <ChevronLeft size={14} /> <span className="hidden sm:inline">{t('admin.prev', { defaultValue: 'Prev' })}</span>
+                </button>
+                <span className="text-sm tabular-nums">{page} / {pagination.totalPages}</span>
+                <button type="button" disabled={page >= pagination.totalPages} onClick={() => setPage((p) => p + 1)} className="btn btn-outline btn-sm !px-3">
+                  <span className="hidden sm:inline">{t('admin.next', { defaultValue: 'Next' })}</span> <ChevronRight size={14} />
+                </button>
+              </div>
+            </nav>
+          )}
+        </>
       )}
     </div>
+
+      {editing && (
+        <ProductFormDrawer
+          key={editing === 'new' ? 'new' : editing.id}
+          product={editing === 'new' ? null : editing}
+          categories={categories}
+          onClose={() => setEditing(null)}
+        />
+      )}
+
+      <ConfirmDialog
+        open={!!toDelete}
+        busy={deleteMutation.isPending}
+        title={deleteBlocked
+          ? t('admin.products.cannot_delete_title', { defaultValue: 'This product has orders' })
+          : t('admin.products.delete_title', { defaultValue: 'Delete “{{name}}”?', name: toDelete?.name })}
+        confirmLabel={deleteBlocked
+          ? t('admin.products.hide_instead', { defaultValue: 'Hide from shop' })
+          : t('admin.products.delete_forever', { defaultValue: 'Delete product' })}
+        cancelLabel={t('admin.cancel', { defaultValue: 'Cancel' })}
+        tone={deleteBlocked ? 'default' : 'danger'}
+        onCancel={closeDelete}
+        onConfirm={() => (deleteBlocked ? hideInstead() : toDelete && deleteMutation.mutate(toDelete.id))}
+        extra={!deleteBlocked && toDelete?.isAvailable ? (
+          <button type="button" onClick={hideInstead} disabled={deleteMutation.isPending} className="btn btn-outline btn-sm">
+            <EyeOff size={14} /> {t('admin.products.hide_instead', { defaultValue: 'Hide from shop' })}
+          </button>
+        ) : undefined}
+      >
+        {deleteBlocked
+          ? t('admin.products.cannot_delete_body', {
+            defaultValue: 'It appears in past orders, so it cannot be deleted without losing order history. You can hide it so customers no longer see it.',
+          })
+          : t('admin.products.delete_body', {
+            defaultValue: 'The product and its photos will be removed permanently. If you only want to stop selling it for now, hide it instead.',
+          })}
+      </ConfirmDialog>
+    </>
   );
 };
 

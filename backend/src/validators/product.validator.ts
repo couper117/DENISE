@@ -10,30 +10,39 @@ import {
 } from './common';
 
 /**
- * `colors` arrives as a JSON string on the multipart create route and is fed
- * straight to `JSON.parse`, so malformed input would throw inside the handler.
+ * `colors` arrives as a JSON string on the multipart create route (and may be a
+ * real array on the JSON update route) and is fed straight to `JSON.parse`, so
+ * malformed input would throw inside the handler.
  */
-const isColorsPayload = (value: unknown): boolean => {
-  if (typeof value !== 'string') return false;
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(value);
-  } catch {
-    return false;
+const isColorsPayload = (value: unknown): boolean => {
+  let parsed: unknown = value;
+  if (typeof value === 'string') {
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      return false;
+    }
   }
 
   return (
     Array.isArray(parsed) &&
-    parsed.every(
-      (color) =>
-        !!color &&
-        typeof color === 'object' &&
-        typeof (color as { name?: unknown }).name === 'string' &&
-        (color as { name: string }).name.trim() !== ''
-    )
+    parsed.length <= 50 &&
+    parsed.every((color) => {
+      if (!color || typeof color !== 'object') return false;
+      const { name, hexCode } = color as { name?: unknown; hexCode?: unknown };
+      if (typeof name !== 'string' || name.trim() === '' || name.length > 60) return false;
+      return hexCode === undefined || hexCode === null || hexCode === '' || (typeof hexCode === 'string' && HEX_COLOR.test(hexCode));
+    })
   );
 };
+
+const COLORS_MESSAGE = 'colors must be a list of colours, each with a name (max 60 characters) and an optional #RRGGBB code';
+
+/** Prices are optional; an empty string or null clears the price. */
+const optionalPrice = (field: string, label: string) =>
+  body(field).optional({ values: 'falsy' }).isFloat({ min: 0, max: 100_000_000 }).withMessage(`${label} must be a positive number`);
 
 const productBodyRules = (required: boolean) => {
   const name = required
@@ -59,6 +68,12 @@ const productBodyRules = (required: boolean) => {
     optionalBoolean('isNewArrival'),
     optionalBoolean('isOnPromotion'),
     optionalBoolean('isAvailable'),
+    optionalPrice('price', 'Price'),
+    optionalPrice('salePrice', 'Sale price'),
+    optionalPrice('pricePerMeter', 'Price per metre'),
+    body('colors').optional({ values: 'falsy' }).custom(isColorsPayload).withMessage(COLORS_MESSAGE),
+    body('stockCount').optional({ values: 'falsy' }).isInt({ min: 0, max: 1_000_000 }).withMessage('stockCount must be a non-negative integer'),
+    body('metersAvailable').optional({ values: 'falsy' }).isFloat({ min: 0, max: 1_000_000 }).withMessage('metersAvailable must be a non-negative number'),
   ];
 };
 
@@ -81,10 +96,7 @@ export const productSlugRules = rules(
 );
 
 export const createProductRules = rules(
-  ...productBodyRules(true),
-  body('colors').optional({ values: 'falsy' }).custom(isColorsPayload).withMessage('colors must be a JSON array of objects each having a name'),
-  body('stockCount').optional({ values: 'falsy' }).isInt({ min: 0, max: 1_000_000 }).withMessage('stockCount must be a non-negative integer'),
-  body('metersAvailable').optional({ values: 'falsy' }).isFloat({ min: 0, max: 1_000_000 }).withMessage('metersAvailable must be a non-negative number')
+  ...productBodyRules(true)
 );
 
 export const updateProductRules = rules(
@@ -95,3 +107,10 @@ export const updateProductRules = rules(
 export const productIdRules = rules(param('id').isUUID().withMessage('A valid product id is required'));
 
 export const productImageIdRules = rules(param('imageId').isUUID().withMessage('A valid image id is required'));
+
+export const listAdminProductsRules = rules(
+  ...paginationRules(),
+  optionalSearchQuery(),
+  query('category').optional({ values: 'falsy' }).isString().withMessage('category must be text').bail().trim().isLength({ max: 100 }).withMessage('category must be at most 100 characters'),
+  query('status').optional({ values: 'falsy' }).isIn(['available', 'hidden', 'featured', 'new']).withMessage('status must be one of: available, hidden, featured, new')
+);

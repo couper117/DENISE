@@ -8,7 +8,7 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import { connectDB } from './config/database';
 import { validateEnv } from './config/env';
-import { generalLimiter } from './middleware/rateLimit.middleware';
+import { readLimiter, writeLimiter } from './middleware/rateLimit.middleware';
 import authRoutes from './routes/auth.routes';
 import productRoutes from './routes/product.routes';
 import reservationRoutes from './routes/reservation.routes';
@@ -93,7 +93,7 @@ app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 // Serve locally-uploaded images (used when Cloudinary isn't configured)
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-app.use(generalLimiter);
+app.use(readLimiter, writeLimiter);
 
 // Health check
 app.get('/health', (_req, res) => {

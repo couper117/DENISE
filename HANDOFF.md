@@ -22,6 +22,36 @@ Phases 1–3 done; 4–6 open. Not yet merged to `main` (= deniseshop.com).
   when the role matches the product. Admin orders and the invoice show them.
 - Category filter now includes children (`category=curtains` lists both).
 
+### Curtain wizard (second pass) — how the metres are decided
+Steps: measure (metres, any number of windows/doors, "how many of this size")
+→ style (arrangement pictures + colours + companion curtain) → fullness
+(4 pictures drawn in the chosen arrangement, metres shown under each) → rod →
+review. `ARRANGEMENTS` in both `productOptions.ts` files is the rule book:
+each arrangement gives the share of the opening width the night / day curtain
+covers (1 or 0.5) and whether the rod is single or double. Server metres =
+computeCurtainMeters(width × share, height, fullness). Every line stores
+`arrangement`, `openingLabel` (sanitised) and its set id. Pictures are SVG
+(`CurtainIllustration.tsx`), no photos needed.
+Fabric = colour + metres + notes (no quantity). Traditional attire
+(`ATTIRE` kind, detected from category/name) defaults to one standard outfit
+of `STANDARD_ATTIRE_METERS` = 4 m or custom metres.
+Cart: set lines have no "Edit" (it would break the set); metre goods have no
+quantity stepper.
+
+### Rate limiting (changed)
+The single site-wide limiter (100 req / 15 min / IP) blocked real shoppers: a
+product page makes ~7 GETs and Rwandan mobile networks share IPs (CGNAT). Now
+`readLimiter` (GET, 3000) + `writeLimiter` (300) site-wide; login, orders,
+payments and reviews keep their own stricter limiters.
+
+### Admin products (rebuilt)
+`AdminProducts.tsx` + `components/admin/ProductFormDrawer.tsx`: list with
+toggles (on sale / featured / new), delete with in-page confirm (products with
+orders can only be hidden), form with "how is it sold", colours, photos (main
+photo, remove). New admin endpoints: `GET /api/admin/products` (includes hidden
+products), `PUT /api/products/images/:imageId/primary`. Upload errors now return
+readable 400/502 messages. Real Cloudinary upload not tested (local disk only).
+
 ### Verified locally (fake Paypack at PAYPACK_BASE_URL, see backend/.env)
 - Builder maths on page = server re-price (200×260 window: 11.6 m + 11.6 m +
   2×2.3 m rod = 323,400 RWF with the demo prices).

@@ -1,3 +1,4 @@
+import i18n from '../i18n';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -48,7 +49,9 @@ export const getStatusLabel = (status: string): string => {
     COMPLETED: 'Completed',
     CANCELLED: 'Cancelled',
   };
-  return labels[status] || status;
+  // Translated through the shared i18n instance so every page that shows a
+  // status (tracking, account, admin) follows the visitor's language.
+  return labels[status] ? i18n.t(`status.${status}`, { defaultValue: labels[status] }) : status;
 };
 
 export const truncate = (text: string, maxLength: number): string => {

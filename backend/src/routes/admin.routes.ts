@@ -21,12 +21,17 @@ import {
   updateSiteContentRules,
   upsertDeliveryZoneRules,
 } from '../validators/admin.validator';
+import { getAdminProducts } from '../controllers/product.controller';
+import { listAdminProductsRules } from '../validators/product.validator';
 
 const router = Router();
 
 router.use(authenticate, requireAdmin);
 
 router.get('/dashboard', getDashboardStats);
+// Every product, hidden ones included, with all images — the storefront
+// listing at GET /api/products only returns what is on sale.
+router.get('/products', listAdminProductsRules, getAdminProducts);
 router.get('/customers', listCustomersRules, getCustomers);
 router.put('/customers/:id/toggle-status', customerIdRules, toggleCustomerStatus);
 router.get('/content', getSiteContent);

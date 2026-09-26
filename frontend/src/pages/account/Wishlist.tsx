@@ -38,7 +38,7 @@ const WishlistPage = () => {
             return (
               <div key={id} className="bg-card border border-border rounded-xl overflow-hidden">
                 <div className="aspect-video bg-muted overflow-hidden">
-                  {img ? <img src={img.url} alt={product.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-3xl">🧵</div>}
+                  {img ? <img src={img.url} alt={product.name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center font-serif text-3xl text-muted-foreground/30">D</div>}
                 </div>
                 <div className="p-4">
                   <p className="text-xs text-muted-foreground mb-1">{product.category?.name}</p>
