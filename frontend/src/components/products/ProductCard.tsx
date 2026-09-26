@@ -138,7 +138,8 @@ const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
         <div className="flex flex-1 flex-col px-0.5 pt-3">
           {product.category && (
             <p className="mb-1 line-clamp-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-              {categoryLabel(product.category, t)}
+              {/* "Hard Curtains (Rideau de nuit)" is too long for a card label. */}
+              {categoryLabel(product.category, t).replace(/\s*\(.*\)\s*$/, '')}
             </p>
           )}
           <h3 className="line-clamp-2 text-sm font-medium leading-snug transition-colors group-hover:text-primary md:text-[15px]">{product.name}</h3>

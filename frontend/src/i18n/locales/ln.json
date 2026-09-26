@@ -13,7 +13,10 @@
     "cart": "Kapo",
     "wishlist": "Biloko Nalingaka",
     "track": "Landa commande",
-    "shop_all": "Tala biloko nyonso"
+    "shop_all": "Tala biloko nyonso",
+    "shop": "Somba",
+    "chat": "Solola",
+    "mobile_tabs": "Nzela ya monene"
   },
   "header": {
     "announcement": "Tomemaka na Rwanda mobimba • Futa na MTN MoMo • Yaka na magazini na biso na Kigali",
@@ -81,7 +84,7 @@
     "measure_text": "Yebisa biso bonene mpe molai ya lininisa na yo. Totangaka ba metele ya rido ya butu (rideau de nuit), topesaka rido ya moi (rideau du jour) oyo ekokani na yango mpe tomekaka ebende — na ntalo mobimba liboso ya kofuta.",
     "measure_cta": "Banda na rido ya butu",
     "measure_s1_title": "Mekela",
-    "measure_s1_text": "Koma bonene mpe molai ya lininisa na cm.",
+    "measure_s1_text": "Koma bonene mpe molai ya lininisa to ekuke moko na moko, na ba metele.",
     "measure_s2_title": "Butu + moi",
     "measure_s2_text": "Pona rido ya butu, sima bakisa rido ya moi oyo ekokani.",
     "measure_s3_title": "Ebende ezali",
@@ -135,7 +138,8 @@
     "count": "Biloko {{count}}",
     "clear_all": "Longola nyonso",
     "try_other": "Meka boluki mosusu to catégorie mosusu.",
-    "show_results": "Lakisa biloko {{count}}"
+    "show_results": "Lakisa biloko {{count}}",
+    "choose_buy": "Pona mpe somba"
   },
   "reservation": {
     "title": "Bómba Kotala Boutique na Yo",
@@ -163,7 +167,7 @@
     "success_title": "Hifadhi Ekakwami!",
     "success_message": "Hifadhi na yo esalemi. Tokosana yo na SMS na WhatsApp.",
     "ref_number": "Nimero ya Hifadhi",
-    "track_title": "Kurikira Hifadhi na Yo",
+    "track_title": "Landa commande na yo",
     "track_placeholder": "Koma nimero ya hifadhi na yo (ndakisa: DN-ABC123-XYZ)",
     "track_button": "Kurikira",
     "status": "Etat",
@@ -299,7 +303,8 @@
     "value3_title": "Esalemi na Rwanda",
     "value3_desc": "Na lokumu toyei na Kigali, tokolelaka Rwanda nyonso",
     "value4_title": "Bokeba ya Cliente",
-    "value4_desc": "Mosala ya elengi mpo na cliente na cliente"
+    "value4_desc": "Mosala ya elengi mpo na cliente na cliente",
+    "cta_shop": "Tala biloko na biso"
   },
   "contact": {
     "title": "Sángana na Biso",
@@ -344,7 +349,8 @@
     "pay_airtel": "Airtel Money",
     "pay_bank": "Virement ya banque",
     "pay_in_store": "Futa na magazini",
-    "made_by": "Esalemaki na"
+    "made_by": "Esalemaki na",
+    "call": "Benga biso"
   },
   "common": {
     "loading": "Tozali kobenda...",
@@ -896,7 +902,9 @@
     "pay_failed_title": "Tokokaki te kondimisa kofuta na yo",
     "pay_failed_desc": "Eloko moko te efutami soki ondimaki te. Okoki kotinda lisenginya lisusu, to kofuta na kobeta code.",
     "pay_retry": "Tinda lisusu lisenginya ya kofuta",
-    "pay_dial_fallback": "To futa na kobeta code"
+    "pay_dial_fallback": "To futa na kobeta code",
+    "show_summary": "Lakisa bokuse ya commande",
+    "hide_summary": "Bomba bokuse"
   },
   "curtain": {
     "window_width": "Bonene ya lininisa",

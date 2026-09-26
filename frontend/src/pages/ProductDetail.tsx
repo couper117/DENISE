@@ -102,6 +102,10 @@ const ProductDetail = () => {
   }, [identity]);
 
   useEffect(() => { setSelectedImage(0); }, [slug]);
+  const [slide, setSlide] = useState(0);
+  const [showReviewForm, setShowReviewForm] = useState(false);
+  // Phone sticky bar: shown while the buy box is off screen.
+  const [buyBoxVisible, setBuyBoxVisible] = useState(true);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['product', slug],
@@ -114,6 +118,14 @@ const ProductDetail = () => {
     queryFn: () => reviewsApi.getForProduct(data!.id).then((r) => r.data.data as ProductReview[]),
     enabled: !!data?.id,
   });
+
+  useEffect(() => {
+    const el = document.getElementById('buy-box');
+    if (!el) return;
+    const io = new IntersectionObserver(([entry]) => setBuyBoxVisible(entry.isIntersecting), { rootMargin: '0px 0px -15% 0px' });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [data?.id]);
 
   if (isLoading) return (
     <div className="flex min-h-[60vh] items-center justify-center"><LoadingSpinner size="lg" /></div>
@@ -252,7 +264,27 @@ const ProductDetail = () => {
       <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
         {/* ── Gallery ─────────────────────────────────────────────────────── */}
         <div className="lg:col-span-7">
-          <div className="lg:sticky lg:top-40">
+          {/* Phones: edge-to-edge, swipe between photos, dots for position. */}
+          <div className="-mx-4 sm:-mx-6 md:hidden">
+            <div
+              className="flex snap-x snap-mandatory overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              onScroll={(e) => setSlide(Math.round(e.currentTarget.scrollLeft / e.currentTarget.clientWidth))}
+            >
+              {(images.length ? images : [null]).map((img, i) => (
+                <button key={img?.id ?? i} type="button" onClick={() => { if (img) { setSelectedImage(i); setZoomed(true); } }}
+                  className="relative aspect-[4/5] w-full shrink-0 snap-center bg-muted" aria-label={t('products.zoom', { defaultValue: 'Zoom' })}>
+                  {img ? <img src={img.url} alt={img.altText || product.name} className="h-full w-full object-cover" loading={i === 0 ? 'eager' : 'lazy'} />
+                    : <span className="flex h-full items-center justify-center font-serif text-6xl text-muted-foreground/40">D</span>}
+                </button>
+              ))}
+            </div>
+            {images.length > 1 && (
+              <div className="mt-3 flex justify-center gap-1.5" aria-hidden="true">
+                {images.map((img, i) => <span key={img.id} className={cn('h-1.5 rounded-full transition-all', i === slide ? 'w-5 bg-foreground' : 'w-1.5 bg-foreground/25')} />)}
+              </div>
+            )}
+          </div>
+          <div className="hidden md:block lg:sticky lg:top-40">
             <div className="flex flex-col-reverse gap-3 md:flex-row">
               {images.length > 1 && (
                 <div className="flex gap-2 overflow-x-auto md:w-20 md:flex-col md:overflow-visible">
@@ -320,7 +352,7 @@ const ProductDetail = () => {
             {cat && <Link to={`/products?category=${cat.slug}`} className="eyebrow hover:underline">{categoryLabel(cat, t)}</Link>}
             {roleBadge && <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium">{roleBadge}</span>}
           </div>
-          <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight tracking-tight md:text-4xl">{product.name}</h1>
+          <h1 className="mt-2 font-serif text-[1.75rem] font-semibold leading-tight tracking-tight md:text-4xl">{product.name}</h1>
 
           {reviewStats && (
             <a href="#reviews" className="mt-3 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
@@ -343,7 +375,7 @@ const ProductDetail = () => {
             {product.isAvailable ? t('products.in_stock') : t('products.out_of_stock')}
           </div>
 
-          <div className="mt-6 rounded-2xl border border-border bg-card p-4 shadow-soft sm:p-6">
+          <div id="buy-box" className="mt-6 scroll-mt-36 rounded-2xl border border-border bg-card p-4 shadow-soft sm:p-6">
             {editingLine && (
               <h2 className="mb-4 font-serif text-lg font-semibold">{t('cart.edit_item', { defaultValue: 'Edit this item' })}</h2>
             )}
@@ -410,7 +442,7 @@ const ProductDetail = () => {
       </div>
 
       {/* ── Reviews ─────────────────────────────────────────────────────────── */}
-      <section id="reviews" className="mt-16 grid gap-8 scroll-mt-40 lg:grid-cols-12">
+      <section id="reviews" className="mt-12 grid gap-6 scroll-mt-40 md:mt-16 md:gap-8 lg:grid-cols-12">
         <div className="lg:col-span-5">
           <h2 className="section-title">{t('reviews.title', { defaultValue: 'Customer reviews' })}</h2>
           {reviewStats ? (
@@ -425,7 +457,8 @@ const ProductDetail = () => {
             <p className="section-lead">{t('reviews.none', { defaultValue: 'No reviews yet. Be the first!' })}</p>
           )}
 
-          <div className="surface mt-6 p-5">
+          {/* The form stays folded until asked for; open, it outweighed the product. */}
+          {showReviewForm || reviewSubmitted ? (<div className="surface mt-6 p-5">
             <h3 className="mb-4 font-semibold">{t('reviews.write', { defaultValue: 'Write a review' })}</h3>
             {reviewSubmitted ? (
               <div className="py-4 text-center">
@@ -451,7 +484,11 @@ const ProductDetail = () => {
                 <button type="submit" className="btn btn-dark">{t('reviews.submit', { defaultValue: 'Submit review' })}</button>
               </form>
             )}
-          </div>
+          </div>) : (
+            <button type="button" onClick={() => setShowReviewForm(true)} className="btn btn-outline mt-5">
+              <Star size={15} /> {t('reviews.write', { defaultValue: 'Write a review' })}
+            </button>
+          )}
         </div>
         <div className="space-y-3 lg:col-span-7">
           {reviews.map((r) => <ReviewCard key={r.id} review={r} />)}
@@ -467,6 +504,30 @@ const ProductDetail = () => {
           </div>
         </section>
       )}
+
+      {/* ── Phone sticky bar: price + the next action, while the buy box is off screen ── */}
+      <AnimatePresence>
+        {!buyBoxVisible && product.isAvailable && (
+          <motion.div
+            initial={{ y: 80 }} animate={{ y: 0 }} exit={{ y: 80 }} transition={{ type: 'tween', duration: 0.2 }}
+            className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-30 border-t border-border bg-background/95 px-4 py-2.5 shadow-lift backdrop-blur-md lg:hidden"
+          >
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xs text-muted-foreground">{product.name}</p>
+                <p className="text-sm font-semibold">{priceLabel(product, t)}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => document.getElementById('buy-box')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="btn btn-primary shrink-0 px-5"
+              >
+                {isCurtain ? t('products.measure_order', { defaultValue: 'Measure & order' }) : t('products.choose_buy', { defaultValue: 'Choose & buy' })}
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Zoom ────────────────────────────────────────────────────────────── */}
       <AnimatePresence>

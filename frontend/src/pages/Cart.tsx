@@ -175,7 +175,7 @@ const Cart = () => {
   const saved = discount();
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="shop-container py-6 pb-24 md:py-10 lg:pb-10">
       <Seo
         path="/cart"
         title="Your Cart — DENISE Textile Rwanda"
@@ -240,9 +240,6 @@ const Cart = () => {
                 </button>
               </div>
 
-              {/* Kept from the old reservation page — customers buying fabric by
-                  the metre still use it to work out how much to order. */}
-              <div className="lg:hidden"><MeasureHelp /></div>
             </div>
 
             {/* ── Order summary ────────────────────────────────────────────── */}
@@ -303,7 +300,23 @@ const Cart = () => {
                 </p>
               </div>
 
-              <div className="hidden lg:block"><MeasureHelp /></div>
+              {/* After the summary on every screen: paying comes first, help second. */}
+              <MeasureHelp />
+            </div>
+          </div>
+        )}
+
+        {/* Phones: total and checkout always within reach, above the tab bar. */}
+        {items.length > 0 && (
+          <div className="fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom))] z-30 border-t border-border bg-background/95 px-4 py-2.5 shadow-lift backdrop-blur-md lg:hidden">
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs text-muted-foreground">{t('cart.estimated_total', { defaultValue: 'Estimated total' })}</p>
+                <p className="text-base font-bold">{money(goods)}</p>
+              </div>
+              <button type="button" onClick={() => navigate('/checkout')} className="btn btn-primary shrink-0 px-6">
+                {t('reservation.checkout')} <ArrowRight size={16} />
+              </button>
             </div>
           </div>
         )}

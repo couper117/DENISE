@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   AlertCircle, Building2, Calendar, Check, CheckCircle2, ChevronRight, Clock, CreditCard,
-  Loader2, Mail, MapPin, MessageSquare, Package, Phone, ShieldCheck, Smartphone, Store, Truck, User,
+  Loader2, Mail, MapPin, MessageSquare, Package, Phone, ShieldCheck, Smartphone, Store, Truck, User, ShoppingBag, ChevronDown,
 } from 'lucide-react';
 import { useCartStore } from '../store';
 import { paymentsApi, reservationsApi } from '../lib/api';
@@ -560,7 +560,7 @@ const Checkout = () => {
   const stepIndex = STEPS.findIndex((s) => s.id === step);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="shop-container py-6 md:py-10">
       <Seo
         path="/checkout"
         title="Checkout — DENISE Textile Rwanda"
@@ -573,7 +573,7 @@ const Checkout = () => {
           { label: tr('checkout.title', 'Checkout') },
         ]} />
 
-        <h1 className="font-serif text-2xl sm:text-3xl font-bold mb-1">
+        <h1 className="font-serif text-[1.75rem] sm:text-3xl font-semibold tracking-tight mb-1">
           {tr('checkout.title', 'Checkout')}
         </h1>
         <p className="text-sm text-muted-foreground mb-6">
@@ -614,6 +614,30 @@ const Checkout = () => {
             );
           })}
         </ol>
+
+        {/* Phones: the summary folds into one bar at the top instead of sitting
+            below the whole form. */}
+        <details className="group mb-5 rounded-2xl border border-border bg-card lg:hidden">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5 text-sm [&::-webkit-details-marker]:hidden">
+            <span className="flex items-center gap-2 font-medium">
+              <ShoppingBag size={16} className="text-primary" />
+              <span className="group-open:hidden">{tr('checkout.show_summary', 'Show order summary')}</span>
+              <span className="hidden group-open:inline">{tr('checkout.hide_summary', 'Hide order summary')}</span>
+              <ChevronDown size={15} className="transition-transform group-open:rotate-180" />
+            </span>
+            <span className="text-base font-bold">{money(grandTotal)}</span>
+          </summary>
+          <div className="border-t border-border px-4 py-4">
+            <ul className="space-y-3">
+              {items.map((item) => <li key={item.id}><LineSummary item={item} compact /></li>)}
+            </ul>
+            <dl className="mt-4 space-y-1.5 border-t border-border pt-3 text-sm">
+              <div className="flex justify-between"><dt className="text-muted-foreground">{tr('cart.subtotal', 'Subtotal')}</dt><dd>{money(goods)}</dd></div>
+              {deliveryFee > 0 && <div className="flex justify-between"><dt className="text-muted-foreground"><EditableText id="delivery.fee" /></dt><dd>{money(deliveryFee)}</dd></div>}
+              <div className="flex justify-between font-semibold"><dt>{tr('checkout.grand_total', 'Grand total')}</dt><dd>{money(grandTotal)}</dd></div>
+            </dl>
+          </div>
+        </details>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           <div className="lg:col-span-2 space-y-5">
@@ -1109,7 +1133,7 @@ const Checkout = () => {
           </div>
 
           {/* ── Summary rail ───────────────────────────────────────────────── */}
-          <aside className="space-y-4 lg:sticky lg:top-24">
+          <aside className="hidden space-y-4 lg:sticky lg:top-24 lg:block">
             <div className={card}>
               <EditableText id="reservation.order_summary" as="h2" className="font-semibold mb-4" />
 

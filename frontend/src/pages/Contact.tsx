@@ -59,7 +59,7 @@ const Contact = () => {
           </div>
 
           <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-3 w-full py-4 bg-[#25D366] text-white font-semibold rounded-xl hover:bg-[#22c55e] transition-colors text-lg">
+            className="flex items-center justify-center gap-3 w-full py-4 bg-[#1f8f4e] text-white font-semibold rounded-xl hover:bg-[#197a42] transition-colors text-lg">
             <MessageCircle size={22} />
             <EditableText id="contact.whatsapp" />
           </a>

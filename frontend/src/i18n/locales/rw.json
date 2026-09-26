@@ -13,7 +13,10 @@
     "cart": "Agatebo",
     "wishlist": "Ibyo Nkunda",
     "track": "Kurikirana",
-    "shop_all": "Reba byose"
+    "shop_all": "Reba byose",
+    "shop": "Gura",
+    "chat": "Ganira",
+    "mobile_tabs": "Ibice by'ingenzi"
   },
   "header": {
     "announcement": "Tugeza ibicuruzwa mu Rwanda hose • Wishyura na MTN MoMo • Sura iduka ryacu i Kigali",
@@ -81,7 +84,7 @@
     "measure_text": "Tubwire ubugari n'uburebure bw'idirishya ryawe. Tubara metero z'irido rya nijoro (rido de nuit), tukagusaba irido rya ku manywa (rido du jour) rijyanye naryo kandi tukagena ingano ya tringle — ukabona igiciro cyose mbere yo kwishyura.",
     "measure_cta": "Tangirira ku irido rya nijoro",
     "measure_s1_title": "Pima",
-    "measure_s1_text": "Andika ubugari n'uburebure bw'idirishya muri cm.",
+    "measure_s1_text": "Andika ubugari n'uburebure bwa buri idirishya cyangwa urugi, muri metero.",
     "measure_s2_title": "Nijoro + ku manywa",
     "measure_s2_text": "Hitamo irido rya nijoro, hanyuma wongereho irido rya ku manywa rijyanye naryo.",
     "measure_s3_title": "Tringle irimo",
@@ -135,7 +138,8 @@
     "count": "Ibicuruzwa {{count}}",
     "clear_all": "Siba byose",
     "try_other": "Gerageza ubundi bushakashatsi cyangwa ikindi cyiciro.",
-    "show_results": "Erekana ibicuruzwa {{count}}"
+    "show_results": "Erekana ibicuruzwa {{count}}",
+    "choose_buy": "Hitamo ugure"
   },
   "reservation": {
     "title": "Fata Icyiciro mu Iduka",
@@ -163,7 +167,7 @@
     "success_title": "Icyiciro Cyarakiriwe!",
     "success_message": "Icyiciro cyawe cyakiriwe. Tuzakumenyesha kuri SMS na WhatsApp.",
     "ref_number": "Nimero y'Icyiciro",
-    "track_title": "Kurikirana Icyiciro Cyawe",
+    "track_title": "Kurikirana itumiza ryawe",
     "track_placeholder": "Injiza nimero y'icyiciro (urugero: DN-ABC123-XYZ)",
     "track_button": "Kurikirana",
     "status": "Imimerere",
@@ -299,7 +303,8 @@
     "value3_title": "Byakozwe muri Rwanda",
     "value3_desc": "Tufite ishema ry'uba i Kigali, tukorera u Rwanda rwose",
     "value4_title": "Serivisi y'Umukiriya",
-    "value4_desc": "Serivisi yihariye ya hejuru ya buri mukiriya"
+    "value4_desc": "Serivisi yihariye ya hejuru ya buri mukiriya",
+    "cta_shop": "Reba ibicuruzwa byacu"
   },
   "contact": {
     "title": "Twandikire",
@@ -344,7 +349,8 @@
     "pay_airtel": "Airtel Money",
     "pay_bank": "Kohereza kuri banki",
     "pay_in_store": "Ishyura mu iduka",
-    "made_by": "Byakozwe na"
+    "made_by": "Byakozwe na",
+    "call": "Duhamagare"
   },
   "common": {
     "loading": "Birimo gutangira...",
@@ -896,7 +902,9 @@
     "pay_failed_title": "Ntitwashoboye kwemeza ubwishyu bwawe",
     "pay_failed_desc": "Nta mafaranga yakuweho niba utemeje. Ushobora kongera kohereza ubusabe, cyangwa ukishyura ukanze kode.",
     "pay_retry": "Ongera wohereze ubusabe bwo kwishyura",
-    "pay_dial_fallback": "Cyangwa wishyure ukanze kode"
+    "pay_dial_fallback": "Cyangwa wishyure ukanze kode",
+    "show_summary": "Reba incamake y'itumiza",
+    "hide_summary": "Hisha incamake"
   },
   "curtain": {
     "window_width": "Ubugari bw'idirishya",

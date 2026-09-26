@@ -11,7 +11,7 @@ import { clearAuthSession, useAuthStore, useCartStore, useThemeStore } from '../
 import { authApi } from '../../lib/api';
 import { cn } from '../../lib/utils';
 import { BUSINESS_PHONE, BUSINESS_PHONE_CLEAN } from '../../lib/config';
-import { EditWebsiteButton, EditableText } from '../../cms';
+import { EditWebsiteButton, EditableText, useCmsStore, useCmsValue } from '../../cms';
 
 const LANGUAGES = [
   { code: 'en', label: 'English', short: 'EN' },
@@ -79,6 +79,33 @@ const SearchForm = ({ className, autoFocus, onDone }: { className?: string; auto
         className="h-11 w-full rounded-full border border-input bg-muted/50 pl-11 pr-4 text-sm placeholder:text-muted-foreground/80 transition-colors focus:border-primary/40 focus:bg-card focus:outline-none focus:ring-2 focus:ring-primary/15"
       />
     </form>
+  );
+};
+
+/**
+ * Phones get one announcement message at a time, rotating, instead of the full
+ * line wrapping onto two rows. Messages are the admin's announcement split on
+ * "•"; in edit mode the full editable text is shown so it can be changed.
+ */
+const MobileAnnouncement = () => {
+  const text = useCmsValue<string>('header.announcement', 'TEXT', '');
+  const editing = useCmsStore((s) => s.editMode);
+  const parts = text.split(/\s*[•·|]\s*/).map((p) => p.trim()).filter(Boolean);
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (parts.length < 2) return;
+    const id = setInterval(() => setI((n) => (n + 1) % parts.length), 3500);
+    return () => clearInterval(id);
+  }, [parts.length]);
+  if (editing || parts.length < 2) return <EditableText id="header.announcement" label="Announcement bar" className="text-center md:hidden" />;
+  return (
+    <span className="relative block h-4 w-full overflow-hidden text-center md:hidden" aria-live="off">
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.span key={i} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} transition={{ duration: 0.3 }} className="absolute inset-0">
+          {parts[i % parts.length]}
+        </motion.span>
+      </AnimatePresence>
+    </span>
   );
 };
 
@@ -177,11 +204,12 @@ const Header = () => {
       {/* Top bar. Dark ink on light pages; on dark pages a solid bar would be
           the brightest thing on screen, so it drops to the card surface. */}
       <div className="bg-brand-dark text-white/85 dark:bg-card dark:text-muted-foreground dark:border-b dark:border-border">
-        <div className="shop-container flex min-h-9 items-center justify-center gap-4 py-1.5 text-[11px] leading-snug sm:text-xs md:justify-between">
+        <div className="shop-container flex h-8 items-center justify-center gap-4 text-[11px] sm:text-xs md:h-9 md:justify-between">
           <a href={`tel:+${BUSINESS_PHONE_CLEAN}`} className="hidden items-center gap-1.5 hover:text-white dark:hover:text-foreground md:inline-flex">
             <Phone size={13} /> {BUSINESS_PHONE}
           </a>
-          <EditableText id="header.announcement" label="Announcement bar" className="text-center md:truncate" />
+          <MobileAnnouncement />
+          <EditableText id="header.announcement" label="Announcement bar" className="hidden truncate text-center md:block" />
           <div className="hidden items-center gap-1 md:flex">
             <LanguageMenu />
             <button
@@ -282,7 +310,7 @@ const Header = () => {
 
         {/* Category chips — phones and tablets. The range has to be visible
             without opening the menu, so it scrolls sideways under the logo. */}
-        <nav aria-label="Shop categories" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-3 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:hidden [&::-webkit-scrollbar]:hidden">
+        {!location.pathname.startsWith('/checkout') && <nav aria-label="Shop categories" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-3 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:hidden [&::-webkit-scrollbar]:hidden">
           {CATEGORY_LINKS.map(({ to, labelKey }) => (
             <Link
               key={to}
@@ -297,7 +325,7 @@ const Header = () => {
               <EditableText id={labelKey} />
             </Link>
           ))}
-        </nav>
+        </nav>}
 
         {/* Category bar — desktop */}
         <nav aria-label="Shop categories" className="hidden h-12 items-center justify-between border-t border-border/70 lg:flex">

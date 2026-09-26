@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { MessageCircle } from 'lucide-react';
 import { WHATSAPP_LINK } from '../../lib/config';
 
+// Desktop only: on phones the tab bar carries WhatsApp instead.
 const WhatsAppButton = () => {
   const link = WHATSAPP_LINK;
 
@@ -10,7 +11,7 @@ const WhatsAppButton = () => {
       href={link}
       target="_blank"
       rel="noopener noreferrer"
-      className="fixed bottom-6 right-6 z-50 flex items-center gap-2 bg-[#25D366] text-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
+      className="fixed bottom-6 right-6 z-50 hidden lg:flex items-center gap-2 bg-[#25D366] text-white rounded-full shadow-lg hover:shadow-xl transition-shadow"
       initial={{ scale: 0 }}
       animate={{ scale: 1 }}
       transition={{ delay: 1, type: 'spring' }}

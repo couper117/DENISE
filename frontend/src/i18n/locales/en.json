@@ -13,7 +13,10 @@
     "cart": "Cart",
     "wishlist": "Wishlist",
     "track": "Track Order",
-    "shop_all": "Shop all"
+    "shop_all": "Shop all",
+    "shop": "Shop",
+    "chat": "Chat",
+    "mobile_tabs": "Main navigation"
   },
   "header": {
     "announcement": "Delivery across Rwanda • Pay with MTN MoMo • Visit our shop in Kigali",
@@ -81,7 +84,7 @@
     "measure_text": "Tell us the width and height of your window. We work out the metres for the night curtain (rideau de nuit), suggest a matching day curtain (rideau du jour) and size the rod — with the full price before you pay.",
     "measure_cta": "Start with a night curtain",
     "measure_s1_title": "Measure",
-    "measure_s1_text": "Enter your window width and height in cm.",
+    "measure_s1_text": "Enter the width and height of each window or door, in metres.",
     "measure_s2_title": "Night + day",
     "measure_s2_text": "Choose the night curtain, then add a matching day curtain.",
     "measure_s3_title": "Rod included",
@@ -135,7 +138,8 @@
     "count": "{{count}} products",
     "clear_all": "Clear all",
     "try_other": "Try another search or category.",
-    "show_results": "Show {{count}} products"
+    "show_results": "Show {{count}} products",
+    "choose_buy": "Choose & buy"
   },
   "reservation": {
     "title": "Book Your Shop Visit",
@@ -163,7 +167,7 @@
     "success_title": "Reservation Confirmed!",
     "success_message": "Your reservation has been created. We'll notify you via SMS and WhatsApp.",
     "ref_number": "Reference Number",
-    "track_title": "Track Your Reservation",
+    "track_title": "Track your order",
     "track_placeholder": "Enter your reservation number (e.g. DN-ABC123-XYZ)",
     "track_button": "Track",
     "status": "Status",
@@ -364,7 +368,8 @@
     "value3_title": "Made in Rwanda",
     "value3_desc": "Proudly based in Kigali, serving all of Rwanda",
     "value4_title": "Customer Care",
-    "value4_desc": "Exceptional personalized service for every customer"
+    "value4_desc": "Exceptional personalized service for every customer",
+    "cta_shop": "Shop the collection"
   },
   "contact": {
     "title": "Contact Us",
@@ -409,7 +414,8 @@
     "pay_airtel": "Airtel Money",
     "pay_bank": "Bank transfer",
     "pay_in_store": "Pay in store",
-    "made_by": "Made by"
+    "made_by": "Made by",
+    "call": "Call us"
   },
   "common": {
     "loading": "Loading...",
@@ -896,7 +902,9 @@
     "pay_failed_title": "We couldn't confirm your payment",
     "pay_failed_desc": "Nothing was charged if you didn't approve. You can send the request again, or pay by dialing.",
     "pay_retry": "Resend payment request",
-    "pay_dial_fallback": "Or pay by dialing"
+    "pay_dial_fallback": "Or pay by dialing",
+    "show_summary": "Show order summary",
+    "hide_summary": "Hide order summary"
   },
   "curtain": {
     "window_width": "Window width",

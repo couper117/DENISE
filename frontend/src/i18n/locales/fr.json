@@ -13,7 +13,10 @@
     "cart": "Panier",
     "wishlist": "Liste de Souhaits",
     "track": "Suivre la commande",
-    "shop_all": "Tout voir"
+    "shop_all": "Tout voir",
+    "shop": "Boutique",
+    "chat": "Discuter",
+    "mobile_tabs": "Navigation principale"
   },
   "header": {
     "announcement": "Livraison partout au Rwanda • Paiement MTN MoMo • Boutique à Kigali",
@@ -81,7 +84,7 @@
     "measure_text": "Indiquez la largeur et la hauteur de votre fenêtre. Nous calculons les mètres du rideau de nuit, proposons un rideau de jour assorti et dimensionnons la tringle — avec le prix total avant de payer.",
     "measure_cta": "Commencer par un rideau de nuit",
     "measure_s1_title": "Mesurez",
-    "measure_s1_text": "Indiquez la largeur et la hauteur de la fenêtre en cm.",
+    "measure_s1_text": "Indiquez la largeur et la hauteur de chaque fenêtre ou porte, en mètres.",
     "measure_s2_title": "Nuit + jour",
     "measure_s2_text": "Choisissez le rideau de nuit, puis ajoutez un rideau de jour assorti.",
     "measure_s3_title": "Tringle comprise",
@@ -135,7 +138,8 @@
     "count": "{{count}} produits",
     "clear_all": "Tout effacer",
     "try_other": "Essayez une autre recherche ou catégorie.",
-    "show_results": "Voir {{count}} produits"
+    "show_results": "Voir {{count}} produits",
+    "choose_buy": "Choisir et acheter"
   },
   "reservation": {
     "title": "Réserver Votre Visite",
@@ -163,7 +167,7 @@
     "success_title": "Réservation Confirmée!",
     "success_message": "Votre réservation a été créée. Nous vous notifierons par SMS et WhatsApp.",
     "ref_number": "Numéro de Référence",
-    "track_title": "Suivre Votre Réservation",
+    "track_title": "Suivre votre commande",
     "track_placeholder": "Entrez votre numéro de réservation (ex. DN-ABC123-XYZ)",
     "track_button": "Suivre",
     "status": "Statut",
@@ -299,7 +303,8 @@
     "value3_title": "Fabriqué au Rwanda",
     "value3_desc": "Fièrement basé à Kigali, au service de tout le Rwanda",
     "value4_title": "Service Client",
-    "value4_desc": "Service personnalisé exceptionnel pour chaque client"
+    "value4_desc": "Service personnalisé exceptionnel pour chaque client",
+    "cta_shop": "Voir la collection"
   },
   "contact": {
     "title": "Contactez-nous",
@@ -344,7 +349,8 @@
     "pay_airtel": "Airtel Money",
     "pay_bank": "Virement bancaire",
     "pay_in_store": "Paiement en boutique",
-    "made_by": "Réalisé par"
+    "made_by": "Réalisé par",
+    "call": "Appelez-nous"
   },
   "common": {
     "loading": "Chargement...",
@@ -896,7 +902,9 @@
     "pay_failed_title": "Nous n'avons pas pu confirmer votre paiement",
     "pay_failed_desc": "Rien n'a été débité si vous n'avez pas validé. Vous pouvez renvoyer la demande ou payer en composant le code.",
     "pay_retry": "Renvoyer la demande de paiement",
-    "pay_dial_fallback": "Ou payez en composant le code"
+    "pay_dial_fallback": "Ou payez en composant le code",
+    "show_summary": "Voir le récapitulatif",
+    "hide_summary": "Masquer le récapitulatif"
   },
   "curtain": {
     "window_width": "Largeur de la fenêtre",

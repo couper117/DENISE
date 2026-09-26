@@ -13,7 +13,10 @@
     "cart": "Kikapu",
     "wishlist": "Orodha ya Matakwa",
     "track": "Fuatilia Oda",
-    "shop_all": "Nunua vyote"
+    "shop_all": "Nunua vyote",
+    "shop": "Duka",
+    "chat": "Ongea",
+    "mobile_tabs": "Urambazaji mkuu"
   },
   "header": {
     "announcement": "Tunapeleka kote Rwanda • Lipa kwa MTN MoMo • Tembelea duka letu Kigali",
@@ -81,7 +84,7 @@
     "measure_text": "Tuambie upana na urefu wa dirisha lako. Tunahesabu mita za pazia la usiku (rideau de nuit), tunapendekeza pazia la mchana (rideau du jour) linalolingana na tunapima fimbo — pamoja na bei kamili kabla ya kulipa.",
     "measure_cta": "Anza na pazia la usiku",
     "measure_s1_title": "Pima",
-    "measure_s1_text": "Weka upana na urefu wa dirisha kwa cm.",
+    "measure_s1_text": "Weka upana na urefu wa kila dirisha au mlango, kwa mita.",
     "measure_s2_title": "Usiku + mchana",
     "measure_s2_text": "Chagua pazia la usiku, kisha ongeza pazia la mchana linalolingana.",
     "measure_s3_title": "Fimbo imejumuishwa",
@@ -135,7 +138,8 @@
     "count": "Bidhaa {{count}}",
     "clear_all": "Futa yote",
     "try_other": "Jaribu utafutaji au aina nyingine.",
-    "show_results": "Onyesha bidhaa {{count}}"
+    "show_results": "Onyesha bidhaa {{count}}",
+    "choose_buy": "Chagua na ununue"
   },
   "reservation": {
     "title": "Hifadhi Ziara Yako ya Duka",
@@ -163,7 +167,7 @@
     "success_title": "Hifadhi Imethibitishwa!",
     "success_message": "Hifadhi yako imeundwa. Tutakujulisha kupitia SMS na WhatsApp.",
     "ref_number": "Nambari ya Kumbukumbu",
-    "track_title": "Fuatilia Hifadhi Yako",
+    "track_title": "Fuatilia oda yako",
     "track_placeholder": "Ingiza nambari yako ya hifadhi (mfano: DN-ABC123-XYZ)",
     "track_button": "Fuatilia",
     "status": "Hali",
@@ -299,7 +303,8 @@
     "value3_title": "Imefanywa Rwanda",
     "value3_desc": "Kwa fahari tuko Kigali, tukihudumia Rwanda yote",
     "value4_title": "Huduma kwa Mteja",
-    "value4_desc": "Huduma ya kibinafsi ya kipekee kwa kila mteja"
+    "value4_desc": "Huduma ya kibinafsi ya kipekee kwa kila mteja",
+    "cta_shop": "Tazama bidhaa zetu"
   },
   "contact": {
     "title": "Wasiliana Nasi",
@@ -344,7 +349,8 @@
     "pay_airtel": "Airtel Money",
     "pay_bank": "Uhamisho wa benki",
     "pay_in_store": "Lipa dukani",
-    "made_by": "Imetengenezwa na"
+    "made_by": "Imetengenezwa na",
+    "call": "Tupigie"
   },
   "common": {
     "loading": "Inapakia...",
@@ -896,7 +902,9 @@
     "pay_failed_title": "Hatukuweza kuthibitisha malipo yako",
     "pay_failed_desc": "Hakuna kilichotozwa ikiwa hukuidhinisha. Unaweza kutuma ombi tena, au kulipa kwa kupiga namba.",
     "pay_retry": "Tuma ombi la malipo tena",
-    "pay_dial_fallback": "Au lipa kwa kupiga namba"
+    "pay_dial_fallback": "Au lipa kwa kupiga namba",
+    "show_summary": "Onyesha muhtasari wa oda",
+    "hide_summary": "Ficha muhtasari"
   },
   "curtain": {
     "window_width": "Upana wa dirisha",

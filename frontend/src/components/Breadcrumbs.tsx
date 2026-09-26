@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, Home } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home } from 'lucide-react';
 
 export interface Crumb {
   label: string;
@@ -14,9 +14,15 @@ export interface Crumb {
  */
 const Breadcrumbs = ({ items }: { items: Crumb[] }) => {
   const { t } = useTranslation();
+  // Phones get one "‹ parent" link instead of the whole trail: it is what
+  // people use the trail for, and it keeps the page title near the top.
+  const parent = [...items].reverse().find((c, i) => i > 0 && c.to) ?? items.slice(0, -1).reverse().find((c) => c.to);
   return (
-    <nav aria-label="Breadcrumb" className="mb-5">
-      <ol className="flex items-center flex-wrap gap-1.5 text-sm text-muted-foreground">
+    <nav aria-label="Breadcrumb" className="mb-4 sm:mb-5">
+      <Link to={parent?.to ?? '/'} className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground sm:hidden">
+        <ChevronLeft size={16} /> {parent?.label ?? t('nav.home')}
+      </Link>
+      <ol className="hidden items-center flex-wrap gap-1.5 text-sm text-muted-foreground sm:flex">
         <li>
           <Link to="/" className="flex items-center gap-1 hover:text-primary transition-colors">
             <Home size={14} />

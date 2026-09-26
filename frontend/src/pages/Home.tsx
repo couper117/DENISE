@@ -29,13 +29,13 @@ const fadeUp = { initial: { opacity: 0, y: 18 }, whileInView: { opacity: 1, y: 0
 /* Section heading shared by the product rails. Takes content keys so each
    rail's copy is independently editable on the page. */
 const RailHeading = ({ eyebrowKey, titleKey, subtitleKey, viewAllTo }: { eyebrowKey?: string; titleKey: string; subtitleKey: string; viewAllTo: string }) => (
-  <div className="mb-8 flex items-end justify-between gap-4">
+  <div className="mb-5 flex items-end justify-between gap-4 md:mb-8">
     <div>
       {eyebrowKey && <EditableText id={eyebrowKey} as="p" className="eyebrow mb-2" />}
       <EditableText id={titleKey} as="h2" className="section-title" />
       <EditableText id={subtitleKey} as="p" className="mt-2 text-muted-foreground" />
     </div>
-    <Link to={viewAllTo} className="btn btn-outline btn-sm hidden shrink-0 sm:inline-flex">
+    <Link to={viewAllTo} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-primary sm:btn sm:btn-outline sm:btn-sm sm:text-foreground">
       <EditableText id="common.view_all" /> <ArrowRight size={14} />
     </Link>
   </div>
@@ -65,6 +65,11 @@ const EmptyRail = () => (
     <Link to="/products" className="btn btn-dark btn-sm mt-4"><EditableText id="hero.cta_browse" /> <ArrowRight size={14} /></Link>
   </div>
 );
+
+/* Phones swipe through a rail (two and a bit cards visible) instead of
+   scrolling past eight stacked cards; from lg it is a normal grid. */
+const rail = '-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-4 lg:gap-x-5 lg:gap-y-8 lg:overflow-visible lg:px-0 [&::-webkit-scrollbar]:hidden';
+const railItem = 'w-[44%] shrink-0 snap-start sm:w-[30%] lg:w-auto';
 
 const primaryImage = (p?: Product) => (p?.images?.find((i) => i.isPrimary) || p?.images?.[0])?.url;
 
@@ -131,38 +136,14 @@ const Home = () => {
         description="DENISE (New Textile Social Company) — shop curtains (amarido), fabrics, imikenyero, imishanana and traditional Rwandan attire online. Delivery across Rwanda or visit our Kigali store."
       />
 
-      {/* ================= Hero ================= */}
-      <section className="shop-container pt-6 md:pt-10">
-        <div className="grid items-center gap-8 lg:grid-cols-12 lg:gap-12">
-          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="lg:col-span-6">
-            <EditableText id="hero.badge" as="p" label="Hero badge" className="eyebrow" />
-            <EditableText
-              id="hero.title" as="h1" label="Hero title"
-              className="mt-4 font-serif text-4xl font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl"
-            />
-            <EditableText
-              id="hero.subtitle" as="p" multiline label="Hero subtitle"
-              className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground md:text-lg"
-            />
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/products?category=curtains" className="btn btn-primary btn-lg">
-                <EditableText id="hero.cta_reserve" label="Hero primary button" /> <ArrowRight size={18} />
-              </Link>
-              <Link to="/products" className="btn btn-outline btn-lg">
-                <EditableText id="hero.cta_browse" label="Hero secondary button" />
-              </Link>
-            </div>
-            <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-              {['home.trust_reserve', 'home.trust_delivery', 'home.trust_languages'].map((key) => (
-                <li key={key} className="flex items-center gap-2">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" /> <EditableText id={key} />
-                </li>
-              ))}
-            </ul>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6, delay: 0.1 }} className="relative lg:col-span-6">
-            <div className="relative aspect-[4/3] overflow-hidden rounded-3xl bg-muted lg:aspect-[5/6]">
+      {/* ================= Hero =================
+          Phones: one full-screen photo with the message on top of it — the
+          image is what sells fabric, so it must not sit below the fold.
+          Desktop: text and photo side by side. One markup, two layouts. */}
+      <section className="lg:shop-container lg:pt-10">
+        <div className="relative grid min-h-[calc(100svh-12rem)] items-end overflow-hidden lg:min-h-0 lg:grid-cols-12 lg:items-center lg:gap-12 lg:overflow-visible">
+          <motion.div initial={{ opacity: 0, scale: 1.02 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.6 }} className="absolute inset-0 lg:relative lg:inset-auto lg:order-2 lg:col-span-6">
+            <div className="relative h-full w-full overflow-hidden bg-muted lg:aspect-[5/6] lg:h-auto lg:rounded-3xl">
               <img
                 src={heroSrc(1200)}
                 srcSet={[600, 900, 1200, 1600].map((w) => `${heroSrc(w)} ${w}w`).join(', ')}
@@ -173,11 +154,13 @@ const Home = () => {
                 // React 18 doesn't know fetchPriority yet; the lowercase attribute passes through.
                 {...{ fetchpriority: 'high' }}
               />
+              {/* Scrim for the text on phones only. */}
+              <span className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/55 to-black/10 lg:hidden" />
             </div>
             {/* The one thing competitors don't do online: we do the maths. */}
             <Link
               to="/products?category=curtains"
-              className="absolute -bottom-5 left-4 right-4 flex items-center gap-3 rounded-2xl border border-border bg-card/95 p-4 shadow-lift backdrop-blur sm:left-auto sm:right-6 sm:w-80"
+              className="absolute -bottom-5 right-6 hidden w-80 items-center gap-3 rounded-2xl border border-border bg-card/95 p-4 shadow-lift backdrop-blur lg:flex"
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"><Ruler size={20} /></span>
               <span className="min-w-0">
@@ -186,23 +169,51 @@ const Home = () => {
               </span>
             </Link>
           </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
+            className="relative z-10 px-4 pb-8 pt-28 text-white sm:px-6 lg:order-1 lg:col-span-6 lg:p-0 lg:text-foreground">
+            <EditableText id="hero.badge" as="p" label="Hero badge" className="inline-block rounded-full bg-black/35 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-white backdrop-blur-sm lg:bg-transparent lg:p-0 lg:text-xs lg:text-primary lg:backdrop-blur-none" />
+            <EditableText
+              id="hero.title" as="h1" label="Hero title"
+              className="mt-3 font-serif text-[2.35rem] font-semibold leading-[1.05] tracking-tight sm:text-5xl lg:mt-4 lg:text-6xl"
+            />
+            <EditableText
+              id="hero.subtitle" as="p" multiline label="Hero subtitle"
+              className="mt-4 max-w-xl text-[15px] leading-relaxed text-white/85 line-clamp-3 md:text-lg lg:mt-5 lg:line-clamp-none lg:text-muted-foreground"
+            />
+            <div className="mt-6 grid grid-cols-2 gap-2 sm:flex sm:gap-3 lg:mt-8">
+              <Link to="/products?category=curtains" className="btn btn-primary px-4 py-3.5 sm:btn-lg">
+                <EditableText id="hero.cta_reserve" label="Hero primary button" /> <ArrowRight size={17} />
+              </Link>
+              <Link to="/products" className="btn btn-glass px-4 py-3.5 sm:btn-lg lg:border-foreground/15 lg:bg-transparent lg:text-foreground lg:backdrop-blur-none lg:hover:bg-foreground/[0.03]">
+                <EditableText id="hero.cta_browse" label="Hero secondary button" />
+              </Link>
+            </div>
+            <ul className="mt-8 hidden flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground lg:flex">
+              {['home.trust_reserve', 'home.trust_delivery', 'home.trust_languages'].map((key) => (
+                <li key={key} className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" /> <EditableText id={key} />
+                </li>
+              ))}
+            </ul>
+          </motion.div>
         </div>
       </section>
 
       {/* ================= Value strip ================= */}
-      <section className="shop-container mt-16 md:mt-20">
-        <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
+      <section className="shop-container mt-6 md:mt-20">
+        <ul className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-3">
           {values.map(({ icon: Icon, key }) => (
-            <li key={key} className="flex items-center gap-3 rounded-2xl bg-muted/60 px-4 py-4">
+            <li key={key} className="flex items-center gap-2.5 rounded-2xl bg-muted/60 px-3 py-3 md:gap-3 md:px-4 md:py-4">
               <Icon size={20} className="shrink-0 text-primary" />
-              <EditableText id={key} className="text-sm font-medium leading-snug" />
+              <EditableText id={key} className="text-[13px] font-medium leading-snug md:text-sm" />
             </li>
           ))}
         </ul>
       </section>
 
       {/* ================= Collections ================= */}
-      <section className="shop-container py-16 md:py-20">
+      <section className="shop-container py-12 md:py-20">
         <motion.div {...fadeUp} className="mb-8">
           <EditableText id="home.collections_eyebrow" as="p" className="eyebrow mb-2" />
           <EditableText id="home.collections_title" as="h2" className="section-title" />
@@ -245,18 +256,18 @@ const Home = () => {
       </section>
 
       {/* ================= Featured ================= */}
-      <section className="shop-container pb-16 md:pb-20">
+      <section className="shop-container pb-12 md:pb-20">
         <RailHeading titleKey="home.featured" subtitleKey="home.featured_subtitle" viewAllTo="/products?featured=true" />
         {featuredLoading ? <ProductGridSkeleton count={4} /> : featuredEmpty ? <EmptyRail /> : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:gap-x-5 lg:grid-cols-4">
-            {featuredData?.slice(0, 8).map((product, i) => <ProductCard key={product.id} product={product} index={i} />)}
+          <div className={rail}>
+            {featuredData?.slice(0, 8).map((product, i) => <div key={product.id} className={railItem}><ProductCard product={product} index={i} /></div>)}
           </div>
         )}
       </section>
 
       {/* ================= Made to measure ================= */}
       <section className="bg-brand-dark text-white dark:bg-card">
-        <div className="shop-container grid gap-10 py-16 md:py-20 lg:grid-cols-12 lg:items-center">
+        <div className="shop-container grid gap-8 py-12 md:gap-10 md:py-20 lg:grid-cols-12 lg:items-center">
           <motion.div {...fadeUp} className="lg:col-span-5">
             <EditableText id="home.measure_eyebrow" as="p" className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-gold" />
             <EditableText id="home.measure_title" as="h2" className="mt-3 font-serif text-3xl font-semibold tracking-tight md:text-4xl" />
@@ -282,23 +293,26 @@ const Home = () => {
       </section>
 
       {/* ================= How to buy ================= */}
-      <section className="shop-container py-16 md:py-20">
+      <section className="shop-container py-12 md:py-20">
         <motion.div {...fadeUp} className="mb-10 text-center">
           <EditableText id="home.how_it_works" as="h2" className="section-title" />
           <EditableText id="home.no_payment" as="p" className="section-lead mx-auto" />
         </motion.div>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-3 md:gap-4">
           <EditableList<Step> id="home.steps" label="How it works steps" fields={STEP_FIELDS} fallback={steps}>
             {(step, i) => (
-              <motion.div key={i} {...fadeUp} transition={{ delay: i * 0.08 }} className="surface p-6">
-                <div className="flex items-center justify-between">
-                  <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <EditableIcon id={`home.steps.${i}.icon`} fallback={step.icon} size={22} />
+              <motion.div key={i} {...fadeUp} transition={{ delay: i * 0.08 }} className="surface flex gap-4 p-4 md:block md:p-6">
+                <div className="flex shrink-0 items-center justify-between">
+                  <span className="relative flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary md:h-12 md:w-12">
+                    <EditableIcon id={`home.steps.${i}.icon`} fallback={step.icon} size={21} />
+                    <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-foreground text-[10px] font-bold text-background md:hidden">{i + 1}</span>
                   </span>
-                  <span className="font-serif text-3xl font-semibold text-muted-foreground/30">0{i + 1}</span>
+                  <span className="hidden font-serif text-3xl font-semibold text-muted-foreground/30 md:inline">0{i + 1}</span>
                 </div>
-                <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{step.desc}</p>
+                <div>
+                  <h3 className="text-base font-semibold md:mt-5 md:text-lg">{step.title}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground md:mt-1.5">{step.desc}</p>
+                </div>
               </motion.div>
             )}
           </EditableList>
@@ -306,25 +320,25 @@ const Home = () => {
       </section>
 
       {/* ================= New arrivals ================= */}
-      <section className="shop-container pb-16 md:pb-20">
+      <section className="shop-container pb-12 md:pb-20">
         <RailHeading titleKey="home.new_arrivals" subtitleKey="home.new_arrivals_subtitle" viewAllTo="/products?newArrival=true" />
         {newLoading ? <ProductGridSkeleton count={4} /> : newArrivalsEmpty ? <EmptyRail /> : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:gap-x-5 lg:grid-cols-4">
-            {newArrivalsData?.slice(0, 8).map((product, i) => <ProductCard key={product.id} product={product} index={i} />)}
+          <div className={rail}>
+            {newArrivalsData?.slice(0, 8).map((product, i) => <div key={product.id} className={railItem}><ProductCard product={product} index={i} /></div>)}
           </div>
         )}
       </section>
 
       {/* ================= Testimonials ================= */}
       {testimonials && testimonials.length > 0 && (
-        <section className="bg-muted/50 py-16 md:py-20">
+        <section className="bg-muted/50 py-12 md:py-20">
           <div className="shop-container">
             <motion.div {...fadeUp} className="mb-10 text-center">
               <EditableText id="home.testimonials" as="h2" className="section-title" />
             </motion.div>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-2 [scrollbar-width:none] sm:-mx-6 sm:px-6 md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden">
               {testimonials.slice(0, 3).map((testimonial, i) => (
-                <motion.figure key={testimonial.id} {...fadeUp} transition={{ delay: i * 0.08 }} className="surface flex flex-col p-6">
+                <motion.figure key={testimonial.id} {...fadeUp} transition={{ delay: i * 0.08 }} className="surface flex w-[85%] shrink-0 snap-start flex-col p-5 md:w-auto md:p-6">
                   <div className="flex gap-0.5 text-amber-400" role="img" aria-label={`${testimonial.rating} / 5`}>
                     {Array.from({ length: testimonial.rating }).map((_, j) => <Star key={j} size={15} fill="currentColor" strokeWidth={0} />)}
                   </div>
@@ -341,7 +355,7 @@ const Home = () => {
       )}
 
       {/* ================= Visit us ================= */}
-      <section className="shop-container py-16 md:py-20">
+      <section className="shop-container py-12 md:py-20">
         <div className="grid items-center gap-10 lg:grid-cols-2">
           <motion.div {...fadeUp}>
             <EditableText id="home.location_eyebrow" as="p" className="eyebrow mb-2" />

@@ -107,7 +107,7 @@ const About = () => {
                   to="/products"
                   className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors shadow-sm"
                 >
-                  <EditableText id="common.view_all" /> <ArrowRight size={16} />
+                  <EditableText id="about.cta_shop" /> <ArrowRight size={16} />
                 </Link>
                 <Link
                   to="/contact"

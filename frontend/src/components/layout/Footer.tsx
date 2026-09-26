@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Phone, Mail, Clock, Facebook, Instagram, Twitter, MessageCircle, ArrowRight } from 'lucide-react';
 import {
@@ -25,6 +25,8 @@ const SOCIALS = [
 const Footer = () => {
   const { t } = useTranslation();
   const year = new Date().getFullYear();
+  // Checkout keeps the page quiet: no sales band under the payment form.
+  const showHelp = !useLocation().pathname.startsWith('/checkout');
 
   // Driven by the same flags as checkout, so the footer never advertises a
   // payment method the shop cannot actually take.
@@ -40,24 +42,24 @@ const Footer = () => {
   return (
     <footer className="border-t border-border bg-card">
       {/* Help band: the shop sells by conversation as much as by catalogue. */}
-      <div className="border-b border-border">
-        <div className="shop-container flex flex-col items-start justify-between gap-5 py-10 md:flex-row md:items-center">
+      {showHelp && <div className="border-b border-border">
+        <div className="shop-container flex flex-col items-start justify-between gap-5 py-8 md:flex-row md:items-center md:py-10">
           <div className="max-w-xl">
             <EditableText id="footer.help_title" as="h3" className="font-serif text-2xl font-semibold tracking-tight" />
             <EditableText id="footer.help_desc" as="p" multiline className="mt-2 text-sm leading-relaxed text-muted-foreground" />
           </div>
-          <div className="flex flex-wrap gap-3">
-            <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="btn bg-[#1f8f4e] text-white hover:bg-[#197a42]">
+          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:gap-3">
+            <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="btn bg-[#1f8f4e] px-4 text-white hover:bg-[#197a42]">
               <MessageCircle size={17} /> <EditableText id="home.whatsapp_us" />
             </a>
-            <a href={`tel:+${BUSINESS_PHONE_CLEAN}`} className="btn btn-outline">
-              <Phone size={16} /> {BUSINESS_PHONE}
+            <a href={`tel:+${BUSINESS_PHONE_CLEAN}`} className="btn btn-outline px-4">
+              <Phone size={16} /> <span className="sm:hidden">{t('footer.call', { defaultValue: 'Call us' })}</span><span className="hidden sm:inline">{BUSINESS_PHONE}</span>
             </a>
           </div>
         </div>
-      </div>
+      </div>}
 
-      <div className="shop-container grid grid-cols-2 gap-x-6 gap-y-10 py-12 md:grid-cols-4 lg:grid-cols-12">
+      <div className="shop-container grid grid-cols-2 gap-x-6 gap-y-8 py-10 md:grid-cols-4 md:gap-y-10 md:py-12 lg:grid-cols-12">
         {/* Brand */}
         <div className="col-span-2 md:col-span-4 lg:col-span-4">
           <Link to="/" className="inline-flex items-center gap-2.5">
@@ -164,11 +166,13 @@ const Footer = () => {
               </span>
             ))}
           </div>
-          <p>
-            © {year} New Textile Social Company Limited (DENISE). <EditableText id="footer.rights" />{' '}
-            <span className="whitespace-nowrap">· <EditableText id="footer.made_in" /></span>{' '}
-            <span className="whitespace-nowrap">· <EditableText id="footer.made_by" /> <span className="font-medium text-foreground/80">Malhottech Company Ltd</span></span>
-          </p>
+          <div className="space-y-1 md:text-right">
+            <p>© {year} New Textile Social Company Limited (DENISE). <EditableText id="footer.rights" /></p>
+            <p>
+              <EditableText id="footer.made_in" /> · <EditableText id="footer.made_by" />{' '}
+              <span className="font-medium text-foreground/80">Malhottech Company Ltd</span>
+            </p>
+          </div>
         </div>
       </div>
     </footer>
