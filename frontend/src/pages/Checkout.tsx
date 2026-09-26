@@ -60,7 +60,9 @@ const SAME_DAY_SURCHARGE = 1000;
 
 const field =
   'w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30';
-const card = 'bg-card border border-border rounded-2xl p-5 sm:p-6';
+// A <legend> sits on the fieldset's top border by default, so the section
+// titles collided with the card edge. Floating it puts it inside the card.
+const card = 'bg-card border border-border rounded-2xl p-5 sm:p-6 [&>legend]:float-left [&>legend]:w-full [&>legend+*]:clear-both';
 
 const money = (value: number) => `${Math.round(value).toLocaleString()} RWF`;
 
