@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Heart, ShoppingBag, Share2, Eye, SlidersHorizontal } from 'lucide-react';
+import { Heart, ShoppingBag, Ruler } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Product } from '../../types';
 import { useCartStore, useAuthStore } from '../../store';
 import { wishlistApi } from '../../lib/api';
-import { defaultConfiguration, validate } from '../../lib/productOptions';
+import { defaultConfiguration, detectKind, validate } from '../../lib/productOptions';
+import { categoryLabel, priceLabel } from '../../lib/catalog';
 import { toast } from '../ui/Toaster';
 import { cn } from '../../lib/utils';
 
@@ -23,126 +24,138 @@ const ProductCard = ({ product, index = 0 }: ProductCardProps) => {
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
 
-  const primaryImage = product.images?.find((i) => i.isPrimary) || product.images?.[0];
+  const images = [...(product.images ?? [])].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary));
+  const [primary, secondary] = images;
+  const href = `/products/${product.slug}`;
 
-  // A curtain needs measurements and a fabric needs a length before it can be
-  // priced, so those go to the product page to be configured. Only a product
-  // whose defaults already validate can be added straight from the grid.
+  // A curtain needs measurements and a fabric a length before it can be priced,
+  // so those go to the product page. Only a product whose defaults already
+  // validate is added straight from the grid.
   const needsConfiguration = Object.keys(validate(product, defaultConfiguration(product))).length > 0;
+  const isCurtain = detectKind(product) === 'CURTAIN';
+  const actionLabel = needsConfiguration
+    ? (isCurtain ? t('products.measure_order', { defaultValue: 'Measure & order' }) : t('products.choose_options', { defaultValue: 'Choose options' }))
+    : t('products.add_to_cart');
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAction = (e: React.MouseEvent) => {
     e.preventDefault();
     if (needsConfiguration) {
-      navigate(`/products/${product.slug}`);
+      navigate(href);
       return;
     }
     addLine(product, defaultConfiguration(product), 1);
-    toast({
-      title: t('cart.added', { defaultValue: 'Added to cart' }),
-      description: product.name,
-      variant: 'success',
-    });
+    toast({ title: t('cart.added', { defaultValue: 'Added to cart' }), description: product.name, variant: 'success' });
   };
 
   const handleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: { pathname: href } } });
+      return;
+    }
     setWishlistLoading(true);
     try {
-      if (wishlisted) {
-        await wishlistApi.remove(product.id);
-        setWishlisted(false);
-      } else {
-        await wishlistApi.add(product.id);
-        setWishlisted(true);
-      }
-    } finally {
+      if (wishlisted) await wishlistApi.remove(product.id);
+      else await wishlistApi.add(product.id);
+      setWishlisted((v) => !v);
+    } catch { /* leave the heart unchanged */ } finally {
       setWishlistLoading(false);
     }
   };
 
-  const handleShare = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (navigator.share) {
-      navigator.share({ title: product.name, url: `/products/${product.slug}` });
-    } else {
-      navigator.clipboard.writeText(window.location.origin + `/products/${product.slug}`);
-    }
-  };
+  const hasDiscount = !!(product.salePrice && product.price && product.salePrice < product.price);
+  const badge = !product.isAvailable
+    ? { text: t('products.out_of_stock'), cls: 'bg-foreground/80 text-background' }
+    : hasDiscount || product.isOnPromotion
+      ? { text: product.promotionText || t('products.promo'), cls: 'bg-primary text-primary-foreground' }
+      : product.isNewArrival
+        ? { text: t('products.new'), cls: 'bg-background text-foreground' }
+        : null;
+  const ActionIcon = needsConfiguration && isCurtain ? Ruler : ShoppingBag;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05, duration: 0.4 }}
+      transition={{ delay: Math.min(index, 8) * 0.04, duration: 0.35 }}
       className="h-full"
     >
-      <Link to={`/products/${product.slug}`} className="group flex h-full flex-col bg-card rounded-xl border border-border overflow-hidden hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-        {/* Image — fixed ratio so every card's image is identical in size */}
-        <div className="relative overflow-hidden bg-muted aspect-[4/3] shrink-0">
-          {primaryImage ? (
-            <img
-              src={primaryImage.url}
-              alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-              loading="lazy"
-            />
+      <Link to={href} className="group flex h-full flex-col focus-visible:outline-none">
+        <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-muted ring-offset-2 ring-offset-background group-focus-visible:ring-2 group-focus-visible:ring-ring">
+          {primary ? (
+            <>
+              <img
+                src={primary.url}
+                alt={primary.altText || product.name}
+                loading="lazy"
+                className={cn('h-full w-full object-cover transition-all duration-700 group-hover:scale-[1.04]', secondary && 'group-hover:opacity-0')}
+              />
+              {secondary && (
+                <img src={secondary.url} alt="" loading="lazy" aria-hidden="true"
+                  className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
+              )}
+            </>
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-muted">
-              <span className="text-4xl">🧵</span>
-            </div>
+            <div className="flex h-full w-full items-center justify-center font-serif text-5xl text-muted-foreground/30">D</div>
           )}
 
-          {/* Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1">
-            {product.isNewArrival && <span className="px-2 py-0.5 bg-green-500 text-white text-xs font-semibold rounded-full">{t('products.new')}</span>}
-            {product.isFeatured && <span className="px-2 py-0.5 bg-primary text-white text-xs font-semibold rounded-full">{t('products.featured')}</span>}
-            {product.isOnPromotion && <span className="px-2 py-0.5 bg-orange-500 text-white text-xs font-semibold rounded-full">{t('products.promo')}</span>}
-            {!product.isAvailable && <span className="px-2 py-0.5 bg-gray-500 text-white text-xs font-semibold rounded-full">{t('products.out_of_stock')}</span>}
-          </div>
+          {badge && (
+            <span className={cn('absolute left-3 top-3 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider shadow-sm', badge.cls)}>
+              {badge.text}
+            </span>
+          )}
 
-          {/* Actions overlay */}
-          <div className="absolute top-2 right-2 flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-            <button onClick={handleWishlist} disabled={wishlistLoading}
-              className={cn('w-8 h-8 rounded-full flex items-center justify-center bg-card shadow transition-colors', wishlisted ? 'text-red-500' : 'text-muted-foreground hover:text-red-500')}>
-              <Heart size={14} fill={wishlisted ? 'currentColor' : 'none'} />
-            </button>
-            <button onClick={handleShare} className="w-8 h-8 rounded-full bg-card shadow flex items-center justify-center text-muted-foreground hover:text-primary transition-colors">
-              <Share2 size={14} />
-            </button>
-          </div>
+          <button
+            onClick={handleWishlist}
+            disabled={wishlistLoading}
+            aria-label={t('products.save', { defaultValue: 'Save' })}
+            aria-pressed={wishlisted}
+            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 text-foreground/70 shadow-sm backdrop-blur transition-colors hover:text-primary"
+          >
+            <Heart size={16} className={cn(wishlisted && 'fill-primary text-primary')} />
+          </button>
 
-          {/* Colors */}
-          {product.colors && product.colors.length > 0 && (
-            <div className="absolute bottom-2 left-2 flex gap-1">
-              {product.colors.slice(0, 5).map((c) => (
-                <div key={c.id} className="w-4 h-4 rounded-full border border-white shadow-sm" style={{ backgroundColor: c.hexCode || '#ccc' }} title={c.name} />
-              ))}
-              {product.colors.length > 5 && <span className="text-xs text-white bg-black/50 px-1 rounded">+{product.colors.length - 5}</span>}
-            </div>
+          {/* Quick action: slides up on hover on desktop; a round button on touch screens. */}
+          {product.isAvailable && (
+            <>
+              <button
+                onClick={handleAction}
+                className="absolute inset-x-3 bottom-3 hidden translate-y-3 items-center justify-center gap-2 rounded-full bg-background/95 py-2.5 text-xs font-semibold opacity-0 shadow-lift backdrop-blur transition-all duration-300 hover:bg-foreground hover:text-background group-hover:translate-y-0 group-hover:opacity-100 md:flex"
+              >
+                <ActionIcon size={14} /> {actionLabel}
+              </button>
+              <button
+                onClick={handleAction}
+                aria-label={actionLabel}
+                className="absolute bottom-3 right-3 flex h-10 w-10 items-center justify-center rounded-full bg-background/95 shadow-lift md:hidden"
+              >
+                <ActionIcon size={16} />
+              </button>
+            </>
           )}
         </div>
 
-        {/* Content — reserved heights + bottom-pinned buttons keep every card identical */}
-        <div className="flex flex-1 flex-col p-4">
-          <p className="text-xs text-muted-foreground mb-1 line-clamp-1 min-h-[1rem]">{product.category?.name || ' '}</p>
-          <h3 className="font-medium text-sm leading-snug mb-1 line-clamp-2 min-h-[2.5rem] group-hover:text-primary transition-colors">{product.name}</h3>
-          <p className="text-sm font-semibold text-primary mb-3 line-clamp-1 min-h-[1.25rem]">
-            {product.priceRange || (product.price ? `${product.price.toLocaleString()} ${product.currency ?? 'RWF'}` : ' ')}
-          </p>
-
-          <div className="mt-auto flex gap-2">
-            <button onClick={handleAddToCart} disabled={!product.isAvailable}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-primary text-primary-foreground text-xs font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-              {needsConfiguration ? <SlidersHorizontal size={13} /> : <ShoppingBag size={13} />}
-              {needsConfiguration
-                ? t('products.configure', { defaultValue: 'Configure' })
-                : t('products.add_to_cart')}
-            </button>
-            <Link to={`/products/${product.slug}`} className="w-9 h-9 flex items-center justify-center border border-border rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground">
-              <Eye size={14} />
-            </Link>
+        <div className="flex flex-1 flex-col px-0.5 pt-3">
+          {product.category && (
+            <p className="mb-1 line-clamp-1 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              {categoryLabel(product.category, t)}
+            </p>
+          )}
+          <h3 className="line-clamp-2 text-sm font-medium leading-snug transition-colors group-hover:text-primary md:text-[15px]">{product.name}</h3>
+          <div className="mt-1.5 flex flex-wrap items-baseline gap-x-2">
+            <span className="text-sm font-semibold">{priceLabel(product, t)}</span>
+            {hasDiscount && product.price && (
+              <span className="text-xs text-muted-foreground line-through">{product.price.toLocaleString()}</span>
+            )}
           </div>
+          {product.colors && product.colors.length > 1 && (
+            <div className="mt-2 flex items-center gap-1">
+              {product.colors.slice(0, 5).map((c) => (
+                <span key={c.id} title={c.name} className="h-3.5 w-3.5 rounded-full border border-black/10" style={{ backgroundColor: c.hexCode || '#ccc' }} />
+              ))}
+              {product.colors.length > 5 && <span className="text-[11px] text-muted-foreground">+{product.colors.length - 5}</span>}
+            </div>
+          )}
         </div>
       </Link>
     </motion.div>

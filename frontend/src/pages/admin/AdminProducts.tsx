@@ -169,7 +169,9 @@ const AdminProducts = () => {
         <select value={category} onChange={(e) => { setCategory(e.target.value); setPage(1); }}
           className="px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
           <option value="">{t('admin.products.all_categories')}</option>
-          {categories?.map((c) => <option key={c.id} value={c.slug}>{c.name}</option>)}
+          {categories?.flatMap((c) => [c, ...(c.children ?? [])]).map((c) => (
+            <option key={c.id} value={c.slug}>{categories.some((top) => top.id === c.id) ? c.name : `\u00a0\u00a0— ${c.name}`}</option>
+          ))}
         </select>
       </div>
 
@@ -271,7 +273,10 @@ const AdminProducts = () => {
                 <select required value={form.categoryId} onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
                   className="w-full px-3 py-2 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30">
                   <option value="">{t('admin.products.select_category')}</option>
-                  {categories?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  {/* Sub-categories (e.g. Hard / Soft Curtains) are listed under their parent. */}
+                  {categories?.flatMap((c) => [c, ...(c.children ?? [])]).map((c) => (
+                    <option key={c.id} value={c.id}>{categories.some((top) => top.id === c.id) ? c.name : `\u00a0\u00a0— ${c.name}`}</option>
+                  ))}
                 </select>
               </div>
 

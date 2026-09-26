@@ -5,7 +5,7 @@ import { Product } from '../../types';
 import {
   Configuration, ConfigurationErrors, FULLNESS_CHOICES, HEADER_TYPES, LINING_TYPES,
   MAX_DIMENSION_CM, MAX_METERS, MAX_QUANTITY, PANEL_LAYOUTS, OptionChoice,
-  defaultConfiguration, fieldsFor, priceConfiguration, validate,
+  defaultConfiguration, fieldsFor, priceConfiguration, validate, computeRodLengthCm, ROD_OVERHANG_CM,
 } from '../../lib/productOptions';
 import { cn } from '../../lib/utils';
 
@@ -227,6 +227,29 @@ const ProductConfigurator = ({
           <p className="flex items-start gap-1.5 text-xs text-muted-foreground mt-2">
             <Info size={12} className="shrink-0 mt-0.5" />
             {tr('config.measure_hint', 'Measure the rail or track width, and from the rail down to where the curtain should end. Not sure? Order anyway — our team confirms every measurement before cutting.')}
+          </p>
+        </div>
+      )}
+
+      {/* ── Rod sized from the window ──────────────────────────────────────── */}
+      {fields.rod && (
+        <div data-config-error={!!visibleErrors.widthCm}>
+          <label htmlFor="config-rod-width" className="text-sm font-medium block mb-1.5">
+            {tr('curtain.window_width', 'Window width')} (cm) <span className="text-destructive">*</span>
+          </label>
+          <input
+            id="config-rod-width" type="number" inputMode="decimal" min={1} max={MAX_DIMENSION_CM} step="1"
+            value={config.widthCm ?? ''} placeholder="200"
+            onChange={(e) => set('widthCm', parseDimension(e.target.value, MAX_DIMENSION_CM))}
+            className={cn(fieldClass, visibleErrors.widthCm && 'border-destructive')}
+            aria-invalid={!!visibleErrors.widthCm}
+          />
+          <FieldError message={visibleErrors.widthCm} />
+          <p className="flex items-start gap-1.5 text-xs text-muted-foreground mt-2">
+            <Info size={12} className="shrink-0 mt-0.5" />
+            {config.widthCm
+              ? tr('curtain.rod_length_result', 'Rod length: {{m}} m').replace('{{m}}', String(computeRodLengthCm(config.widthCm) / 100))
+              : tr('curtain.rod_hint', 'We add {{cm}} cm on each side so the curtains clear the window.').replace('{{cm}}', String(ROD_OVERHANG_CM))}
           </p>
         </div>
       )}

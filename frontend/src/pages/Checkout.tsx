@@ -68,7 +68,7 @@ const money = (value: number) => `${Math.round(value).toLocaleString()} RWF`;
 const LineSummary = ({ item, compact = false }: { item: CartItem; compact?: boolean }) => {
   const { t } = useTranslation();
   const image = item.product.images?.find((i) => i.isPrimary) || item.product.images?.[0];
-  const specs = describeConfiguration(item.config);
+  const specs = describeConfiguration(item.config, (k, d) => t(k, { defaultValue: d }));
   return (
     <div className="flex gap-3">
       <div className={cn('bg-muted rounded-lg overflow-hidden shrink-0', compact ? 'w-10 h-10' : 'w-14 h-14')}>
@@ -375,6 +375,7 @@ const Checkout = () => {
           widthCm: line.config.widthCm,
           dropCm: line.config.dropCm,
           meters: line.config.meters,
+          setId: line.config.setId,
         },
       })),
     };

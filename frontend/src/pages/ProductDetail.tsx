@@ -4,66 +4,85 @@ import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Heart, Share2, ChevronLeft, ZoomIn, ChevronRight,
-  Star, ThumbsUp, CheckCircle, Truck, Store,
+  Heart, Share2, ChevronLeft, ChevronRight, Star, ThumbsUp, CheckCircle, Truck, Store,
+  Smartphone, MessageCircle, ChevronDown, X, Expand,
 } from 'lucide-react';
-import { productsApi, reviewsApi } from '../lib/api';
-import { useCartStore } from '../store';
+import { productsApi, reviewsApi, wishlistApi } from '../lib/api';
+import { useAuthStore, useCartStore } from '../store';
 import { Product, ProductReview } from '../types';
-import { Configuration } from '../lib/productOptions';
+import { Configuration, curtainRole, detectKind } from '../lib/productOptions';
+import { WHATSAPP_LINK } from '../lib/config';
 import ProductCard from '../components/products/ProductCard';
 import ProductConfigurator from '../components/products/ProductConfigurator';
+import CurtainBuilder, { BuiltLine } from '../components/products/CurtainBuilder';
 import LoadingSpinner from '../components/ui/LoadingSpinner';
 import { toast } from '../components/ui/Toaster';
 import Seo from '../components/Seo';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { cn } from '../lib/utils';
-import { EditableText } from '../cms';
+import { categoryLabel, priceLabel } from '../lib/catalog';
 import { useCustomerIdentity } from '../lib/useCustomerIdentity';
+import { EditableText } from '../cms';
 
 const StarRating = ({ rating, size = 14 }: { rating: number; size?: number }) => (
   <div className="flex gap-0.5">
     {[1, 2, 3, 4, 5].map((s) => (
-      <Star
-        key={s} size={size}
-        className={s <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30'}
-      />
+      <Star key={s} size={size} className={s <= rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'} />
     ))}
   </div>
 );
 
-const ReviewCard = ({ review }: { review: ProductReview }) => (
-  <div className="border border-border rounded-xl p-4">
-    <div className="flex items-start justify-between gap-3 mb-2">
-      <div>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="font-medium text-sm">{review.customerName}</span>
-          {review.isVerified && (
-            <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400">
-              <CheckCircle size={11} /> Verified
-            </span>
-          )}
+const ReviewCard = ({ review }: { review: ProductReview }) => {
+  const { t, i18n } = useTranslation();
+  return (
+    <div className="surface p-5">
+      <div className="mb-2 flex items-start justify-between gap-3">
+        <div>
+          <div className="mb-1 flex items-center gap-2">
+            <span className="text-sm font-medium">{review.customerName}</span>
+            {review.isVerified && (
+              <span className="flex items-center gap-1 text-xs text-green-700 dark:text-green-400">
+                <CheckCircle size={11} /> {t('reviews.verified', { defaultValue: 'Verified' })}
+              </span>
+            )}
+          </div>
+          <StarRating rating={review.rating} />
         </div>
-        <StarRating rating={review.rating} />
+        <span className="shrink-0 text-xs text-muted-foreground">
+          {new Date(review.createdAt).toLocaleDateString(i18n.language, { year: 'numeric', month: 'short', day: 'numeric' })}
+        </span>
       </div>
-      <span className="text-xs text-muted-foreground shrink-0">
-        {new Date(review.createdAt).toLocaleDateString('en-RW', { year: 'numeric', month: 'short', day: 'numeric' })}
-      </span>
+      {review.title && <p className="mb-1 text-sm font-medium">{review.title}</p>}
+      <p className="text-sm text-muted-foreground">{review.message}</p>
+      {review.helpfulCount > 0 && (
+        <div className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+          <ThumbsUp size={11} /> {t('reviews.helpful', { defaultValue: '{{count}} found this helpful', count: review.helpfulCount })}
+        </div>
+      )}
     </div>
-    {review.title && <p className="font-medium text-sm mb-1">{review.title}</p>}
-    <p className="text-sm text-muted-foreground">{review.message}</p>
-    {review.helpfulCount > 0 && (
-      <div className="flex items-center gap-1 mt-3 text-xs text-muted-foreground">
-        <ThumbsUp size={11} /> {review.helpfulCount} found this helpful
-      </div>
-    )}
-  </div>
-);
+  );
+};
+
+/** Collapsible detail section — keeps the buy box short on phones. */
+const Detail = ({ title, children, defaultOpen = false }: { title: string; children: React.ReactNode; defaultOpen?: boolean }) => {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="border-b border-border">
+      <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex w-full items-center justify-between py-4 text-left text-sm font-semibold">
+        {title} <ChevronDown size={16} className={cn('transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && <div className="pb-5 text-sm leading-relaxed text-muted-foreground">{children}</div>}
+    </div>
+  );
+};
+
+const inputClass = 'w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20';
 
 const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { t } = useTranslation();
   const { addLine, updateLine, items } = useCartStore();
+  const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   // `?line=` means the customer came from the cart to change a line they
@@ -72,15 +91,17 @@ const ProductDetail = () => {
   const editingLine = items.find((i) => i.id === editingLineId);
   const [selectedImage, setSelectedImage] = useState(0);
   const [zoomed, setZoomed] = useState(false);
-  const [tab, setTab] = useState<'description' | 'specs' | 'materials' | 'reviews'>('description');
+  const [wishlisted, setWishlisted] = useState(false);
   const [reviewForm, setReviewForm] = useState({ rating: 5, title: '', message: '', name: '' });
+  const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const identity = useCustomerIdentity();
 
   useEffect(() => {
     if (!identity.isSignedIn) return;
     setReviewForm((f) => (f.name ? f : { ...f, name: identity.name }));
   }, [identity]);
-  const [reviewSubmitted, setReviewSubmitted] = useState(false);
+
+  useEffect(() => { setSelectedImage(0); }, [slug]);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['product', slug],
@@ -95,21 +116,21 @@ const ProductDetail = () => {
   });
 
   if (isLoading) return (
-    <div className="min-h-screen flex items-center justify-center">
-      <LoadingSpinner size="lg" />
-    </div>
+    <div className="flex min-h-[60vh] items-center justify-center"><LoadingSpinner size="lg" /></div>
   );
   if (error || !data) return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-      <div className="text-5xl">😕</div>
-      <h2 className="text-xl font-semibold">Product not found</h2>
-      <Link to="/products" className="text-primary hover:underline">← Back to Products</Link>
+    <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-4 text-center">
+      <h2 className="font-serif text-2xl font-semibold">{t('products.not_found', { defaultValue: 'Product not found' })}</h2>
+      <Link to="/products" className="btn btn-outline">← {t('products.back', { defaultValue: 'Back to products' })}</Link>
     </div>
   );
 
   const product = data;
+  const images = product.images ?? [];
   const reviews = reviewsData ?? product.reviews ?? [];
   const linesForProduct = items.filter((i) => i.product.id === product.id).length;
+  const isCurtain = detectKind(product) === 'CURTAIN';
+  const useBuilder = isCurtain && !editingLine;
 
   const handleConfigured = (config: Configuration, quantity: number) => {
     if (editingLine) {
@@ -119,19 +140,45 @@ const ProductDetail = () => {
       return;
     }
     addLine(product, config, quantity);
+    toast({ title: t('cart.added', { defaultValue: 'Added to cart' }), description: product.name, variant: 'success' });
+  };
+
+  // Buy now: add the configured line, then jump straight to checkout. Existing
+  // cart items still come along — it's the same basket, just a faster path.
+  const handleBuyNow = (config: Configuration, quantity: number) => {
+    addLine(product, config, quantity);
+    navigate('/checkout');
+  };
+
+  const handleBuilt = (lines: BuiltLine[], buyNow: boolean) => {
+    lines.forEach((l) => addLine(l.product, l.config, l.quantity));
+    if (buyNow) {
+      navigate('/checkout');
+      return;
+    }
     toast({
       title: t('cart.added', { defaultValue: 'Added to cart' }),
-      description: product.name,
+      description: lines.map((l) => l.product.name).join(' + '),
       variant: 'success',
     });
   };
 
-  // Buy now: add the configured line, then jump straight to checkout instead of
-  // the cart. Existing cart items still come along — it's the same basket, just
-  // a faster path to payment.
-  const handleBuyNow = (config: Configuration, quantity: number) => {
-    addLine(product, config, quantity);
-    navigate('/checkout');
+  const handleWishlist = async () => {
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: { pathname: `/products/${product.slug}` } } });
+      return;
+    }
+    try {
+      if (wishlisted) await wishlistApi.remove(product.id);
+      else await wishlistApi.add(product.id);
+      setWishlisted((v) => !v);
+    } catch { /* keep the heart as it was */ }
+  };
+
+  const handleShare = () => {
+    const url = window.location.href;
+    if (navigator.share) navigator.share({ title: product.name, url }).catch(() => {});
+    else navigator.clipboard?.writeText(url).then(() => toast({ title: t('products.link_copied', { defaultValue: 'Link copied' }) }));
   };
 
   const handleSubmitReview = async (e: React.FormEvent) => {
@@ -144,26 +191,32 @@ const ProductDetail = () => {
         message: reviewForm.message,
         customerName: reviewForm.name,
       });
-      setReviewSubmitted(true);
-    } catch {
-      // silently fail — review pending moderation
-      setReviewSubmitted(true);
-    }
+    } catch { /* reviews are moderated either way */ }
+    setReviewSubmitted(true);
   };
 
   const reviewStats = product.reviewStats ?? (
-    reviews.length > 0
-      ? { avg: reviews.reduce((s, r) => s + r.rating, 0) / reviews.length, count: reviews.length }
-      : null
+    reviews.length > 0 ? { avg: reviews.reduce((s, r) => s + r.rating, 0) / reviews.length, count: reviews.length } : null
   );
 
-  const displayPrice = product.salePrice ?? product.price;
-  const hasDiscount = product.salePrice && product.price && product.salePrice < product.price;
+  const hasDiscount = !!(product.salePrice && product.price && product.salePrice < product.price);
+  const seoImage = images.find((i) => i.isPrimary)?.url || images[0]?.url;
+  const cat = product.category;
+  // Hidden when the category already says it ("Hard Curtains (Rideau de nuit)").
+  const roleBadge = isCurtain && !/hard-curtains|soft-curtains/.test(cat?.slug ?? '')
+    ? (curtainRole(product) === 'SOFT'
+        ? t('curtain.role_soft', { defaultValue: 'Day curtain (rideau du jour)' })
+        : t('curtain.role_hard', { defaultValue: 'Night curtain (rideau de nuit)' }))
+    : null;
 
-  const seoImage = product.images?.find((i) => i.isPrimary)?.url || product.images?.[0]?.url;
+  const trust = [
+    { icon: Truck, text: t('config.badge_delivery', { defaultValue: 'Delivery across Rwanda' }), show: product.canBeDelivered },
+    { icon: Smartphone, text: t('products.trust_momo', { defaultValue: 'Pay with MTN MoMo' }), show: true },
+    { icon: Store, text: t('config.badge_pickup', { defaultValue: 'Collect from our Kigali shop' }), show: true },
+  ].filter((x) => x.show);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="shop-container py-6 md:py-10">
       <Seo
         path={`/products/${product.slug}`}
         title={`${product.name} — DENISE Textile Rwanda`}
@@ -177,13 +230,13 @@ const ProductDetail = () => {
           image: seoImage || [],
           description: product.description || product.name,
           brand: { '@type': 'Brand', name: 'DENISE Textile' },
-          ...(product.price
+          ...((product.salePrice ?? product.price ?? product.pricePerMeter)
             ? {
                 offers: {
                   '@type': 'Offer',
-                  price: product.price,
+                  price: product.salePrice ?? product.price ?? product.pricePerMeter,
                   priceCurrency: product.currency || 'RWF',
-                  availability: 'https://schema.org/InStock',
+                  availability: product.isAvailable ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
                   url: `https://deniseshop.com/products/${product.slug}`,
                 },
               }
@@ -192,330 +245,239 @@ const ProductDetail = () => {
       />
       <Breadcrumbs items={[
         { label: t('nav.products'), to: '/products' },
-        ...(product.category ? [{ label: product.category.name, to: `/products?category=${product.category.slug}` }] : []),
+        ...(cat ? [{ label: categoryLabel(cat, t), to: `/products?category=${cat.slug}` }] : []),
         { label: product.name },
       ]} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-16">
-        {/* Images */}
-        <div>
-          <div
-            className="relative aspect-square bg-muted rounded-2xl overflow-hidden mb-3 cursor-zoom-in"
-            onClick={() => setZoomed(true)}
-          >
-            {product.images && product.images.length > 0 ? (
-              <motion.img
-                key={selectedImage} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                src={product.images[selectedImage]?.url} alt={product.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-6xl">🧵</div>
-            )}
-            {product.images && product.images.length > 1 && (
-              <>
+      <div className="mt-4 grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-12">
+        {/* ── Gallery ─────────────────────────────────────────────────────── */}
+        <div className="lg:col-span-7">
+          <div className="lg:sticky lg:top-40">
+            <div className="flex flex-col-reverse gap-3 md:flex-row">
+              {images.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto md:w-20 md:flex-col md:overflow-visible">
+                  {images.map((img, i) => (
+                    <button
+                      key={img.id}
+                      onClick={() => setSelectedImage(i)}
+                      aria-label={`${product.name} ${i + 1}`}
+                      className={cn('aspect-[4/5] w-16 shrink-0 overflow-hidden rounded-lg border-2 transition-colors md:w-full',
+                        i === selectedImage ? 'border-foreground' : 'border-transparent opacity-70 hover:opacity-100')}
+                    >
+                      <img src={img.url} alt="" className="h-full w-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+              <div className="relative flex-1">
                 <button
-                  onClick={(e) => { e.stopPropagation(); setSelectedImage((s) => (s - 1 + product.images.length) % product.images.length); }}
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow hover:bg-white transition-colors"
+                  type="button"
+                  className="group relative block aspect-[4/5] w-full cursor-zoom-in overflow-hidden rounded-2xl bg-muted"
+                  onClick={() => images.length > 0 && setZoomed(true)}
+                  aria-label={t('products.zoom', { defaultValue: 'Zoom' })}
                 >
-                  <ChevronLeft size={16} />
+                  {images.length > 0 ? (
+                    <motion.img
+                      key={selectedImage} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                      src={images[selectedImage]?.url} alt={images[selectedImage]?.altText || product.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center font-serif text-6xl text-muted-foreground/40">D</div>
+                  )}
+                  {images.length > 0 && (
+                    <span className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-background/90 opacity-0 shadow transition-opacity group-hover:opacity-100">
+                      <Expand size={15} />
+                    </span>
+                  )}
                 </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); setSelectedImage((s) => (s + 1) % product.images.length); }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center shadow hover:bg-white transition-colors"
-                >
-                  <ChevronRight size={16} />
-                </button>
-              </>
-            )}
-            <div className="absolute top-3 right-3 bg-white/80 text-xs px-2 py-1 rounded-lg flex items-center gap-1">
-              <ZoomIn size={12} /> <EditableText id="products.zoom" />
-            </div>
-            {hasDiscount && (
-              <div className="absolute top-3 left-3 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-lg">
-                SALE
+                {images.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => setSelectedImage((s) => (s - 1 + images.length) % images.length)}
+                      aria-label="Previous image"
+                      className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 shadow"
+                    ><ChevronLeft size={18} /></button>
+                    <button
+                      onClick={() => setSelectedImage((s) => (s + 1) % images.length)}
+                      aria-label="Next image"
+                      className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-background/90 shadow"
+                    ><ChevronRight size={18} /></button>
+                  </>
+                )}
+                <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
+                  {hasDiscount && <span className="rounded-full bg-primary px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide text-primary-foreground">{t('products.promo')}</span>}
+                  {product.isNewArrival && <span className="rounded-full bg-background/95 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide">{t('products.new')}</span>}
+                </div>
               </div>
-            )}
-          </div>
-
-          {product.images && product.images.length > 1 && (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {product.images.map((img, i) => (
-                <button key={img.id} onClick={() => setSelectedImage(i)}
-                  className={cn('w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors shrink-0',
-                    i === selectedImage ? 'border-primary' : 'border-border hover:border-primary/50')}>
-                  <img src={img.url} alt="" className="w-full h-full object-cover" />
-                </button>
-              ))}
             </div>
-          )}
+          </div>
         </div>
 
-        {/* Details */}
-        <div>
-          <div className="flex gap-2 mb-2 flex-wrap">
-            {product.isNewArrival && (
-              <span className="px-2 py-0.5 bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300 text-xs font-medium rounded-full">New Arrival</span>
-            )}
-            {product.isFeatured && (
-              <span className="px-2 py-0.5 bg-primary/10 text-primary text-xs font-medium rounded-full">Featured</span>
-            )}
-            {product.isOnPromotion && (
-              <span className="px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300 text-xs font-medium rounded-full">
-                {product.promotionText || 'On Sale'}
-              </span>
-            )}
+        {/* ── Buy box ─────────────────────────────────────────────────────── */}
+        <div className="lg:col-span-5">
+          <div className="flex flex-wrap items-center gap-2">
+            {cat && <Link to={`/products?category=${cat.slug}`} className="eyebrow hover:underline">{categoryLabel(cat, t)}</Link>}
+            {roleBadge && <span className="rounded-full bg-muted px-2.5 py-0.5 text-[11px] font-medium">{roleBadge}</span>}
           </div>
+          <h1 className="mt-2 font-serif text-3xl font-semibold leading-tight tracking-tight md:text-4xl">{product.name}</h1>
 
-          <p className="text-sm text-muted-foreground mb-1">{product.category?.name}</p>
-          <h1 className="font-serif text-2xl md:text-3xl font-bold mb-3">{product.name}</h1>
-
-          {/* Reviews summary */}
           {reviewStats && (
-            <div className="flex items-center gap-3 mb-4">
-              <StarRating rating={Math.round(reviewStats.avg)} size={16} />
-              <span className="text-sm text-muted-foreground">
-                {reviewStats.avg.toFixed(1)} ({reviewStats.count} review{reviewStats.count !== 1 ? 's' : ''})
-              </span>
-            </div>
+            <a href="#reviews" className="mt-3 flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+              <StarRating rating={Math.round(reviewStats.avg)} size={15} />
+              {reviewStats.avg.toFixed(1)} · {t('reviews.count', { defaultValue: '{{count}} reviews', count: reviewStats.count })}
+            </a>
           )}
 
-          {/* Price */}
-          <div className="mb-4">
-            {displayPrice ? (
-              <div className="flex items-baseline gap-3">
-                <span className="text-2xl font-bold text-primary">
-                  {displayPrice.toLocaleString()} {product.currency}
-                </span>
-                {hasDiscount && product.price && (
-                  <span className="text-base text-muted-foreground line-through">
-                    {product.price.toLocaleString()} {product.currency}
-                  </span>
-                )}
-                {product.pricePerMeter && (
-                  <span className="text-sm text-muted-foreground">/ meter</span>
-                )}
-              </div>
-            ) : product.priceRange ? (
-              <p className="text-xl font-bold text-primary">{product.priceRange}</p>
-            ) : (
-              <p className="text-base text-muted-foreground italic">Contact for pricing</p>
+          <div className="mt-4 flex items-baseline gap-3">
+            <span className="text-2xl font-semibold">{priceLabel(product, t)}</span>
+            {hasDiscount && product.price && (
+              <span className="text-base text-muted-foreground line-through">{product.price.toLocaleString()} {product.currency}</span>
             )}
           </div>
 
-          {/* Colors */}
-          {product.colors && product.colors.length > 0 && (
-            <div className="mb-4">
-              <EditableText id="products.available_colors" as="p" className="text-sm font-medium mb-2" />
-              <div className="flex flex-wrap gap-2">
-                {product.colors.map((c) => (
-                  <div key={c.id} className="flex items-center gap-1.5 px-3 py-1 border border-border rounded-full text-xs">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: c.hexCode || '#ccc' }} />
-                    {c.name}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {product.description && <p className="mt-4 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{product.description}</p>}
 
-          {/* Availability */}
-          <div className={cn('inline-flex items-center gap-1.5 text-sm font-medium mb-6 px-3 py-1.5 rounded-full',
-            product.isAvailable
-              ? 'bg-green-100 text-green-700 dark:bg-green-500/15 dark:text-green-300'
-              : 'bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300')}>
-            <span className={cn('w-2 h-2 rounded-full', product.isAvailable ? 'bg-green-500' : 'bg-red-500')} />
+          <div className={cn('mt-4 inline-flex items-center gap-2 text-sm font-medium', product.isAvailable ? 'text-green-700 dark:text-green-400' : 'text-destructive')}>
+            <span className={cn('h-2 w-2 rounded-full', product.isAvailable ? 'bg-green-500' : 'bg-destructive')} />
             {product.isAvailable ? t('products.in_stock') : t('products.out_of_stock')}
-            {product.inventory?.stockCount !== undefined && product.inventory.stockCount > 0 && (
-              <span className="text-muted-foreground"> ({product.inventory.stockCount} in stock)</span>
-            )}
           </div>
 
-          {/* ── Configure, then add to cart ─────────────────────────────────
-              How the order is fulfilled and paid for is decided at checkout,
-              once the customer knows what the whole basket costs. This page is
-              only about the product. */}
-          <div className="border border-border rounded-2xl p-5 mb-6 bg-card">
-            <h2 className="font-serif text-lg font-semibold mb-4">
-              {editingLine
-                ? t('cart.edit_item', { defaultValue: 'Edit this item' })
-                : t('config.title', { defaultValue: 'Configure your order' })}
-            </h2>
-            <ProductConfigurator
-              key={editingLine?.id ?? 'new'}
-              product={product}
-              mode={editingLine ? 'edit' : 'add'}
-              initialConfig={editingLine?.config}
-              initialQuantity={editingLine?.quantity}
-              onSubmit={handleConfigured}
-              onBuyNow={editingLine ? undefined : handleBuyNow}
-            />
+          <div className="mt-6 rounded-2xl border border-border bg-card p-4 shadow-soft sm:p-6">
+            {editingLine && (
+              <h2 className="mb-4 font-serif text-lg font-semibold">{t('cart.edit_item', { defaultValue: 'Edit this item' })}</h2>
+            )}
+            {useBuilder ? (
+              <CurtainBuilder product={product} onAdd={handleBuilt} />
+            ) : (
+              <ProductConfigurator
+                key={editingLine?.id ?? 'new'}
+                product={product}
+                mode={editingLine ? 'edit' : 'add'}
+                initialConfig={editingLine?.config}
+                initialQuantity={editingLine?.quantity}
+                onSubmit={handleConfigured}
+                onBuyNow={editingLine ? undefined : handleBuyNow}
+              />
+            )}
             {!editingLine && linesForProduct > 0 && (
-              <Link
-                to="/cart"
-                className="mt-3 flex items-center justify-center gap-1.5 w-full py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-accent transition-colors"
-              >
+              <Link to="/cart" className="btn btn-outline mt-3 w-full">
                 <CheckCircle size={14} className="text-primary" />
-                {t('cart.in_cart_view', {
-                  defaultValue: '{{count}} in your cart — view cart',
-                  count: linesForProduct,
-                })}
+                {t('cart.in_cart_view', { defaultValue: '{{count}} in your cart — view cart', count: linesForProduct })}
               </Link>
             )}
           </div>
 
-          {/* Fulfilment options this product supports — set expectations before
-              checkout without asking the customer to decide yet. */}
-          <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground mb-6">
-            <span className="flex items-center gap-1.5">
-              <Store size={13} className="text-primary" />
-              {t('config.badge_pickup', { defaultValue: 'Collect from our Kigali shop' })}
-            </span>
-            {product.canBeDelivered && (
-              <span className="flex items-center gap-1.5">
-                <Truck size={13} className="text-primary" />
-                {t('config.badge_delivery', { defaultValue: 'Delivery across Rwanda' })}
-              </span>
-            )}
-          </div>
-
-          <div className="flex gap-3 mb-6">
-            {!product.isAvailable && (
-              <div className="flex-1 flex items-center justify-center py-3 bg-muted text-muted-foreground font-medium rounded-xl text-sm">
-                {t('products.out_of_stock')}
-              </div>
-            )}
-            <button
-              type="button"
-              aria-label={t('products.save')}
-              className="p-3 border border-border rounded-xl hover:bg-accent transition-colors text-muted-foreground hover:text-red-500"
-            >
-              <Heart size={18} />
+          <div className="mt-4 flex gap-2">
+            <button type="button" onClick={handleWishlist} className="btn btn-outline flex-1" aria-pressed={wishlisted}>
+              <Heart size={16} className={cn(wishlisted && 'fill-primary text-primary')} /> {t('products.save', { defaultValue: 'Save' })}
             </button>
-            <button
-              type="button"
-              aria-label={t('products.share')}
-              onClick={() => navigator.share?.({ title: product.name, url: window.location.href })}
-              className="p-3 border border-border rounded-xl hover:bg-accent transition-colors text-muted-foreground hover:text-primary"
-            >
-              <Share2 size={18} />
+            <button type="button" onClick={handleShare} className="btn btn-outline flex-1">
+              <Share2 size={16} /> {t('products.share', { defaultValue: 'Share' })}
             </button>
           </div>
 
-          {/* Tabs */}
-          <div className="border-b border-border mb-4">
-            <div className="flex gap-1 overflow-x-auto">
-              {(['description', 'specs', 'materials', 'reviews'] as const).map((t_) => {
-                const labels: Record<string, string> = {
-                  description: 'Description',
-                  specs: 'Specifications',
-                  materials: 'Materials',
-                  reviews: `Reviews${reviews.length > 0 ? ` (${reviews.length})` : ''}`,
-                };
-                return (
-                  <button key={t_} onClick={() => setTab(t_)}
-                    className={cn('pb-2 px-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap',
-                      tab === t_ ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground')}>
-                    {labels[t_]}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <ul className="mt-6 grid gap-3 rounded-2xl bg-muted/50 p-4 text-sm">
+            {trust.map(({ icon: Icon, text }) => (
+              <li key={text} className="flex items-center gap-3"><Icon size={17} className="shrink-0 text-primary" /> {text}</li>
+            ))}
+            <li>
+              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 font-medium text-[#1f8f4e] hover:underline">
+                <MessageCircle size={17} className="shrink-0" /> {t('products.ask_whatsapp', { defaultValue: 'Questions? Ask us on WhatsApp' })}
+              </a>
+            </li>
+          </ul>
 
-          <AnimatePresence mode="wait">
-            <motion.div key={tab} initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-              className="text-sm text-muted-foreground leading-relaxed">
-              {tab === 'description' && <p>{product.description || 'No description available.'}</p>}
-              {tab === 'specs' && <p className="whitespace-pre-wrap">{product.specifications || 'No specifications available.'}</p>}
-              {tab === 'materials' && <p>{product.material || 'No material information available.'}</p>}
-              {tab === 'reviews' && (
-                <div className="space-y-4">
-                  {reviews.length === 0 ? (
-                    <p className="text-center py-4 text-muted-foreground">No reviews yet. Be the first!</p>
-                  ) : (
-                    reviews.map((r) => <ReviewCard key={r.id} review={r} />)
-                  )}
-                </div>
-              )}
-            </motion.div>
-          </AnimatePresence>
+          <div className="mt-6 border-t border-border">
+            <Detail title={t('products.tab_description', { defaultValue: 'Description' })} defaultOpen>
+              <p className="whitespace-pre-line">{product.description || t('products.no_description', { defaultValue: 'No description available.' })}</p>
+            </Detail>
+            {product.specifications && (
+              <Detail title={t('products.tab_specs', { defaultValue: 'Specifications' })}>
+                <p className="whitespace-pre-wrap">{product.specifications}</p>
+              </Detail>
+            )}
+            {product.material && (
+              <Detail title={t('products.tab_materials', { defaultValue: 'Materials' })}>
+                <p>{product.material}</p>
+              </Detail>
+            )}
+            <Detail title={t('products.tab_delivery', { defaultValue: 'Delivery & payment' })}>
+              <p>{t('products.delivery_text', { defaultValue: 'Choose delivery anywhere in Rwanda, collection from our Kigali shop, or reserve and pay when you visit. Pay with MTN MoMo, bank transfer or in store. Made-to-measure curtains are cut after our team confirms your measurements.' })}</p>
+            </Detail>
+          </div>
         </div>
       </div>
 
-      {/* Write a Review */}
-      <section className="bg-card border border-border rounded-2xl p-6 mb-12">
-        <h2 className="font-serif text-xl font-bold mb-4">Write a Review</h2>
-        {reviewSubmitted ? (
-          <div className="text-center py-6">
-            <CheckCircle className="text-green-500 mx-auto mb-2" size={32} />
-            <p className="font-medium">Thank you for your review!</p>
-            <p className="text-sm text-muted-foreground">Your review will appear after approval.</p>
+      {/* ── Reviews ─────────────────────────────────────────────────────────── */}
+      <section id="reviews" className="mt-16 grid gap-8 scroll-mt-40 lg:grid-cols-12">
+        <div className="lg:col-span-5">
+          <h2 className="section-title">{t('reviews.title', { defaultValue: 'Customer reviews' })}</h2>
+          {reviewStats ? (
+            <div className="mt-3 flex items-center gap-3">
+              <span className="text-4xl font-semibold">{reviewStats.avg.toFixed(1)}</span>
+              <div>
+                <StarRating rating={Math.round(reviewStats.avg)} size={16} />
+                <p className="text-xs text-muted-foreground">{t('reviews.count', { defaultValue: '{{count}} reviews', count: reviewStats.count })}</p>
+              </div>
+            </div>
+          ) : (
+            <p className="section-lead">{t('reviews.none', { defaultValue: 'No reviews yet. Be the first!' })}</p>
+          )}
+
+          <div className="surface mt-6 p-5">
+            <h3 className="mb-4 font-semibold">{t('reviews.write', { defaultValue: 'Write a review' })}</h3>
+            {reviewSubmitted ? (
+              <div className="py-4 text-center">
+                <CheckCircle className="mx-auto mb-2 text-green-600" size={28} />
+                <p className="font-medium">{t('reviews.thanks', { defaultValue: 'Thank you for your review!' })}</p>
+                <p className="text-sm text-muted-foreground">{t('reviews.pending', { defaultValue: 'Your review will appear after approval.' })}</p>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmitReview} className="space-y-3">
+                <div className="flex gap-1" role="radiogroup" aria-label={t('reviews.rating', { defaultValue: 'Your rating' })}>
+                  {[1, 2, 3, 4, 5].map((s) => (
+                    <button key={s} type="button" role="radio" aria-checked={reviewForm.rating === s} aria-label={`${s}`} onClick={() => setReviewForm((p) => ({ ...p, rating: s }))}>
+                      <Star size={24} className={s <= reviewForm.rating ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/30'} />
+                    </button>
+                  ))}
+                </div>
+                <input required value={reviewForm.name} onChange={(e) => setReviewForm((p) => ({ ...p, name: e.target.value }))}
+                  placeholder={t('reviews.name', { defaultValue: 'Your name' })} aria-label={t('reviews.name', { defaultValue: 'Your name' })} className={inputClass} />
+                <input value={reviewForm.title} onChange={(e) => setReviewForm((p) => ({ ...p, title: e.target.value }))}
+                  placeholder={t('reviews.title_field', { defaultValue: 'Title (optional)' })} aria-label={t('reviews.title_field', { defaultValue: 'Title (optional)' })} className={inputClass} />
+                <textarea required rows={3} value={reviewForm.message} onChange={(e) => setReviewForm((p) => ({ ...p, message: e.target.value }))}
+                  placeholder={t('reviews.message', { defaultValue: 'Share your experience with this product…' })} aria-label={t('reviews.message', { defaultValue: 'Share your experience with this product…' })} className={cn(inputClass, 'resize-none')} />
+                <button type="submit" className="btn btn-dark">{t('reviews.submit', { defaultValue: 'Submit review' })}</button>
+              </form>
+            )}
           </div>
-        ) : (
-          <form onSubmit={handleSubmitReview} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium block mb-2">Your Rating *</label>
-              <div className="flex gap-2">
-                {[1, 2, 3, 4, 5].map((s) => (
-                  <button key={s} type="button" onClick={() => setReviewForm((p) => ({ ...p, rating: s }))}>
-                    <Star size={24}
-                      className={s <= reviewForm.rating ? 'fill-yellow-400 text-yellow-400' : 'text-muted-foreground/30 hover:text-yellow-300'}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Your Name *</label>
-                <input required value={reviewForm.name}
-                  onChange={(e) => setReviewForm((p) => ({ ...p, name: e.target.value }))}
-                  placeholder="Jean-Pierre" className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-              <div>
-                <label className="text-sm font-medium block mb-1.5">Review Title</label>
-                <input value={reviewForm.title}
-                  onChange={(e) => setReviewForm((p) => ({ ...p, title: e.target.value }))}
-                  placeholder="Summary of your experience" className="w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
-              </div>
-            </div>
-            <div>
-              <label className="text-sm font-medium block mb-1.5">Your Review *</label>
-              <textarea required rows={3} value={reviewForm.message}
-                onChange={(e) => setReviewForm((p) => ({ ...p, message: e.target.value }))}
-                placeholder="Share your experience with this product..."
-                className="w-full px-4 py-3 bg-background border border-border rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/30" />
-            </div>
-            <button type="submit"
-              className="px-6 py-2.5 bg-primary text-white font-medium rounded-xl hover:bg-primary/90 transition-colors">
-              Submit Review
-            </button>
-          </form>
-        )}
+        </div>
+        <div className="space-y-3 lg:col-span-7">
+          {reviews.map((r) => <ReviewCard key={r.id} review={r} />)}
+        </div>
       </section>
 
-      {/* Related Products */}
+      {/* ── Related ─────────────────────────────────────────────────────────── */}
       {product.related && product.related.length > 0 && (
-        <section>
-          <EditableText id="products.related" as="h2" className="font-serif text-2xl font-bold mb-6" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {product.related.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
+        <section className="mt-16">
+          <EditableText id="products.related" as="h2" className="section-title mb-6" />
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4">
+            {product.related.slice(0, 4).map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
           </div>
         </section>
       )}
 
-      {/* Zoom Modal */}
+      {/* ── Zoom ────────────────────────────────────────────────────────────── */}
       <AnimatePresence>
-        {zoomed && product.images?.length > 0 && (
+        {zoomed && images.length > 0 && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
-            onClick={() => setZoomed(false)}>
-            <motion.img initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }}
-              src={product.images[selectedImage]?.url} alt={product.name}
-              className="max-w-full max-h-full object-contain rounded-lg"
-              onClick={(e) => e.stopPropagation()} />
-            <button className="absolute top-4 right-4 text-white hover:text-white/70" onClick={() => setZoomed(false)}>
-              <span className="text-2xl">✕</span>
+            className="fixed inset-0 z-[90] flex items-center justify-center bg-black/90 p-4" onClick={() => setZoomed(false)}>
+            <motion.img initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}
+              src={images[selectedImage]?.url} alt={product.name}
+              className="max-h-full max-w-full rounded-lg object-contain" onClick={(e) => e.stopPropagation()} />
+            <button className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20" onClick={() => setZoomed(false)} aria-label="Close">
+              <X size={20} />
             </button>
           </motion.div>
         )}

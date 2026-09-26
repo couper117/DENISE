@@ -67,8 +67,20 @@ and verify on deniseshop.com.
   Carried into Phase 3: the Products sidebar filter still changes state without
   the URL, so the URL should become the single source of truth there; and the
   result count reads "Showing 1–0 of 0" when empty.
-- [ ] Phase 2
-- [ ] Phase 3
+- [x] Phase 2 — homepage rebuilt: plain-language hero, value strip, category
+  tiles that use a real product photo per category, made-to-measure band,
+  how-to-buy steps matching the real checkout (MoMo, delivery or pickup).
+- [x] Phase 3 — product card (image-first, hover second image, quick add),
+  listing (URL is the only filter state, sidebar with sub-categories, filter
+  sheet on phones, sort, pagination with gaps), product page (gallery, buy box,
+  trust list, collapsible details, reviews) and the **curtain builder**
+  (`components/products/CurtainBuilder.tsx`): window width + height → metres for
+  the night curtain, optional matching day curtain, rod length (double when both
+  curtains), finishing options, total, add the set to the cart / Buy now.
+  Also pulled in: admin login by phone or email (staff land on /admin),
+  sub-categories selectable in the admin product form, window-set chips in admin
+  orders and invoices, "Made by Malhottech Company Ltd" in the footer, full
+  translation pass (fr/rw/sw/ln) and fixes to old Kinyarwanda/Lingala errors.
 - [ ] Phase 4
 - [ ] Phase 5
 - [ ] Phase 6

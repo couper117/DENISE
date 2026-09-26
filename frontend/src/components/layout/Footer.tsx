@@ -166,7 +166,8 @@ const Footer = () => {
           </div>
           <p>
             © {year} New Textile Social Company Limited (DENISE). <EditableText id="footer.rights" />{' '}
-            <span className="whitespace-nowrap">· <EditableText id="footer.made_in" /></span>
+            <span className="whitespace-nowrap">· <EditableText id="footer.made_in" /></span>{' '}
+            <span className="whitespace-nowrap">· <EditableText id="footer.made_by" /> <span className="font-medium text-foreground/80">Malhottech Company Ltd</span></span>
           </p>
         </div>
       </div>

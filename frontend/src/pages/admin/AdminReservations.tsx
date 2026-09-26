@@ -52,10 +52,13 @@ const money = (value: number | null | undefined) =>
 const ItemSpecs = ({ item }: { item: ReservationItem }) => {
   const o = item.options ?? {};
   const chips: { label: string; value: string }[] = [];
+  if (o.curtainRole) chips.push({ label: 'Curtain', value: o.curtainRole === 'SOFT' ? 'Day (rideau du jour)' : 'Night (rideau de nuit)' });
+  if (o.setId) chips.push({ label: 'Window set', value: o.setId.slice(-5).toUpperCase() });
+  if (o.rodLengthCm) chips.push({ label: 'Rod length', value: `${o.rodLengthCm / 100} m` });
   if (o.color) chips.push({ label: 'Colour', value: o.color });
   if (item.windowWidth) chips.push({ label: 'Width', value: `${item.windowWidth} cm` });
   if (item.windowHeight) chips.push({ label: 'Length', value: `${item.windowHeight} cm` });
-  if (item.metersRequired) chips.push({ label: 'Fabric', value: `${item.metersRequired} m` });
+  if (item.metersRequired && o.kind !== 'ROD') chips.push({ label: 'Fabric', value: `${item.metersRequired} m` });
   if (o.fullness) chips.push({ label: 'Fullness', value: `${o.fullness}×` });
   if (o.headerTypeLabel) chips.push({ label: 'Header', value: o.headerTypeLabel });
   if (o.liningLabel) chips.push({ label: 'Lining', value: o.liningLabel });

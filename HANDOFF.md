@@ -1,13 +1,45 @@
 # HANDOFF
 
-## Current Task
-Dark mode looked red-brown rather than dark. Frontend only, branch `Levi`,
-merged to `main`.
+## Current Task (Sept 2026)
+Storefront redesign on branch `redesign` — plan and status in `REDESIGN.md`.
+Phases 1–3 done; 4–6 open. Not yet merged to `main` (= deniseshop.com).
 
-## Status
-Shipped. `npm run build` (tsc + vite) passes and both themes were screenshotted
-in headless Chrome — home, cart, contact, plus a board rendering every status
-badge with its shipped class string.
+### Curtain sets — read before touching curtains or rods
+- **Night vs day curtain is derived, not stored**: `curtainRole()` in both
+  `productOptions.ts` files — a curtain is SOFT (day, rideau du jour) when its
+  category/name mentions soft/sheer/voile/jour/day/tulle/lace, otherwise HARD
+  (night, rideau de nuit). Migration `20260926090000_curtain_subcategories`
+  adds `hard-curtains` and `soft-curtains` under `curtains` (data only,
+  idempotent); the admin assigns products to them.
+- **Rods are their own kind (`ROD`)**, detected before curtains because
+  `curtain-rods` contains "curtain" — rods used to be treated as curtains.
+  Rod length = window width + 15 cm each side, rounded up to 10 cm
+  (`computeRodLengthCm`). A rod sold per metre is priced from that length on
+  the server; two single rods are added when both curtains are chosen (one
+  "double" rod if the product name says double).
+- **A set is linked lines, not a new model**: the builder adds 2–3 ordinary
+  cart lines sharing `options.setId`; the server keeps `setId`/`setRole` only
+  when the role matches the product. Admin orders and the invoice show them.
+- Category filter now includes children (`category=curtains` lists both).
+
+### Verified locally (fake Paypack at PAYPACK_BASE_URL, see backend/.env)
+- Builder maths on page = server re-price (200×260 window: 11.6 m + 11.6 m +
+  2×2.3 m rod = 323,400 RWF with the demo prices).
+- Browser checkout: Buy now → pickup → MoMo → request-to-pay → "Payment
+  received"; a double click on Place order created exactly one order (this
+  closes the browser re-run the previous handoff asked for). Declined payment
+  → FAILED. Admin login (email or phone) → /admin.
+- Payment settles `paymentStatus` only; the order stays PENDING until staff
+  confirm it — deliberate (measurements are checked before cutting).
+
+### Open
+- Live API on Railway returns "Application not found"; nothing works on
+  deniseshop.com until the backend is back.
+- The curtain fabric formula is still width × fullness × (drop + 30 cm). If the
+  shop cuts from wide rolls (fabric height ≥ drop), metres would be
+  width × fullness only — confirm with the shop.
+- rw/sw/ln translations were machine-written; have a native speaker review the
+  sewing terms (header types, lining, fullness).
 
 ## Theme — read this before touching colours
 

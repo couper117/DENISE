@@ -17,7 +17,11 @@
  */
 import { Product } from '../types';
 
-export type ProductKind = 'CURTAIN' | 'FABRIC' | 'SIMPLE';
+export type ProductKind = 'CURTAIN' | 'ROD' | 'FABRIC' | 'SIMPLE';
+/** Night curtain (heavy, "rideau de nuit") or day curtain (sheer, "rideau du jour"). */
+export type CurtainRole = 'HARD' | 'SOFT';
+/** Which part of a window set a line is. */
+export type SetRole = 'HARD' | 'SOFT' | 'ROD';
 export type PricingMode = 'PER_METER' | 'PER_UNIT' | 'ON_REQUEST';
 
 export interface OptionChoice {
@@ -67,7 +71,20 @@ export const MAX_DIMENSION_CM = 2000;
 export const MAX_METERS = 1000;
 export const MAX_QUANTITY = 500;
 
-const CURTAIN_HINTS = ['curtain', 'rideau', 'drape', 'sheer', 'blind'];
+const CURTAIN_HINTS = ['curtain', 'rideau', 'rido', 'drape', 'sheer', 'blind', 'voile'];
+/** Checked before the curtain hints: "curtain-rods" contains "curtain". */
+const ROD_HINTS = ['rod', 'tringle', 'rail', 'track'];
+/** A curtain is a day curtain when any of these appear; otherwise night. */
+const SOFT_HINTS = ['soft', 'sheer', 'voile', 'jour', 'day', 'tulle', 'lace'];
+
+/** How far a rod runs past the window on each side, so a drawn curtain clears the glass. */
+export const ROD_OVERHANG_CM = 15;
+
+const haystackOf = (product: Product) =>
+  `${product.category?.slug ?? ''} ${product.category?.name ?? ''} ${product.name}`.toLowerCase();
+
+const hasHint = (text: string, hints: string[]) =>
+  hints.some((hint) => new RegExp(`(^|[^a-z])${hint}`).test(text));
 
 /**
  * Which configuration a product gets, derived from data that already exists —
@@ -75,10 +92,21 @@ const CURTAIN_HINTS = ['curtain', 'rideau', 'drape', 'sheer', 'blind'];
  * column and adding one would mean re-tagging every product.
  */
 export const detectKind = (product: Product): ProductKind => {
-  const haystack = `${product.category?.slug ?? ''} ${product.category?.name ?? ''} ${product.name}`.toLowerCase();
+  const haystack = haystackOf(product);
+  if (hasHint(haystack, ROD_HINTS)) return 'ROD';
   if (CURTAIN_HINTS.some((hint) => haystack.includes(hint))) return 'CURTAIN';
   if (product.pricePerMeter != null) return 'FABRIC';
   return 'SIMPLE';
+};
+
+/** Only meaningful for a CURTAIN. Unmarked curtains are night curtains. */
+export const curtainRole = (product: Product): CurtainRole =>
+  hasHint(haystackOf(product), SOFT_HINTS) ? 'SOFT' : 'HARD';
+
+/** Rod length for a window: the width plus the overhang both sides, rounded up to 10 cm. */
+export const computeRodLengthCm = (windowWidthCm: number): number => {
+  if (!(windowWidthCm > 0)) return 0;
+  return Math.min(MAX_DIMENSION_CM, Math.ceil((windowWidthCm + 2 * ROD_OVERHANG_CM) / 10) * 10);
 };
 
 export const pricingMode = (product: Product): PricingMode => {
@@ -112,6 +140,9 @@ export interface Configuration {
   panelLayout?: string;
   fullness?: number;
   notes?: string;
+  /** Lines bought together for one window (night + day curtain + rod) share this. */
+  setId?: string;
+  setRole?: SetRole;
 }
 
 export interface PricedConfiguration {
@@ -133,7 +164,9 @@ export const fieldsFor = (product: Product) => {
     mode,
     color: (product.colors?.length ?? 0) > 0,
     dimensions: kind === 'CURTAIN',
-    meters: mode === 'PER_METER' && kind !== 'CURTAIN',
+    meters: mode === 'PER_METER' && kind !== 'CURTAIN' && kind !== 'ROD',
+    /** A rod sold by the metre is sized from the window width. */
+    rod: kind === 'ROD' && mode === 'PER_METER',
     curtainMakeUp: kind === 'CURTAIN',
   };
 };
@@ -158,11 +191,15 @@ export const priceConfiguration = (
 
   let meters: number | null = null;
   if (fields.mode === 'PER_METER') {
-    meters = fields.kind === 'CURTAIN'
-      ? (config.widthCm && config.dropCm
-          ? computeCurtainMeters(config.widthCm, config.dropCm, config.fullness ?? 2)
-          : null)
-      : config.meters ?? null;
+    if (fields.kind === 'CURTAIN') {
+      meters = config.widthCm && config.dropCm
+        ? computeCurtainMeters(config.widthCm, config.dropCm, config.fullness ?? 2)
+        : null;
+    } else if (fields.kind === 'ROD' && config.widthCm) {
+      meters = computeRodLengthCm(config.widthCm) / 100;
+    } else {
+      meters = config.meters ?? null;
+    }
   }
 
   let unitPrice: number | null = null;
@@ -207,6 +244,11 @@ export const validate = (product: Product, config: Configuration): Configuration
     else if (config.dropCm <= 0 || config.dropCm > MAX_DIMENSION_CM) errors.dropCm = `Length must be between 1 and ${MAX_DIMENSION_CM} cm`;
   }
 
+  if (fields.rod) {
+    if (!config.widthCm) errors.widthCm = 'Enter the window width in cm';
+    else if (config.widthCm <= 0 || config.widthCm > MAX_DIMENSION_CM) errors.widthCm = `Width must be between 1 and ${MAX_DIMENSION_CM} cm`;
+  }
+
   if (fields.meters) {
     if (!config.meters) errors.meters = 'Enter how many meters you need';
     else if (config.meters <= 0 || config.meters > MAX_METERS) errors.meters = `Meters must be between 0.1 and ${MAX_METERS}`;
@@ -220,22 +262,37 @@ export const validate = (product: Product, config: Configuration): Configuration
   return errors;
 };
 
-const labelOf = (list: OptionChoice[], value?: string) => list.find((c) => c.value === value)?.label;
+type Translate = (key: string, fallback: string) => string;
+const identity: Translate = (_key, fallback) => fallback;
 
-/** Spec chips for the cart, review and invoice — the order the shop reads them in. */
-export const describeConfiguration = (config: Configuration): { label: string; value: string }[] => {
+const choiceLabel = (list: OptionChoice[], value: string | undefined, tr: Translate) => {
+  const found = list.find((c) => c.value === value);
+  return found ? tr(found.labelKey, found.label) : undefined;
+};
+
+/**
+ * Spec chips for the cart, review and invoice — the order the shop reads them in.
+ * Pass the page's translator so the chips follow the visitor's language.
+ */
+export const describeConfiguration = (config: Configuration, tr: Translate = identity): { label: string; value: string }[] => {
   const out: { label: string; value: string }[] = [];
-  if (config.color) out.push({ label: 'Colour', value: config.color });
-  if (config.widthCm) out.push({ label: 'Width', value: `${config.widthCm} cm` });
-  if (config.dropCm) out.push({ label: 'Length', value: `${config.dropCm} cm` });
-  if (config.meters) out.push({ label: 'Fabric', value: `${config.meters} m` });
-  if (config.fullness) out.push({ label: 'Fullness', value: `${config.fullness}×` });
-  const header = labelOf(HEADER_TYPES, config.headerType);
-  if (header) out.push({ label: 'Header', value: header });
-  const lining = labelOf(LINING_TYPES, config.lining);
-  if (lining) out.push({ label: 'Lining', value: lining });
-  const panels = labelOf(PANEL_LAYOUTS, config.panelLayout);
-  if (panels) out.push({ label: 'Panels', value: panels });
+  const push = (labelKey: string, label: string, value: string | undefined) => {
+    if (value) out.push({ label: tr(labelKey, label), value });
+  };
+  if (config.setRole === 'HARD') push('config.spec_curtain', 'Curtain', tr('curtain.role_hard', 'Night curtain (rideau de nuit)'));
+  if (config.setRole === 'SOFT') push('config.spec_curtain', 'Curtain', tr('curtain.role_soft', 'Day curtain (rideau du jour)'));
+  if (config.setRole === 'ROD' && config.widthCm) {
+    push('config.spec_rod_length', 'Rod length', `${computeRodLengthCm(config.widthCm) / 100} m`);
+    return out;
+  }
+  push('config.color', 'Colour', config.color);
+  push('config.spec_width', 'Width', config.widthCm ? `${config.widthCm} cm` : undefined);
+  push('config.spec_length', 'Length', config.dropCm ? `${config.dropCm} cm` : undefined);
+  push('config.spec_fabric', 'Fabric', config.meters ? `${config.meters} m` : undefined);
+  push('config.fullness_label', 'Fullness', config.fullness ? `${config.fullness}×` : undefined);
+  push('config.header_label', 'Header', choiceLabel(HEADER_TYPES, config.headerType, tr));
+  push('config.lining_label', 'Lining', choiceLabel(LINING_TYPES, config.lining, tr));
+  push('config.panels_label', 'Panels', choiceLabel(PANEL_LAYOUTS, config.panelLayout, tr));
   return out;
 };
 
@@ -256,4 +313,5 @@ export const configurationKey = (productId: string, config: Configuration): stri
     config.panelLayout ?? '',
     config.fullness ?? '',
     (config.notes ?? '').trim().toLowerCase(),
+    config.setId ?? '',
   ].join('|');

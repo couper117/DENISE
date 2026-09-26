@@ -11,10 +11,13 @@ const money = (value: number | null | undefined) =>
 const specLine = (item: Reservation['items'][number]): string => {
   const o = item.options ?? {};
   const parts: string[] = [];
+  if (o.curtainRole) parts.push(o.curtainRole === 'SOFT' ? 'Day curtain (rideau du jour)' : 'Night curtain (rideau de nuit)');
+  if (o.setId) parts.push(`Set ${o.setId.slice(-5).toUpperCase()}`);
+  if (o.rodLengthCm) parts.push(`Rod ${o.rodLengthCm / 100} m`);
   if (o.color) parts.push(o.color);
   if (o.fabric) parts.push(o.fabric);
   if (item.windowWidth && item.windowHeight) parts.push(`${item.windowWidth} × ${item.windowHeight} cm`);
-  if (item.metersRequired) parts.push(`${item.metersRequired} m`);
+  if (item.metersRequired && o.kind !== 'ROD') parts.push(`${item.metersRequired} m`);
   if (o.fullness) parts.push(`${o.fullness}× fullness`);
   if (o.headerTypeLabel) parts.push(o.headerTypeLabel);
   if (o.liningLabel) parts.push(o.liningLabel);

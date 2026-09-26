@@ -147,7 +147,13 @@ export interface Payment {
  * server (`backend/src/utils/productOptions.ts`). Read-only on this side.
  */
 export interface OrderedOptions {
-  kind?: 'CURTAIN' | 'FABRIC' | 'SIMPLE';
+  kind?: 'CURTAIN' | 'ROD' | 'FABRIC' | 'SIMPLE';
+  /** Night (HARD, rideau de nuit) or day (SOFT, rideau du jour) curtain. */
+  curtainRole?: 'HARD' | 'SOFT';
+  /** Lines bought together for one window share a set id. */
+  setId?: string;
+  setRole?: 'HARD' | 'SOFT' | 'ROD';
+  rodLengthCm?: number;
   pricingMode?: 'PER_METER' | 'PER_UNIT' | 'ON_REQUEST';
   productName?: string;
   color?: string;

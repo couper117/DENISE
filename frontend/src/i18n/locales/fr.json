@@ -21,27 +21,27 @@
     "search_placeholder": "Rechercher rideaux, tissus, tenues…"
   },
   "hero": {
-    "title": "La Meilleure Collection Textile du Rwanda",
-    "subtitle": "Rideaux premium, tissus et tenues traditionnelles. Parcourez notre collection et réservez vos favoris pour une visite à notre boutique de Kigali.",
-    "cta_reserve": "Réserver une Visite",
-    "cta_browse": "Voir les Produits",
-    "badge": "Nouvelles Arrivées"
+    "title": "Rideaux, tissus et tenues traditionnelles pour les foyers rwandais",
+    "subtitle": "Rideaux de nuit et de jour faits à la mesure de votre fenêtre, tissus au mètre et tenues traditionnelles. Commandez en ligne, payez par MTN MoMo et faites-vous livrer partout au Rwanda — ou visitez notre boutique à Kigali.",
+    "cta_reserve": "Acheter des rideaux",
+    "cta_browse": "Voir tous les produits",
+    "badge": "DENISE Textile · Kigali"
   },
   "home": {
     "featured": "Produits en Vedette",
     "featured_subtitle": "Sélectionnés pour vous",
     "new_arrivals": "Nouveautés",
     "new_arrivals_subtitle": "Nouvelles additions à notre collection",
-    "collections_title": "Nos Collections",
-    "collections_subtitle": "Explorez nos catégories sélectionnées",
+    "collections_title": "Acheter par catégorie",
+    "collections_subtitle": "Tout ce que nous fabriquons et vendons, en quatre collections.",
     "how_it_works": "Comment Ça Marche",
-    "no_payment": "Simple. Facile. Pas de paiement en ligne requis.",
-    "step1_title": "Parcourir les Produits",
-    "step1_desc": "Explorez notre vaste collection en ligne",
-    "step2_title": "Réserver et Planifier",
-    "step2_desc": "Réservez des produits et planifiez votre visite",
-    "step3_title": "Visiter Notre Boutique",
-    "step3_desc": "Venez, inspectez et finalisez votre achat",
+    "no_payment": "Trois étapes simples — en ligne ou en boutique.",
+    "step1_title": "Choisissez et mesurez",
+    "step1_desc": "Choisissez votre rideau ou tissu et indiquez la taille de la fenêtre — nous calculons les mètres.",
+    "step2_title": "Payez comme vous voulez",
+    "step2_desc": "MTN MoMo, virement bancaire ou paiement au retrait.",
+    "step3_title": "Livraison ou retrait",
+    "step3_desc": "Livraison partout au Rwanda, ou retrait dans notre boutique de Kigali.",
     "testimonials": "Ce Que Disent Nos Clients",
     "cta_title": "Prêt à Visiter Notre Boutique?",
     "cta_subtitle": "Réservez vos produits préférés et planifiez une visite pratique",
@@ -56,16 +56,38 @@
     "stat_customers": "Clients Satisfaits",
     "stat_rating": "Note",
     "cat_curtains_name": "Rideaux",
-    "cat_curtains_desc": "Rideaux premium pour tout style",
+    "cat_curtains_desc": "Rideaux de nuit et de jour, sur mesure",
     "cat_traditional_name": "Tenue Traditionnelle",
     "cat_traditional_desc": "Mode traditionnelle rwandaise authentique",
     "cat_fabrics_name": "Tissus",
-    "cat_fabrics_desc": "Tissus de qualité pour tous les besoins",
+    "cat_fabrics_desc": "Tissus de qualité au mètre",
     "cat_accessories_name": "Accessoires",
     "cat_accessories_desc": "Tringles et accessoires pour rideaux",
-    "trust_reserve": "Réservation gratuite, paiement en boutique",
+    "trust_reserve": "Paiement MoMo ou en boutique",
     "trust_delivery": "Livraison partout au Rwanda",
-    "trust_languages": "Service en 5 langues"
+    "trust_languages": "Service en 5 langues",
+    "cat_rods_name": "Tringles",
+    "cat_rods_desc": "Tringles à la taille de votre fenêtre",
+    "collections_eyebrow": "Nos collections",
+    "shop_now": "Acheter",
+    "hero_card_title": "Nous calculons les mètres",
+    "hero_card_text": "Indiquez la taille de la fenêtre — obtenez le tissu et la tringle",
+    "value_delivery": "Livraison partout au Rwanda",
+    "value_momo": "Paiement MTN MoMo",
+    "value_measure": "Rideaux sur mesure",
+    "value_shop": "Notre boutique à Kigali",
+    "measure_eyebrow": "Sur mesure",
+    "measure_title": "Rideaux de nuit et de jour, mesurés pour votre fenêtre",
+    "measure_text": "Indiquez la largeur et la hauteur de votre fenêtre. Nous calculons les mètres du rideau de nuit, proposons un rideau de jour assorti et dimensionnons la tringle — avec le prix total avant de payer.",
+    "measure_cta": "Commencer par un rideau de nuit",
+    "measure_s1_title": "Mesurez",
+    "measure_s1_text": "Indiquez la largeur et la hauteur de la fenêtre en cm.",
+    "measure_s2_title": "Nuit + jour",
+    "measure_s2_text": "Choisissez le rideau de nuit, puis ajoutez un rideau de jour assorti.",
+    "measure_s3_title": "Tringle comprise",
+    "measure_s3_text": "Nous dimensionnons la tringle pour les deux rideaux et affichons le total.",
+    "location_eyebrow": "Nous rendre visite",
+    "hero_alt": "Rouleaux de tissu dans la boutique DENISE à Kigali"
   },
   "products": {
     "title": "Nos Produits",
@@ -93,7 +115,27 @@
     "zoom": "Cliquer pour zoomer",
     "materials": "Matières",
     "colors": "Couleurs",
-    "configure": "Configurer"
+    "configure": "Configurer",
+    "buy_now": "Acheter maintenant",
+    "measure_order": "Mesurer et commander",
+    "choose_options": "Choisir les options",
+    "price_on_request": "Prix sur demande",
+    "price_per_meter": "{{price}} / m",
+    "not_found": "Produit introuvable",
+    "back": "Retour aux produits",
+    "link_copied": "Lien copié",
+    "trust_momo": "Payez avec MTN MoMo",
+    "ask_whatsapp": "Des questions ? Écrivez-nous sur WhatsApp",
+    "tab_description": "Description",
+    "no_description": "Aucune description disponible.",
+    "tab_specs": "Caractéristiques",
+    "tab_materials": "Matières",
+    "tab_delivery": "Livraison et paiement",
+    "delivery_text": "Choisissez la livraison partout au Rwanda, le retrait dans notre boutique de Kigali, ou réservez et payez lors de votre visite. Payez par MTN MoMo, virement bancaire ou en boutique. Les rideaux sur mesure sont coupés après la vérification de vos mesures par notre équipe.",
+    "count": "{{count}} produits",
+    "clear_all": "Tout effacer",
+    "try_other": "Essayez une autre recherche ou catégorie.",
+    "show_results": "Voir {{count}} produits"
   },
   "reservation": {
     "title": "Réserver Votre Visite",
@@ -177,7 +219,19 @@
     "submit_error": "Une erreur s'est produite. Veuillez réessayer.",
     "same_day_surcharge": "Supplément jour même",
     "no_online_payment": "Aucun Paiement en Ligne",
-    "no_online_payment_desc": "Payez en boutique après avoir inspecté les produits. Aucun acompte requis."
+    "no_online_payment_desc": "Payez en boutique après avoir inspecté les produits. Aucun acompte requis.",
+    "pay_now": "Finalisez votre paiement",
+    "pay_momo_instructions": "Appuyez ci-dessous pour ouvrir Mobile Money — choisissez 1, confirmez DENISE et le montant, puis saisissez votre code PIN.",
+    "pay_dial": "Payer avec",
+    "pay_iphone_hint": "Sur iPhone ? Composez ce code manuellement :",
+    "pay_after_confirm_title": "Paiement après confirmation",
+    "pay_after_confirm_desc": "Nous confirmerons votre commande sous peu. Une fois confirmée, ouvrez Suivre ma commande pour payer par Mobile Money.",
+    "track_subtitle": "Suivez votre commande par numéro de référence, ou par votre nom et téléphone.",
+    "track_by_ref": "Numéro de référence",
+    "track_by_name": "Nom et téléphone",
+    "track_find": "Trouver mes commandes",
+    "track_not_found": "Aucune commande correspondante. Vérifiez vos informations et réessayez.",
+    "track_select": "Nous avons trouvé plusieurs commandes — sélectionnez la vôtre :"
   },
   "status": {
     "PENDING": "En Attente",
@@ -208,7 +262,13 @@
     "no_account": "Pas encore de compte?",
     "have_account": "Déjà un compte?",
     "sign_up": "S'inscrire",
-    "sign_in": "Se Connecter"
+    "sign_in": "Se Connecter",
+    "phone_or_email": "Numéro de téléphone ou e-mail",
+    "forgot_help": "Oublié ? Demandez-nous sur WhatsApp",
+    "hide_password": "Masquer le mot de passe",
+    "show_password": "Afficher le mot de passe",
+    "login_failed": "Numéro de téléphone, e-mail ou mot de passe incorrect.",
+    "signing_in": "Connexion…"
   },
   "account": {
     "profile": "Mon Profil",
@@ -283,7 +343,8 @@
     "pay_momo": "MTN MoMo",
     "pay_airtel": "Airtel Money",
     "pay_bank": "Virement bancaire",
-    "pay_in_store": "Paiement en boutique"
+    "pay_in_store": "Paiement en boutique",
+    "made_by": "Réalisé par"
   },
   "common": {
     "loading": "Chargement...",
@@ -308,7 +369,8 @@
     "rwf": "RWF",
     "meters": "mètres",
     "cm": "cm",
-    "per_meter": "/mètre"
+    "per_meter": "/mètre",
+    "previous": "Précédent"
   },
   "fulfillment": {
     "RESERVATION": "Réserver et Visiter la Boutique",
@@ -447,7 +509,19 @@
       "available": "Disponible",
       "unavailable": "Indisponible",
       "delete_confirm": "Supprimer ce produit ?",
-      "no_products": "Aucun produit trouvé"
+      "no_products": "Aucun produit trouvé",
+      "edit_title": "Modifier le produit",
+      "price": "Prix (RWF)",
+      "price_hint": "Prix en chiffres — utilisé pour facturer les commandes en ligne",
+      "price_per_meter": "Prix par mètre (RWF)",
+      "stock": "Quantité en stock",
+      "images": "Images",
+      "add_images": "Ajouter des photos",
+      "upload_hint": "JPEG, PNG ou WebP · 5 Mo max. chacune · utilisez votre appareil photo ou votre galerie",
+      "primary": "Principale",
+      "save": "Enregistrer les modifications",
+      "saving": "Enregistrement...",
+      "available_label": "Disponible à la vente"
     },
     "reservations": {
       "title": "Commandes et Réservations",
@@ -476,7 +550,12 @@
       "update_status": "Mettre à Jour le Statut",
       "message_to_customer": "Message au Client",
       "message_placeholder": "Un message pour le client...",
-      "updating": "Mise à jour..."
+      "updating": "Mise à jour...",
+      "payment": "Paiement",
+      "mark_paid": "Marquer comme payé",
+      "mark_unpaid": "Marquer comme non payé",
+      "amount_to_charge": "Montant à facturer (RWF)",
+      "amount_hint": "Le prix final que le client paie par MoMo — à définir pour les produits dont le prix est une fourchette. Laissez vide pour garder le montant actuel."
     },
     "customers": {
       "title": "Clients",
@@ -515,21 +594,19 @@
       "business_hours": "Heures d'Ouverture"
     },
     "orders": {
-      "specs": "Ordered specification",
-      "breakdown": "Price breakdown",
-      "history": "Status history",
-      "payment_method": "Payment method",
-      "payment_reference": "Payment reference",
+      "specs": "Spécifications commandées",
+      "breakdown": "Détail du prix",
+      "history": "Historique des statuts",
+      "payment_method": "Mode de paiement",
+      "payment_reference": "Référence de paiement",
       "invoice": "Invoice",
-      "print": "Print / save PDF",
-      "all_payments": "Any payment status",
-      "no_history": "No status changes recorded yet."
+      "print": "Imprimer / enregistrer en PDF",
+      "all_payments": "Tous les statuts de paiement",
+      "no_history": "Aucun changement de statut enregistré."
     }
   },
   "cart": {
     "title": "Panier",
-    "subtitle": "{{count}} article prêt à commander",
-    "subtitle_plural": "{{count}} articles prêts à commander",
     "empty_subtitle": "Rien pour l'instant.",
     "empty_hint": "Parcourez nos rideaux et tissus, configurez ce qu'il vous faut et cela apparaîtra ici.",
     "subtotal": "Sous-total",
@@ -550,8 +627,6 @@
     "cleared": "Panier vidé",
     "increase": "Augmenter la quantité",
     "decrease": "Diminuer la quantité",
-    "in_cart_view": "{{count}} dans votre panier — voir le panier",
-    "in_cart_view_plural": "{{count}} dans votre panier — voir le panier",
     "spec": {
       "colour": "Couleur",
       "width": "Largeur",
@@ -561,7 +636,13 @@
       "header": "Tête",
       "lining": "Doublure",
       "panels": "Panneaux"
-    }
+    },
+    "subtitle_one": "{{count}} article prêt à commander",
+    "subtitle_other": "{{count}} articles prêts à commander",
+    "in_cart_view_one": "{{count}} dans votre panier — voir le panier",
+    "in_cart_view_other": "{{count}} dans votre panier — voir le panier",
+    "measure_help_title": "Besoin d'aide pour mesurer ?",
+    "measure_help_text": "Envoyez-nous les dimensions de vos fenêtres ou une photo sur WhatsApp et nous vérifierons les mètres avant la coupe."
   },
   "config": {
     "title": "Configurez votre commande",
@@ -574,40 +655,40 @@
     "panels_label": "Panneaux",
     "panels": {
       "SINGLE": "Single panel",
-      "SINGLE_desc": "One curtain, draws to one side",
-      "PAIR": "Pair (left + right)",
-      "PAIR_desc": "Two curtains meeting in the middle"
+      "SINGLE_desc": "Un seul rideau, tiré d’un côté",
+      "PAIR": "Paire (gauche + droite)",
+      "PAIR_desc": "Deux rideaux qui se rejoignent au milieu"
     },
     "header_label": "Type de tête",
     "header": {
       "ROD_POCKET": "Rod pocket",
-      "ROD_POCKET_desc": "Fabric sleeve — the rod slides through",
-      "EYELET": "Eyelet / grommet",
-      "EYELET_desc": "Metal rings, even modern folds",
+      "ROD_POCKET_desc": "Fourreau de tissu — la tringle passe dedans",
+      "EYELET": "Œillets",
+      "EYELET_desc": "Anneaux métalliques, plis réguliers et modernes",
       "PENCIL_PLEAT": "Pencil pleat",
-      "PENCIL_PLEAT_desc": "Gathered tape, classic look",
+      "PENCIL_PLEAT_desc": "Ruban froncé, style classique",
       "PINCH_PLEAT": "Pinch pleat",
-      "PINCH_PLEAT_desc": "Hand-finished tailored pleats",
+      "PINCH_PLEAT_desc": "Plis pincés finis à la main",
       "TAB_TOP": "Tab top",
-      "TAB_TOP_desc": "Fabric loops over the rod"
+      "TAB_TOP_desc": "Pattes de tissu passées sur la tringle"
     },
     "lining_label": "Doublure",
     "lining": {
       "NONE": "Unlined",
-      "NONE_desc": "Lightest, lets light through",
-      "STANDARD": "Standard lining",
-      "STANDARD_desc": "Better drape, protects the fabric",
-      "BLACKOUT": "Blackout lining",
-      "BLACKOUT_desc": "Blocks light — bedrooms",
-      "THERMAL": "Thermal lining",
-      "THERMAL_desc": "Insulates against heat and cold"
+      "NONE_desc": "Le plus léger, laisse passer la lumière",
+      "STANDARD": "Doublure standard",
+      "STANDARD_desc": "Meilleur tombé, protège le tissu",
+      "BLACKOUT": "Doublure occultante",
+      "BLACKOUT_desc": "Bloque la lumière — idéal pour les chambres",
+      "THERMAL": "Doublure thermique",
+      "THERMAL_desc": "Isole de la chaleur et du froid"
     },
     "fullness_label": "Ampleur",
     "fullness": {
-      "1_5": "1.5× — light gather",
+      "1_5": "1,5× — léger froncé",
       "2": "2× — standard",
       "2_5": "2.5× — full",
-      "3": "3× — luxurious"
+      "3": "3× — luxueux"
     },
     "fullness_hint": "L'effet de plissé du rideau. Plus d'ampleur demande plus de tissu.",
     "notes": "Notes pour cet article",
@@ -619,7 +700,8 @@
     "quote_note": "Cet article est sur devis. Ajoutez-le au panier : notre équipe confirmera le prix avant tout paiement.",
     "fix_errors": "Veuillez compléter les options en rouge avant d'ajouter au panier.",
     "badge_pickup": "Retrait à notre boutique de Kigali",
-    "badge_delivery": "Livraison partout au Rwanda"
+    "badge_delivery": "Livraison partout au Rwanda",
+    "err_color": "Choisissez une couleur"
   },
   "checkout": {
     "title": "Paiement",
@@ -652,6 +734,73 @@
     "next_pay_momo": "Payez par Mobile Money avec le bouton ci-dessous, ou depuis Suivi de commande à tout moment.",
     "next_bank": "Nous vous envoyons nos coordonnées bancaires pour le virement.",
     "next_pay_person": "Vous payez en personne — rien n'est débité en ligne.",
-    "next_prepare": "Nous préparons votre commande et vous tenons informé à chaque étape."
+    "next_prepare": "Nous préparons votre commande et vous tenons informé à chaque étape.",
+    "pay_received_title": "Paiement reçu",
+    "pay_received_desc": "Nous avons reçu {{amount}}. Votre commande est confirmée et en cours de préparation.",
+    "pay_prompt_title": "Vérifiez votre téléphone",
+    "pay_prompt_desc": "Nous avons envoyé une demande de paiement de {{amount}} au {{phone}}. Ouvrez la notification et saisissez votre code PIN Mobile Money pour valider.",
+    "pay_waiting": "En attente de confirmation…",
+    "pay_no_prompt": "Pas reçu de notification ? Payez plutôt en composant le code",
+    "pay_failed_title": "Nous n'avons pas pu confirmer votre paiement",
+    "pay_failed_desc": "Rien n'a été débité si vous n'avez pas validé. Vous pouvez renvoyer la demande ou payer en composant le code.",
+    "pay_retry": "Renvoyer la demande de paiement",
+    "pay_dial_fallback": "Ou payez en composant le code"
+  },
+  "curtain": {
+    "window_width": "Largeur de la fenêtre",
+    "rod_length_result": "Longueur de la tringle : {{m}} m",
+    "rod_hint": "Nous ajoutons {{cm}} cm de chaque côté pour que les rideaux dégagent la fenêtre.",
+    "role_hard": "Rideau de nuit",
+    "role_soft": "Rideau du jour",
+    "rod": "Tringle",
+    "per_meter": "{{price}} / m",
+    "step_measure": "Mesurez votre fenêtre",
+    "step_measure_sub": "Nous calculons le tissu et la tringle pour vous.",
+    "window_height": "Hauteur (tringle au sol)",
+    "err_measure": "Saisissez la largeur et la hauteur de votre fenêtre.",
+    "rod_length": "Longueur de la tringle",
+    "measure_note": "Tissu = largeur × {{fullness}} (ampleur) × (hauteur + 30 cm d'ourlets). La tringle correspond à la largeur plus {{cm}} cm de chaque côté. Notre équipe vérifie chaque mesure avant la coupe.",
+    "step_color": "Choisissez la couleur",
+    "ask_soft": "Ajouter un rideau du jour ?",
+    "ask_hard": "Ajouter un rideau de nuit ?",
+    "ask_soft_sub": "Un voilage léger suspendu devant la fenêtre le jour, derrière le rideau de nuit.",
+    "ask_hard_sub": "Un rideau épais qui se ferme la nuit pour l'obscurité et l'intimité.",
+    "no_thanks": "Non, seulement ce rideau",
+    "no_companions": "Demandez-nous sur WhatsApp des rideaux assortis en magasin.",
+    "step_rod": "Tringle",
+    "rod_double": "{{m}} m — une tringle double (ou deux tringles) pour suspendre les deux rideaux.",
+    "rod_single": "{{m}} m pour votre fenêtre.",
+    "rod_wait": "Saisissez la largeur de votre fenêtre pour dimensionner la tringle.",
+    "have_rod": "J'ai déjà une tringle",
+    "finishing": "Options de finition",
+    "windows": "Nombre de fenêtres de cette taille",
+    "add_set": "Ajouter au panier",
+    "banner_title": "Sur mesure.",
+    "banner_text": "Ouvrez un rideau, saisissez la largeur et la hauteur de votre fenêtre, et nous calculons les mètres pour les rideaux de nuit et du jour ainsi que la longueur de la tringle."
+  },
+  "reviews": {
+    "verified": "Vérifié",
+    "helpful": "{{count}} personnes ont trouvé cet avis utile",
+    "count": "{{count}} avis",
+    "title": "Avis clients",
+    "none": "Pas encore d'avis. Soyez le premier !",
+    "write": "Écrire un avis",
+    "thanks": "Merci pour votre avis !",
+    "pending": "Votre avis apparaîtra après validation.",
+    "rating": "Votre note",
+    "name": "Votre nom",
+    "title_field": "Titre (facultatif)",
+    "message": "Partagez votre expérience avec ce produit…",
+    "submit": "Publier l'avis"
+  },
+  "categories": {
+    "curtains": "Rideaux",
+    "hard-curtains": "Rideaux de nuit",
+    "soft-curtains": "Rideaux du jour",
+    "curtain-rods": "Tringles à rideaux",
+    "accessories": "Accessoires de rideaux",
+    "traditional-attire": "Tenues traditionnelles",
+    "fabrics": "Tissus",
+    "interior-decoration": "Décoration intérieure"
   }
 }

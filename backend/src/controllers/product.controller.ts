@@ -18,7 +18,9 @@ export const getProducts = async (req: Request, res: Response): Promise<void> =>
       ];
     }
 
-    if (category) where.category = { slug: String(category) };
+    // A parent category includes its sub-categories, so "curtains" lists both
+    // the night (hard) and day (soft) curtains.
+    if (category) where.category = { OR: [{ slug: String(category) }, { parent: { slug: String(category) } }] };
     if (material) where.material = { contains: String(material), mode: 'insensitive' };
     if (availability === 'true') where.isAvailable = true;
     if (availability === 'false') where.isAvailable = false;

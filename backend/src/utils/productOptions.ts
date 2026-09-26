@@ -19,7 +19,11 @@
  * here (and in the frontend mirror) — nothing else has to change.
  */
 
-export type ProductKind = 'CURTAIN' | 'FABRIC' | 'SIMPLE';
+export type ProductKind = 'CURTAIN' | 'ROD' | 'FABRIC' | 'SIMPLE';
+/** Night curtain (heavy, "rideau de nuit") or day curtain (sheer, "rideau du jour"). */
+export type CurtainRole = 'HARD' | 'SOFT';
+/** Which part of a window set a line is. */
+export type SetRole = 'HARD' | 'SOFT' | 'ROD';
 export type PricingMode = 'PER_METER' | 'PER_UNIT' | 'ON_REQUEST';
 
 export interface OptionChoice {
@@ -77,7 +81,20 @@ type ProductLike = {
   colors?: { name: string }[];
 };
 
-const CURTAIN_HINTS = ['curtain', 'rideau', 'drape', 'sheer', 'blind'];
+const CURTAIN_HINTS = ['curtain', 'rideau', 'rido', 'drape', 'sheer', 'blind', 'voile'];
+/** Checked before the curtain hints: "curtain-rods" contains "curtain". */
+const ROD_HINTS = ['rod', 'tringle', 'rail', 'track'];
+/** A curtain is a day curtain when any of these appear; otherwise night. */
+const SOFT_HINTS = ['soft', 'sheer', 'voile', 'jour', 'day', 'tulle', 'lace'];
+
+/** How far a rod runs past the window on each side, so a drawn curtain clears the glass. */
+export const ROD_OVERHANG_CM = 15;
+
+const haystackOf = (product: ProductLike) =>
+  `${product.category?.slug ?? ''} ${product.category?.name ?? ''} ${product.name}`.toLowerCase();
+
+const hasHint = (text: string, hints: string[]) =>
+  hints.some((hint) => new RegExp(`(^|[^a-z])${hint}`).test(text));
 
 /**
  * Which configuration a product gets. Derived from data that already exists —
@@ -85,10 +102,21 @@ const CURTAIN_HINTS = ['curtain', 'rideau', 'drape', 'sheer', 'blind'];
  * product-type column and adding one would mean re-tagging every product.
  */
 export const detectKind = (product: ProductLike): ProductKind => {
-  const haystack = `${product.category?.slug ?? ''} ${product.category?.name ?? ''} ${product.name}`.toLowerCase();
+  const haystack = haystackOf(product);
+  if (hasHint(haystack, ROD_HINTS)) return 'ROD';
   if (CURTAIN_HINTS.some((hint) => haystack.includes(hint))) return 'CURTAIN';
   if (product.pricePerMeter != null) return 'FABRIC';
   return 'SIMPLE';
+};
+
+/** Only meaningful for a CURTAIN. Unmarked curtains are night curtains. */
+export const curtainRole = (product: ProductLike): CurtainRole =>
+  hasHint(haystackOf(product), SOFT_HINTS) ? 'SOFT' : 'HARD';
+
+/** Rod length for a window: the width plus the overhang both sides, rounded up to 10 cm. */
+export const computeRodLengthCm = (windowWidthCm: number): number => {
+  if (!(windowWidthCm > 0)) return 0;
+  return Math.min(MAX_DIMENSION_CM, Math.ceil((windowWidthCm + 2 * ROD_OVERHANG_CM) / 10) * 10);
 };
 
 export const pricingMode = (product: ProductLike): PricingMode => {
@@ -139,6 +167,13 @@ export interface NormalizedOptions {
   kind: ProductKind;
   pricingMode: PricingMode;
   productName: string;
+  /** Night or day curtain. */
+  curtainRole?: CurtainRole;
+  /** Lines bought together for one window share a set id. */
+  setId?: string;
+  setRole?: SetRole;
+  /** Rod length for the window, in cm. */
+  rodLengthCm?: number;
   color?: string;
   fabric?: string;
   headerType?: string;
@@ -182,6 +217,17 @@ export const priceLine = (product: ProductLike, item: RawItemInput): PricedLine 
   const quantity = Math.max(1, Math.min(MAX_QUANTITY, Math.floor(clampNumber(item.quantity, MAX_QUANTITY) ?? 1)));
 
   const options: NormalizedOptions = { kind, pricingMode: mode, productName: product.name };
+  if (kind === 'CURTAIN') options.curtainRole = curtainRole(product);
+
+  // Window-set grouping. Only a short slug is accepted, and the role must match
+  // what the product actually is, so the admin screen can trust both.
+  if (typeof raw.setId === 'string' && /^[a-z0-9-]{4,40}$/.test(raw.setId)) {
+    const expectedRole: SetRole | null = kind === 'ROD' ? 'ROD' : kind === 'CURTAIN' ? curtainRole(product) : null;
+    if (expectedRole) {
+      options.setId = raw.setId;
+      options.setRole = expectedRole;
+    }
+  }
 
   // Colour must be one the product actually offers.
   const colorName = typeof raw.color === 'string' ? raw.color.trim() : '';
@@ -224,9 +270,14 @@ export const priceLine = (product: ProductLike, item: RawItemInput): PricedLine 
   // For a made-to-measure curtain the metres are *derived* from the dimensions,
   // never taken from the client. Everything else uses the metres the customer
   // asked for (cut-to-length fabric).
+  // A rod's length is derived from the window width the same way, so a rod
+  // sold by the metre is priced for the window it was measured against.
+  if (kind === 'ROD' && widthCm) options.rodLengthCm = computeRodLengthCm(widthCm);
+
   let meters: number | null = null;
   if (mode === 'PER_METER') {
     if (kind === 'CURTAIN' && widthCm && dropCm) meters = computeCurtainMeters(widthCm, dropCm, fullness);
+    else if (kind === 'ROD' && options.rodLengthCm) meters = options.rodLengthCm / 100;
     else meters = clampNumber(item.metersRequired, MAX_METERS);
     if (meters) options.meters = meters;
   }
@@ -263,9 +314,11 @@ export const priceLine = (product: ProductLike, item: RawItemInput): PricedLine 
 export const describeOptions = (options: NormalizedOptions | null | undefined): string => {
   if (!options) return '';
   const parts: string[] = [];
+  if (options.curtainRole) parts.push(options.curtainRole === 'SOFT' ? 'Day curtain (rideau du jour)' : 'Night curtain (rideau de nuit)');
   if (options.color) parts.push(options.color);
-  if (options.widthCm && options.dropCm) parts.push(`${options.widthCm} × ${options.dropCm} cm`);
-  if (options.meters) parts.push(`${options.meters} m`);
+  if (options.kind === 'ROD' && options.rodLengthCm) parts.push(`Rod ${options.rodLengthCm / 100} m`);
+  else if (options.widthCm && options.dropCm) parts.push(`${options.widthCm} × ${options.dropCm} cm`);
+  if (options.meters && options.kind !== 'ROD') parts.push(`${options.meters} m`);
   if (options.headerTypeLabel) parts.push(options.headerTypeLabel);
   if (options.liningLabel) parts.push(options.liningLabel);
   if (options.panelLayoutLabel) parts.push(options.panelLayoutLabel);
