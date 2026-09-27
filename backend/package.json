@@ -58,6 +58,6 @@
     "typescript": "^5.3.2"
   },
   "engines": {
-    "node": ">=18 <21"
+    "node": "24.x"
   }
 }
