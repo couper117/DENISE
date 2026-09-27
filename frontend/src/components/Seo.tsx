@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 
-const SITE_URL = 'https://deniseshop.com';
-const DEFAULT_IMAGE = `${SITE_URL}/og-image.svg`;
+const SITE_URL = 'https://www.deniseshop.com';
+const DEFAULT_IMAGE = `${SITE_URL}/og-image.jpg`;
 
 // Master keyword set — brand, English, French and Kinyarwanda terms we want to rank for.
 export const DEFAULT_KEYWORDS = [

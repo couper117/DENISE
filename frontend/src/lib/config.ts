@@ -11,7 +11,7 @@ export const BUSINESS_LNG         = 30.0619;
 export const BUSINESS_HOURS       = 'Mon–Sat: 8:00 AM – 6:00 PM';
 export const BUSINESS_NAME        = 'DENISE Textile';
 export const BUSINESS_FULL_NAME   = 'New Textile Social Company Limited';
-export const WEBSITE_URL          = 'https://deniseshop.com';
+export const WEBSITE_URL          = 'https://www.deniseshop.com';
 
 export const SOCIAL_LINKS = {
   facebook:  'https://www.facebook.com/denisetextile',  // ← update with real URL

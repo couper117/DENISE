@@ -23,6 +23,7 @@ import mediaRoutes from './routes/media.routes';
 import { publishScheduled } from './controllers/cms.controller';
 import { handleWebhook } from './controllers/payments.controller';
 import logger from './utils/logger';
+import prisma from './config/database';
 import { validateEnv } from './config/env';
 
 // On Vercel this module *is* the server (Vercel's Express support serves the
@@ -162,20 +163,43 @@ app.use('/api', contentRoutes); // public: /api/testimonials, /api/faqs
 app.use('/api/cms', cmsRoutes); // visual CMS: content blocks + site settings
 app.use('/api/media', mediaRoutes); // visual CMS: media library
 
-// Dynamic sitemap
-app.get('/sitemap.xml', (_req, res) => {
-  const base = process.env.FRONTEND_URL || 'https://denise-textile.com';
-  res.header('Content-Type', 'application/xml');
-  res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url><loc>${base}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
-  <url><loc>${base}/products</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
-  <url><loc>${base}/reservation</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
-  <url><loc>${base}/about</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>${base}/contact</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
-  <url><loc>${base}/blog</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>
-  <url><loc>${base}/track</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
-</urlset>`);
+// Sitemap for search engines, built from the catalogue so every product,
+// category and blog post is listed the moment it exists. The storefront
+// (Vercel project "denise") rewrites www.deniseshop.com/sitemap.xml to here.
+// CDN-cached for a minute like the rest of the public catalogue.
+const SITE_URL = (process.env.PUBLIC_SITE_URL || 'https://www.deniseshop.com').replace(/\/+$/, '');
+const xmlEscape = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+app.get('/sitemap.xml', async (_req, res) => {
+  try {
+    const [products, categories, blogs] = await Promise.all([
+      prisma.product.findMany({ where: { isAvailable: true }, select: { slug: true, updatedAt: true, images: { select: { url: true }, orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }], take: 1 } } }),
+      prisma.category.findMany({ where: { isActive: true }, select: { slug: true, updatedAt: true } }),
+      prisma.blog.findMany({ where: { isPublished: true }, select: { slug: true, updatedAt: true } }),
+    ]);
+    const day = (d?: Date) => (d ?? new Date()).toISOString().slice(0, 10);
+    const entry = (path: string, opts: { lastmod?: Date; freq: string; priority: string; image?: string }) =>
+      `  <url><loc>${xmlEscape(SITE_URL + path)}</loc><lastmod>${day(opts.lastmod)}</lastmod><changefreq>${opts.freq}</changefreq><priority>${opts.priority}</priority>${
+        opts.image && /^https?:\/\//.test(opts.image) ? `<image:image><image:loc>${xmlEscape(opts.image)}</image:loc></image:image>` : ''
+      }</url>`;
+    const urls = [
+      entry('/', { freq: 'daily', priority: '1.0' }),
+      entry('/products', { freq: 'daily', priority: '0.9' }),
+      ...categories.map((c) => entry(`/products?category=${c.slug}`, { lastmod: c.updatedAt, freq: 'weekly', priority: '0.8' })),
+      ...products.map((p) => entry(`/products/${p.slug}`, { lastmod: p.updatedAt, freq: 'weekly', priority: '0.8', image: p.images[0]?.url })),
+      entry('/about', { freq: 'monthly', priority: '0.6' }),
+      entry('/contact', { freq: 'monthly', priority: '0.6' }),
+      entry('/blog', { freq: 'weekly', priority: '0.5' }),
+      ...blogs.map((b) => entry(`/blog/${b.slug}`, { lastmod: b.updatedAt, freq: 'monthly', priority: '0.5' })),
+      entry('/track', { freq: 'yearly', priority: '0.3' }),
+    ];
+    res.type('application/xml').send(
+      `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n${urls.join('\n')}\n</urlset>\n`
+    );
+  } catch (err) {
+    logger.error('Sitemap failed:', err);
+    res.status(503).type('text/plain').send('Sitemap temporarily unavailable');
+  }
 });
 
 // 404 handler

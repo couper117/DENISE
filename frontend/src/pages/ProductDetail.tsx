@@ -231,7 +231,7 @@ const ProductDetail = () => {
     <div className="shop-container py-6 md:py-10">
       <Seo
         path={`/products/${product.slug}`}
-        title={`${product.name} — DENISE Textile Rwanda`}
+        title={`${product.name}${cat ? ` — ${cat.name.replace(/\s*\(.*\)\s*$/, '')}` : ''} in Kigali | DENISE Textile`}
         description={product.description ? product.description.slice(0, 155) : `Buy ${product.name} at DENISE Textile Kigali. Order online with delivery across Rwanda.`}
         image={seoImage}
         type="product"
@@ -249,7 +249,7 @@ const ProductDetail = () => {
                   price: product.salePrice ?? product.price ?? product.pricePerMeter,
                   priceCurrency: product.currency || 'RWF',
                   availability: product.isAvailable ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-                  url: `https://deniseshop.com/products/${product.slug}`,
+                  url: `https://www.deniseshop.com/products/${product.slug}`,
                 },
               }
             : {}),
