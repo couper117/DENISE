@@ -169,8 +169,11 @@ const Footer = () => {
           <div className="space-y-1 md:text-right">
             <p>© {year} New Textile Social Company Limited (DENISE). <EditableText id="footer.rights" /></p>
             <p>
-              <EditableText id="footer.made_in" /> · <EditableText id="footer.made_by" />{' '}
-              <span className="font-medium text-foreground/80">Malhottech Company Ltd</span>
+              <EditableText id="footer.made_by" />{' '}
+              <a href="https://malhot.vercel.app" target="_blank" rel="noopener noreferrer"
+                className="font-medium text-foreground/80 underline-offset-4 hover:text-primary hover:underline">
+                Malhottech Company Ltd
+              </a>
             </p>
           </div>
         </div>
