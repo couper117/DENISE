@@ -3,8 +3,18 @@
   "framework": null,
   "buildCommand": "npm run build",
   "outputDirectory": "public",
-  "rewrites": [{ "source": "/(.*)", "destination": "/api" }],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ],
   "functions": {
-    "api/index.js": { "maxDuration": 30 }
-  }
+    "api/index.js": {
+      "maxDuration": 30
+    }
+  },
+  "regions": [
+    "bom1"
+  ]
 }

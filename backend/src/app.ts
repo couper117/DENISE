@@ -98,6 +98,33 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 app.use(readLimiter, writeLimiter);
 
+// Public catalogue reads are the same for every visitor, so Vercel's CDN may
+// serve them for 60 s (and a stale copy for up to 10 min while it refreshes).
+// A burst of shoppers then costs the database about one query per URL per
+// minute instead of one per visitor — the free Postgres plan allows only 20
+// connections. Only successful responses, only anonymous requests (an admin
+// with a token always gets fresh data), never orders, payments or accounts.
+const CDN_CACHEABLE = [
+  /^\/api\/products(\/|$)/, /^\/api\/categories\/?$/, /^\/api\/cms\/(content|settings)\/?$/,
+  /^\/api\/(testimonials|faqs)\/?$/, /^\/api\/delivery\/(zones|fee)\/?$/, /^\/api\/reviews\//,
+  /^\/api\/blogs(\/|$)/, /^\/api\/payments\/delivery-fees\/?$/, /^\/sitemap\.xml$/,
+];
+app.use((req, res, next) => {
+  const cacheable = (req.method === 'GET' || req.method === 'HEAD')
+    && !req.headers.authorization
+    && CDN_CACHEABLE.some((pattern) => pattern.test(req.path));
+  if (cacheable) {
+    const writeHead = res.writeHead;
+    res.writeHead = function (this: express.Response, statusCode: number, ...rest: unknown[]) {
+      if (statusCode >= 200 && statusCode < 300 && !this.getHeader('Cache-Control')) {
+        this.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60, stale-while-revalidate=600');
+      }
+      return (writeHead as (...args: unknown[]) => express.Response).call(this, statusCode, ...rest);
+    } as typeof res.writeHead;
+  }
+  next();
+});
+
 // Release scheduled publishes. A long-running server does this on a timer
 // (see index.ts). On Vercel nothing runs between requests, so the check rides
 // on incoming traffic instead, at most once a minute per instance; each

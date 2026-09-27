@@ -9,7 +9,9 @@ import logger from '../utils/logger';
 const databaseUrl = (() => {
   const url = process.env.DATABASE_URL;
   if (!url || !process.env.VERCEL || /[?&]connection_limit=/.test(url)) return url;
-  return `${url}${url.includes('?') ? '&' : '?'}connection_limit=3`;
+  // pool_timeout: under a burst, wait for a free connection a little longer
+  // rather than failing the request after Prisma's default 10 s.
+  return `${url}${url.includes('?') ? '&' : '?'}connection_limit=3&pool_timeout=20`;
 })();
 
 const prisma = new PrismaClient({
