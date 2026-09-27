@@ -1,4 +1,4 @@
-import 'dotenv/config';
+// Settings: Vercel injects them; locally src/index.ts loads .env before this file.
 import express from 'express';
 import path from 'path';
 import cors from 'cors';
