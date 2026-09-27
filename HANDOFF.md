@@ -62,6 +62,19 @@ readable 400/502 messages. Real Cloudinary upload not tested (local disk only).
 - Payment settles `paymentStatus` only; the order stays PENDING until staff
   confirm it — deliberate (measurements are checked before cutting).
 
+### Hosting (moved Sept 2026)
+The API now runs on **Vercel** as project `denise-api` (root directory
+`backend`, Vercel "Express/Services" support serving the default export of
+`src/app.ts`). Every push to `main` deploys it; the build runs
+`npm run vercel-build` = `prisma generate && prisma migrate deploy`.
+`src/index.ts` is only the long-running starter for local dev / `npm start`.
+Serverless differences handled in code: no log files on Vercel, scheduled CMS
+publishes checked on incoming requests instead of a timer, Prisma pool capped
+at 3 connections per instance, secrets validated per cold start. Uploads
+need Cloudinary on Vercel (no persistent disk). Vercel's Hobby plan is
+officially non-commercial; Pro ($20/mo) makes both projects compliant.
+The old Railway service is gone; railway.json / render.yaml are unused.
+
 ### Open
 - Live API on Railway returns "Application not found"; nothing works on
   deniseshop.com until the backend is back.

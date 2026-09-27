@@ -14,8 +14,13 @@ const logger = winston.createLogger({
         winston.format.simple()
       ),
     }),
-    new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
+    // Vercel's filesystem is read-only; its dashboard keeps the console output.
+    ...(process.env.VERCEL
+      ? []
+      : [
+          new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
+          new winston.transports.File({ filename: 'logs/combined.log' }),
+        ]),
   ],
 });
 

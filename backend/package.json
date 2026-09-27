@@ -11,7 +11,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:studio": "prisma studio",
     "prisma:seed": "ts-node src/seed.ts",
-    "db:seed": "ts-node src/seed.ts"
+    "db:seed": "ts-node src/seed.ts",
+    "vercel-build": "prisma generate && prisma migrate deploy"
   },
   "dependencies": {
     "@prisma/client": "^5.7.0",
