@@ -1,7 +1,8 @@
 {
   "services": {
     "web": {
-      "root": "."
+      "root": ".",
+      "entrypoint": "src/app.ts"
     }
   },
   "rewrites": [
