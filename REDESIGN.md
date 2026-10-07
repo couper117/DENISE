@@ -85,6 +85,10 @@ and verify on deniseshop.com.
   fullness pictures, multiple windows/doors in metres, rods sized from them;
   fabric = metres + colour; traditional attire = 4 m standard or custom;
   emoji and unverified claims removed; admin product management rebuilt.
+- [x] Mobile pass: bottom tab bar, photo hero, swipe rails, sticky product
+  and cart bars, collapsible checkout summary.
+- [x] Live on www.deniseshop.com; API moved to Vercel (`denise-api`); SEO
+  (per-page HTML for crawlers, live sitemap, www canonical, sharing image).
 - [ ] Phase 4
 - [ ] Phase 5
 - [ ] Phase 6
