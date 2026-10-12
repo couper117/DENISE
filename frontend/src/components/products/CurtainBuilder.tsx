@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { Product } from '../../types';
 import { productsApi } from '../../lib/api';
-import { WHATSAPP_LINK } from '../../lib/config';
+import { useBusiness } from '../../lib/siteConfig';
 import {
   ARRANGEMENTS, Arrangement, Configuration, CurtainRole, FULLNESS_CHOICES, HEADER_TYPES, LINING_TYPES, OptionChoice,
   ROD_OVERHANG_CM, computeRodLengthCm, curtainRole, detectKind, priceConfiguration,
@@ -157,6 +157,7 @@ const ChoiceRow = ({ legend, choices, value, onChange, tr }: { legend: string; c
  * every line with the same rules at checkout.
  */
 const CurtainBuilder = ({ product, onAdd }: CurtainBuilderProps) => {
+  const biz = useBusiness();
   const { t } = useTranslation();
   const tr = (key: string, fallback: string, vars?: Record<string, unknown>) => t(key, { defaultValue: fallback, ...vars });
 
@@ -448,7 +449,7 @@ const CurtainBuilder = ({ product, onAdd }: CurtainBuilderProps) => {
                     image={primaryImage(p)} title={p.name} detail={perMeter(p)} />
                 ))}
                 {companions.length === 0 && (
-                  <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground hover:text-foreground">
+                  <a href={biz.whatsappLink} target="_blank" rel="noopener noreferrer" className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground hover:text-foreground">
                     {tr('curtain.no_companions', 'Ask us on WhatsApp for matching curtains in store.')}
                   </a>
                 )}

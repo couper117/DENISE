@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cmsApi } from '../lib/api';
+import { useSiteConfig } from '../lib/siteConfig';
 import { useAuthStore } from '../store';
 import { primeFromCache, useCmsStore, writeCache } from './store';
 import type { ContentType, ContentValue } from './types';
@@ -110,6 +111,8 @@ const CmsProvider = ({ children }: { children: React.ReactNode }) => {
         if (cancelled) return;
         const s = (res.data.data ?? {}) as Record<string, unknown>;
         const root = document.documentElement;
+        // Business details (phone, payments, logo…) editable in Admin → Settings.
+        useSiteConfig.getState().apply(s);
 
         // Written as raw hex on a separate variable rather than overwriting the
         // Tailwind HSL tokens, which expect "H S% L%" and would break if given

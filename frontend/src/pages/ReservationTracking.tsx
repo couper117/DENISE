@@ -11,7 +11,8 @@ import { motion } from 'framer-motion';
 import { reservationsApi } from '../lib/api';
 import { Reservation, FulfillmentType } from '../types';
 import { formatDate, getStatusColor, getStatusLabel } from '../lib/utils';
-import { WHATSAPP_LINK, buildMobileMoneyDial, MobileMoneyMethod } from '../lib/config';
+import { MobileMoneyMethod } from '../lib/config';
+import { useBusiness, buildDial } from '../lib/siteConfig';
 import Seo from '../components/Seo';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { EditableText } from '../cms';
@@ -98,6 +99,7 @@ const PAYMENT_STATUS_LABELS: Record<string, { label: string; color: string }> = 
 };
 
 const ReservationTracking = () => {
+  const biz = useBusiness();
   const { t } = useTranslation();
   const [searchParams] = useSearchParams();
   const [refNumber, setRefNumber] = useState(searchParams.get('ref') || '');
@@ -168,7 +170,7 @@ const ReservationTracking = () => {
     reservation.paymentStatus !== 'COMPLETED' &&
     reservation.status !== 'PENDING' && reservation.status !== 'CANCELLED';
   const pay = canPay && reservation && momoPayment
-    ? buildMobileMoneyDial(momoPayment.method as MobileMoneyMethod, reservation.totalAmount as number)
+    ? buildDial(biz, momoPayment.method as MobileMoneyMethod, reservation.totalAmount as number)
     : null;
 
   return (
@@ -476,7 +478,7 @@ const ReservationTracking = () => {
           <div className="bg-muted/50 rounded-xl p-4 text-center text-sm">
             <p className="text-muted-foreground mb-2">{t('tracking.need_help', { defaultValue: 'Need help with your order?' })}</p>
             <a
-              href={WHATSAPP_LINK}
+              href={biz.whatsappLink}
               target="_blank"
               rel="noopener noreferrer"
               className="btn btn-sm bg-[#1f8f4e] text-white hover:bg-[#197a42]"

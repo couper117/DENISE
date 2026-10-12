@@ -3,10 +3,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Phone, Mail, Clock, MessageCircle } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useEffect } from 'react';
-import {
-  BUSINESS_PHONE, BUSINESS_PHONE_CLEAN, BUSINESS_EMAIL,
-  BUSINESS_HOURS, WHATSAPP_LINK, BUSINESS_LAT, BUSINESS_LNG,
-} from '../lib/config';
+import { useBusiness } from '../lib/siteConfig';
 import Seo from '../components/Seo';
 import ChatBox from '../components/chat/ChatBox';
 import Breadcrumbs from '../components/Breadcrumbs';
@@ -19,6 +16,7 @@ const LAT = -1.9441;
 const LNG = 30.0619;
 
 const Contact = () => {
+  const biz = useBusiness();
   // Arriving with #chat (the phone tab bar's Chat button): scroll to the chat
   // once the page has rendered — the router resets scroll to the top first.
   const { hash } = useLocation();
@@ -31,9 +29,9 @@ const Contact = () => {
 
   const contactItems = [
     { icon: MapPin, label: t('contact.address'), value: t('contact.address_value'), href: undefined },
-    { icon: Phone, label: t('contact.phone'), value: BUSINESS_PHONE, href: `tel:${BUSINESS_PHONE_CLEAN}` },
-    { icon: Mail, label: t('contact.email'), value: BUSINESS_EMAIL, href: `mailto:${BUSINESS_EMAIL}` },
-    { icon: Clock, label: t('contact.hours'), value: BUSINESS_HOURS, href: undefined },
+    { icon: Phone, label: t('contact.phone'), value: biz.phone, href: `tel:+${biz.phoneDigits}` },
+    { icon: Mail, label: t('contact.email'), value: biz.email, href: `mailto:${biz.email}` },
+    { icon: Clock, label: t('contact.hours'), value: biz.hours, href: undefined },
   ];
 
   return (
@@ -71,7 +69,7 @@ const Contact = () => {
             ))}
           </div>
 
-          <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer"
+          <a href={biz.whatsappLink} target="_blank" rel="noopener noreferrer"
             className="flex items-center justify-center gap-3 w-full py-4 bg-[#1f8f4e] text-white font-semibold rounded-xl hover:bg-[#197a42] transition-colors text-lg">
             <MessageCircle size={22} />
             <EditableText id="contact.whatsapp" />
@@ -79,7 +77,7 @@ const Contact = () => {
 
           {/* Was "Book a shop visit" → /reservation, which lands on an empty cart.
               Visiting needs no booking; directions are what people want here. */}
-          <a href={`https://www.google.com/maps/dir/?api=1&destination=${BUSINESS_LAT},${BUSINESS_LNG}`} target="_blank" rel="noopener noreferrer"
+          <a href={`https://www.google.com/maps/dir/?api=1&destination=${biz.lat},${biz.lng}`} target="_blank" rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 w-full py-4 bg-primary text-white font-semibold rounded-xl hover:bg-primary/90 transition-colors">
             <MapPin size={18} /> <EditableText id="home.get_directions" />
           </a>
@@ -121,7 +119,7 @@ const Contact = () => {
 
       {/* Website chat — answered from the admin inbox. */}
       <div className="mx-auto mt-12 max-w-3xl">
-        <ChatBox hours={BUSINESS_HOURS} />
+        <ChatBox hours={biz.hours} />
       </div>
     </div>
   );

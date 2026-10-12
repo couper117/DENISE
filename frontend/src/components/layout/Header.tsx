@@ -10,7 +10,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { clearAuthSession, useAuthStore, useCartStore, useThemeStore } from '../../store';
 import { authApi } from '../../lib/api';
 import { cn } from '../../lib/utils';
-import { BUSINESS_PHONE, BUSINESS_PHONE_CLEAN } from '../../lib/config';
+import { useBusiness } from '../../lib/siteConfig';
 import { EditWebsiteButton, EditableText, useCmsStore, useCmsValue } from '../../cms';
 
 const LANGUAGES = [
@@ -155,6 +155,7 @@ const LanguageMenu = ({ tone = 'bar' }: { tone?: 'bar' | 'panel' }) => {
 };
 
 const Header = () => {
+  const biz = useBusiness();
   const { t } = useTranslation();
   const { isAuthenticated, user, refreshToken } = useAuthStore();
   const { itemCount } = useCartStore();
@@ -205,8 +206,8 @@ const Header = () => {
           the brightest thing on screen, so it drops to the card surface. */}
       <div className="bg-brand-dark text-white/85 dark:bg-card dark:text-muted-foreground dark:border-b dark:border-border">
         <div className="shop-container flex h-8 items-center justify-center gap-4 text-[11px] sm:text-xs md:h-9 md:justify-between">
-          <a href={`tel:+${BUSINESS_PHONE_CLEAN}`} className="hidden items-center gap-1.5 hover:text-white dark:hover:text-foreground md:inline-flex">
-            <Phone size={13} /> {BUSINESS_PHONE}
+          <a href={`tel:+${biz.phoneDigits}`} className="hidden items-center gap-1.5 hover:text-white dark:hover:text-foreground md:inline-flex">
+            <Phone size={13} /> {biz.phone}
           </a>
           <MobileAnnouncement />
           <EditableText id="header.announcement" label="Announcement bar" className="hidden truncate text-center md:block" />
@@ -230,16 +231,23 @@ const Header = () => {
             <Menu size={21} />
           </button>
 
-          <Link to="/" className="flex shrink-0 items-center gap-2.5" aria-label="DENISE Textile — home">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary font-serif text-lg font-semibold text-primary-foreground md:h-10 md:w-10">
-              D
-            </span>
-            <span className="leading-none">
-              <span className="block font-serif text-xl font-semibold tracking-tight md:text-2xl">DENISE</span>
-              <span className="mt-0.5 hidden text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground sm:block">
-                Textile · Kigali
-              </span>
-            </span>
+          {/* The owner's logo (Admin → Settings) when one is set, otherwise the wordmark. */}
+          <Link to="/" className="flex shrink-0 items-center gap-2.5" aria-label={`${biz.name} — home`}>
+            {biz.logo ? (
+              <img src={biz.logo} alt={biz.name} className="h-9 w-auto max-w-[9rem] object-contain md:h-11 md:max-w-[11rem]" />
+            ) : (
+              <>
+                <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary font-serif text-lg font-semibold text-primary-foreground md:h-10 md:w-10">
+                  {biz.name.trim()[0]?.toUpperCase() || 'D'}
+                </span>
+                <span className="leading-none">
+                  <span className="block font-serif text-xl font-semibold tracking-tight md:text-2xl">{biz.name.replace(/\s+textile$/i, '').toUpperCase()}</span>
+                  <span className="mt-0.5 hidden text-[10px] font-medium uppercase tracking-[0.2em] text-muted-foreground sm:block">
+                    Textile · Kigali
+                  </span>
+                </span>
+              </>
+            )}
           </Link>
 
           <SearchForm className="mx-auto hidden w-full max-w-xl md:block" />
@@ -448,8 +456,8 @@ const Header = () => {
                     <Link to="/register" className="btn btn-outline"><EditableText id="nav.register" /></Link>
                   </div>
                 )}
-                <a href={`tel:+${BUSINESS_PHONE_CLEAN}`} className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <Phone size={14} /> {BUSINESS_PHONE}
+                <a href={`tel:+${biz.phoneDigits}`} className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <Phone size={14} /> {biz.phone}
                 </a>
               </div>
             </motion.aside>

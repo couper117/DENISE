@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
 import { MessageCircle } from 'lucide-react';
-import { WHATSAPP_LINK } from '../../lib/config';
+import { useBusiness } from '../../lib/siteConfig';
 
 // Desktop only: on phones the tab bar carries WhatsApp instead.
 const WhatsAppButton = () => {
-  const link = WHATSAPP_LINK;
+  const biz = useBusiness();
+  const link = biz.whatsappLink;
 
   return (
     <motion.a

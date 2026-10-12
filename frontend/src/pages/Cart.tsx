@@ -11,7 +11,7 @@ import Seo from '../components/Seo';
 import { EditableText } from '../cms';
 import { cn } from '../lib/utils';
 import { categoryLabel } from '../lib/catalog';
-import { WHATSAPP_LINK } from '../lib/config';
+import { useBusiness } from '../lib/siteConfig';
 import { useFreshPrices } from '../lib/useFreshPrices';
 
 const money = (value: number, currency = 'RWF') => `${value.toLocaleString()} ${currency}`;
@@ -19,12 +19,13 @@ const money = (value: number, currency = 'RWF') => `${value.toLocaleString()} ${
 /** Replaces the old fabric estimator: the product page now does the maths, so
  *  what is left to offer here is a person. */
 const MeasureHelp = () => {
+  const biz = useBusiness();
   const { t } = useTranslation();
   return (
     <div className="rounded-2xl border border-border bg-card p-5">
       <p className="flex items-center gap-2 font-semibold"><Ruler size={16} className="text-primary" /> {t('cart.measure_help_title', { defaultValue: 'Need help measuring?' })}</p>
       <p className="mt-1.5 text-sm text-muted-foreground">{t('cart.measure_help_text', { defaultValue: 'Send us your window sizes or a photo on WhatsApp and we will check the metres before cutting.' })}</p>
-      <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="btn mt-4 w-full bg-[#1f8f4e] text-white hover:bg-[#197a42]">
+      <a href={biz.whatsappLink} target="_blank" rel="noopener noreferrer" className="btn mt-4 w-full bg-[#1f8f4e] text-white hover:bg-[#197a42]">
         <MessageCircle size={16} /> {t('home.whatsapp_us')}
       </a>
     </div>

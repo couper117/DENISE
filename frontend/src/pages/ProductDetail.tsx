@@ -11,7 +11,7 @@ import { productsApi, reviewsApi, wishlistApi } from '../lib/api';
 import { makeLine, useAuthStore, useBuyNowStore, useCartStore } from '../store';
 import { Product, ProductReview } from '../types';
 import { Configuration, curtainRole, detectKind } from '../lib/productOptions';
-import { WHATSAPP_LINK } from '../lib/config';
+import { useBusiness } from '../lib/siteConfig';
 import ProductCard from '../components/products/ProductCard';
 import ProductConfigurator from '../components/products/ProductConfigurator';
 import CurtainBuilder, { BuiltLine } from '../components/products/CurtainBuilder';
@@ -79,6 +79,7 @@ const Detail = ({ title, children, defaultOpen = false }: { title: string; child
 const inputClass = 'w-full rounded-xl border border-input bg-background px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20';
 
 const ProductDetail = () => {
+  const biz = useBusiness();
   const { slug } = useParams<{ slug: string }>();
   const { t } = useTranslation();
   const { addLine, updateLine, items } = useCartStore();
@@ -416,7 +417,7 @@ const ProductDetail = () => {
               <li key={text} className="flex items-center gap-3"><Icon size={17} className="shrink-0 text-primary" /> {text}</li>
             ))}
             <li>
-              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 font-medium text-[#1f8f4e] hover:underline">
+              <a href={biz.whatsappLink} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 font-medium text-[#1f8f4e] hover:underline">
                 <MessageCircle size={17} className="shrink-0" /> {t('products.ask_whatsapp', { defaultValue: 'Questions? Ask us on WhatsApp' })}
               </a>
             </li>

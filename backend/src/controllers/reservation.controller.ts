@@ -69,7 +69,13 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       // (This used to fall back to a flat 5,000, so Kigali orders shown at
       // 2,000 RWF delivery were saved at 5,000.)
       deliveryFeeAmount = zone ? zone.baseFee : getDeliveryFee(deliveryAddress.province);
-      if (deliveryType === 'SAME_DAY') deliveryFeeAmount = (deliveryFeeAmount || 0) + 1000;
+      if (deliveryType === 'SAME_DAY') {
+        // Admin → Settings → Delivery; the checkout page reads the same setting.
+        const row = await prisma.siteSetting.findUnique({ where: { key: 'delivery.sameDaySurcharge' } });
+        const configured = Number(row?.value);
+        const surcharge = row && row.value !== '' && Number.isFinite(configured) && configured >= 0 ? configured : 1000;
+        deliveryFeeAmount = (deliveryFeeAmount || 0) + surcharge;
+      }
     }
 
     // ── Fetch products (with inventory) referenced by the cart ──────────────

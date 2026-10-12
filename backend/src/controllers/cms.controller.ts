@@ -505,11 +505,52 @@ export const publishScheduled = async (): Promise<number> => {
 
 // ─── Site settings ────────────────────────────────────────────────────────────
 
+/**
+ * Business settings and what a valid value looks like. The public site and the
+ * order pricing read these, so a bad value must be refused, not stored: an
+ * empty string clears a setting (the site falls back to its built-in value).
+ */
+const isText = (max: number) => (v: unknown) => typeof v === 'string' && v.length <= max;
+const isUrlOrEmpty = (v: unknown) => typeof v === 'string' && (v === '' || /^https?:\/\/[^\s]+$/i.test(v) || /^\/[^\s]*$/.test(v)) && v.length <= 500;
+const isPhoneOrEmpty = (v: unknown) => typeof v === 'string' && (v === '' || /^[+\d][\d\s-]{7,19}$/.test(v));
+const isEmailOrEmpty = (v: unknown) => typeof v === 'string' && (v === '' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) && v.length <= 120;
+const isNumberIn = (min: number, max: number) => (v: unknown) => {
+  const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() ? Number(v) : NaN;
+  return (typeof v === 'string' && v === '') || (Number.isFinite(n) && n >= min && n <= max);
+};
+const isBool = (v: unknown) => typeof v === 'boolean';
+
+export const BUSINESS_SETTING_RULES: [string, (v: unknown) => boolean, string][] = [
+  ['site.legalName', isText(120), 'Company name must be at most 120 characters'],
+  ['contact.phone', isPhoneOrEmpty, 'Phone must look like +250 788 000 000'],
+  ['contact.whatsapp', isPhoneOrEmpty, 'WhatsApp must look like +250 788 000 000'],
+  ['contact.email', isEmailOrEmpty, 'Email is not valid'],
+  ['contact.address', isText(200), 'Address must be at most 200 characters'],
+  ['contact.hours', isText(120), 'Opening hours must be at most 120 characters'],
+  ['contact.lat', isNumberIn(-90, 90), 'Latitude must be between -90 and 90'],
+  ['contact.lng', isNumberIn(-180, 180), 'Longitude must be between -180 and 180'],
+  ['social.facebook', isUrlOrEmpty, 'Facebook must be a full link (https://…)'],
+  ['social.instagram', isUrlOrEmpty, 'Instagram must be a full link (https://…)'],
+  ['social.twitter', isUrlOrEmpty, 'X / Twitter must be a full link (https://…)'],
+  ['social.tiktok', isUrlOrEmpty, 'TikTok must be a full link (https://…)'],
+  ['payment.momoNumber', isPhoneOrEmpty, 'MoMo number must look like 0788 000 000'],
+  ['payment.airtelNumber', isPhoneOrEmpty, 'Airtel number must look like 0730 000 000'],
+  ['payment.airtelEnabled', isBool, 'Airtel on/off must be true or false'],
+  ['payment.bankEnabled', isBool, 'Bank transfer on/off must be true or false'],
+  ['payment.payInPersonEnabled', isBool, 'Pay in person on/off must be true or false'],
+  ['payment.bankDetails', isText(500), 'Bank details must be at most 500 characters'],
+  ['delivery.sameDaySurcharge', isNumberIn(0, 100_000), 'Same-day surcharge must be between 0 and 100,000 RWF'],
+];
+const BUSINESS_RULES = new Map(BUSINESS_SETTING_RULES.map(([k, check, msg]) => [k, { check, msg }]));
+
+
 /** Settings the public site needs: theme colours, logo, favicon, maintenance. */
 const PUBLIC_SETTING_KEYS = [
   'theme.primary', 'theme.secondary', 'theme.accent',
   'site.logo', 'site.favicon', 'site.name',
   'site.maintenance', 'analytics.gaId',
+  // Business details edited in Admin → Settings (read by frontend lib/siteConfig.ts).
+  ...BUSINESS_SETTING_RULES.map(([key]) => key),
 ];
 
 export const getPublicSettings = async (_req: Request, res: Response): Promise<void> => {
@@ -548,6 +589,19 @@ export const updateSettings = async (req: AuthenticatedRequest, res: Response): 
     if (entries.length > 100) {
       res.status(400).json({ success: false, message: 'Too many settings in one request' });
       return;
+    }
+
+    // Keys are short dotted names; business keys must also pass their check.
+    for (const [key, value] of entries) {
+      if (!/^[a-z]+\.[a-zA-Z]+$/.test(key)) {
+        res.status(400).json({ success: false, message: `Unknown setting: ${key}` });
+        return;
+      }
+      const rule = BUSINESS_RULES.get(key);
+      if (rule && !rule.check(value)) {
+        res.status(400).json({ success: false, field: key, message: rule.msg });
+        return;
+      }
     }
 
     const userId = req.user?.id ?? null;

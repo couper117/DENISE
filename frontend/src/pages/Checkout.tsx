@@ -14,10 +14,8 @@ import { CartItem, DeliveryType, FulfillmentType, PaymentMethod, Reservation } f
 import { describeConfiguration } from '../lib/productOptions';
 import { generateTimeSlots, getMinReservationDate, cn } from '../lib/utils';
 import { RWANDA_PROVINCES, getDistrictsForProvince, getDeliveryFee } from '../lib/rwanda';
-import {
-  AIRTEL_ENABLED, BANK_TRANSFER_ENABLED, CARD_ENABLED, PAY_ON_COLLECTION_ENABLED,
-  buildMobileMoneyDial, MobileMoneyMethod,
-} from '../lib/config';
+import { MobileMoneyMethod } from '../lib/config';
+import { useBusiness, buildDial } from '../lib/siteConfig';
 import { fillBlanks, useCustomerIdentity } from '../lib/useCustomerIdentity';
 import { toast } from '../components/ui/Toaster';
 import Breadcrumbs from '../components/Breadcrumbs';
@@ -57,7 +55,6 @@ const DELIVERY_TYPES: { type: DeliveryType; labelKey: string; descKey: string; e
   { type: 'SCHEDULED', labelKey: 'delivery.SCHEDULED', descKey: 'delivery.scheduled_note', extraKey: 'delivery.extra_included' },
 ];
 
-const SAME_DAY_SURCHARGE = 1000;
 
 const field =
   'w-full px-4 py-2.5 bg-background border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/30';
@@ -101,6 +98,7 @@ const LineSummary = ({ item, compact = false }: { item: CartItem; compact?: bool
 };
 
 const Checkout = () => {
+  const biz = useBusiness();
   const { t } = useTranslation();
   const tr = (key: string, fallback: string, opts?: Record<string, unknown>) =>
     t(key, { defaultValue: fallback, ...opts });
@@ -237,7 +235,7 @@ const Checkout = () => {
 
   const deliveryFee = useMemo(() => {
     if (!isDelivery || !form.province) return 0;
-    return zoneFee(form.province) + (form.deliveryType === 'SAME_DAY' ? SAME_DAY_SURCHARGE : 0);
+    return zoneFee(form.province) + (form.deliveryType === 'SAME_DAY' ? biz.sameDaySurcharge : 0);
   }, [isDelivery, form.province, form.deliveryType]);
 
   const grandTotal = goods + deliveryFee;
@@ -266,26 +264,26 @@ const Checkout = () => {
         method: 'MTN_MOMO' as PaymentMethod, icon: Smartphone, label: t('payment.MTN_MOMO'),
         hint: tr('payment.momo_hint', 'Dial the payment prompt on your phone and confirm with your PIN.'),
       },
-      ...(AIRTEL_ENABLED ? [{
+      ...(biz.airtelEnabled ? [{
         method: 'AIRTEL_MONEY' as PaymentMethod, icon: Smartphone, label: t('payment.AIRTEL_MONEY'),
         hint: tr('payment.momo_hint', 'Dial the payment prompt on your phone and confirm with your PIN.'),
       }] : []),
-      ...(CARD_ENABLED ? [{
+      ...(biz.cardEnabled ? [{
         method: 'VISA' as PaymentMethod, icon: CreditCard, label: tr('payment.card', 'Credit / debit card'),
         hint: tr('payment.card_hint', 'You will be redirected to a secure payment page.'),
       }] : []),
-      ...(BANK_TRANSFER_ENABLED ? [{
+      ...(biz.bankEnabled ? [{
         method: 'BANK_TRANSFER' as PaymentMethod, icon: Building2, label: t('payment.BANK_TRANSFER'),
         hint: tr('payment.bank_hint', 'We send you the account details once your order is confirmed.'),
       }] : []),
-      ...(PAY_ON_COLLECTION_ENABLED ? [{
+      ...(biz.payInPersonEnabled ? [{
         method: 'PAY_AT_SHOP' as PaymentMethod, icon: Store, label: collectLabel,
         hint: isDelivery
           ? tr('payment.cod_hint', 'Pay the courier when your order arrives.')
           : tr('payment.collect_hint', 'Pay at the shop when you collect your order.'),
       }] : []),
     ];
-  }, [isDelivery, isReservation, t]);
+  }, [isDelivery, isReservation, t, biz]);
 
   // Keep the selection valid when the fulfilment choice changes the menu.
   useEffect(() => {
@@ -431,7 +429,7 @@ const Checkout = () => {
     // isn't available, when a request-to-pay failed, or as a "didn't get the
     // prompt?" alternative while we wait.
     const dial = isMobileMoney && amount > 0 && !paidOnline
-      ? buildMobileMoneyDial(paymentMethod as MobileMoneyMethod, amount)
+      ? buildDial(biz, paymentMethod as MobileMoneyMethod, amount)
       : null;
 
     return (
@@ -812,7 +810,9 @@ const Checkout = () => {
                           />
                           <span className="font-semibold block mb-0.5">{t(dt.labelKey)}</span>
                           <span className="text-muted-foreground block">{t(dt.descKey)}</span>
-                          <span className="font-medium block mt-1">{t(dt.extraKey)}</span>
+                          <span className="font-medium block mt-1">
+                            {dt.type === 'SAME_DAY' ? `+${biz.sameDaySurcharge.toLocaleString()} RWF` : t(dt.extraKey)}
+                          </span>
                         </label>
                       ))}
                     </div>

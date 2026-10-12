@@ -1,11 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MapPin, Phone, Mail, Clock, Facebook, Instagram, Twitter, MessageCircle, ArrowRight } from 'lucide-react';
-import {
-  BUSINESS_PHONE, BUSINESS_PHONE_CLEAN, BUSINESS_EMAIL,
-  BUSINESS_HOURS, BUSINESS_ADDRESS, SOCIAL_LINKS, WHATSAPP_LINK,
-  AIRTEL_ENABLED, BANK_TRANSFER_ENABLED, PAY_ON_COLLECTION_ENABLED,
-} from '../../lib/config';
+import { useBusiness } from '../../lib/siteConfig';
 import { EditableList, EditableText } from '../../cms';
 
 interface FooterLink { label: string; href: string }
@@ -16,13 +12,14 @@ const LINK_FIELDS = [
   { name: 'href', type: 'TEXT' as const, label: 'Destination', placeholder: '/products' },
 ];
 
-const SOCIALS = [
-  { href: SOCIAL_LINKS.facebook, icon: Facebook, label: 'Facebook' },
-  { href: SOCIAL_LINKS.instagram, icon: Instagram, label: 'Instagram' },
-  { href: SOCIAL_LINKS.twitter, icon: Twitter, label: 'Twitter' },
-].filter((s) => s.href);
 
 const Footer = () => {
+  const biz = useBusiness();
+  const SOCIALS = [
+    { href: biz.social.facebook, icon: Facebook, label: 'Facebook' },
+    { href: biz.social.instagram, icon: Instagram, label: 'Instagram' },
+    { href: biz.social.twitter, icon: Twitter, label: 'Twitter' },
+  ].filter((s) => s.href);
   const { t } = useTranslation();
   const year = new Date().getFullYear();
   // Checkout keeps the page quiet: no sales band under the payment form.
@@ -32,9 +29,9 @@ const Footer = () => {
   // payment method the shop cannot actually take.
   const paymentKeys = [
     'footer.pay_momo',
-    AIRTEL_ENABLED && 'footer.pay_airtel',
-    BANK_TRANSFER_ENABLED && 'footer.pay_bank',
-    PAY_ON_COLLECTION_ENABLED && 'footer.pay_in_store',
+    biz.airtelEnabled && 'footer.pay_airtel',
+    biz.bankEnabled && 'footer.pay_bank',
+    biz.payInPersonEnabled && 'footer.pay_in_store',
   ].filter(Boolean) as string[];
 
   const linkClass = 'text-sm text-muted-foreground transition-colors hover:text-foreground';
@@ -49,11 +46,11 @@ const Footer = () => {
             <EditableText id="footer.help_desc" as="p" multiline className="mt-2 text-sm leading-relaxed text-muted-foreground" />
           </div>
           <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:gap-3">
-            <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="btn bg-[#1f8f4e] px-4 text-white hover:bg-[#197a42]">
+            <a href={biz.whatsappLink} target="_blank" rel="noopener noreferrer" className="btn bg-[#1f8f4e] px-4 text-white hover:bg-[#197a42]">
               <MessageCircle size={17} /> <EditableText id="home.whatsapp_us" />
             </a>
-            <a href={`tel:+${BUSINESS_PHONE_CLEAN}`} className="btn btn-outline px-4">
-              <Phone size={16} /> <span className="sm:hidden">{t('footer.call', { defaultValue: 'Call us' })}</span><span className="hidden sm:inline">{BUSINESS_PHONE}</span>
+            <a href={`tel:+${biz.phoneDigits}`} className="btn btn-outline px-4">
+              <Phone size={16} /> <span className="sm:hidden">{t('footer.call', { defaultValue: 'Call us' })}</span><span className="hidden sm:inline">{biz.phone}</span>
             </a>
           </div>
         </div>
@@ -63,10 +60,14 @@ const Footer = () => {
         {/* Brand */}
         <div className="col-span-2 md:col-span-4 lg:col-span-4">
           <Link to="/" className="inline-flex items-center gap-2.5">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary font-serif text-lg font-semibold text-primary-foreground">D</span>
+            {biz.logo ? (
+              <img src={biz.logo} alt={biz.name} className="h-12 w-auto max-w-[12rem] object-contain" />
+            ) : (
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary font-serif text-lg font-semibold text-primary-foreground">{biz.name.trim()[0]?.toUpperCase() || 'D'}</span>
+            )}
             <span className="leading-none">
-              <span className="block font-serif text-2xl font-semibold tracking-tight">DENISE</span>
-              <span className="mt-1 block text-[11px] text-muted-foreground">New Textile Social Company Ltd</span>
+              {!biz.logo && <span className="block font-serif text-2xl font-semibold tracking-tight">{biz.name.replace(/\s+textile$/i, '').toUpperCase()}</span>}
+              <span className="mt-1 block text-[11px] text-muted-foreground">{biz.legalName}</span>
             </span>
           </Link>
           <EditableText id="footer.tagline" as="p" multiline label="Footer tagline" className="mt-5 max-w-sm text-sm leading-relaxed text-muted-foreground" />
@@ -134,19 +135,19 @@ const Footer = () => {
           <ul className="space-y-3 text-sm text-muted-foreground">
             <li className="flex items-start gap-3">
               <MapPin size={16} className="mt-0.5 shrink-0 text-primary" />
-              <span>{BUSINESS_ADDRESS}</span>
+              <span>{biz.address}</span>
             </li>
             <li className="flex items-start gap-3">
               <Clock size={16} className="mt-0.5 shrink-0 text-primary" />
-              <span>{BUSINESS_HOURS}</span>
+              <span>{biz.hours}</span>
             </li>
             <li className="flex items-center gap-3">
               <Phone size={16} className="shrink-0 text-primary" />
-              <a href={`tel:+${BUSINESS_PHONE_CLEAN}`} className="hover:text-foreground">{BUSINESS_PHONE}</a>
+              <a href={`tel:+${biz.phoneDigits}`} className="hover:text-foreground">{biz.phone}</a>
             </li>
             <li className="flex items-center gap-3">
               <Mail size={16} className="shrink-0 text-primary" />
-              <a href={`mailto:${BUSINESS_EMAIL}`} className="break-all hover:text-foreground">{BUSINESS_EMAIL}</a>
+              <a href={`mailto:${biz.email}`} className="break-all hover:text-foreground">{biz.email}</a>
             </li>
           </ul>
           <Link to="/contact" className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline underline-offset-4">
@@ -167,7 +168,7 @@ const Footer = () => {
             ))}
           </div>
           <div className="space-y-1 md:text-right">
-            <p>© {year} New Textile Social Company Limited (DENISE). <EditableText id="footer.rights" /></p>
+            <p>© {year} {biz.legalName} ({biz.name.replace(/\s+textile$/i, '')}). <EditableText id="footer.rights" /></p>
             <p>
               <EditableText id="footer.made_by" />{' '}
               <a href="https://malhot.vercel.app" target="_blank" rel="noopener noreferrer"

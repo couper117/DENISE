@@ -13,9 +13,7 @@ import ProductCard from '../components/products/ProductCard';
 import { ProductGridSkeleton } from '../components/ui/SkeletonCard';
 import Seo from '../components/Seo';
 import { EditableIcon, EditableList, EditableText } from '../cms';
-import {
-  BUSINESS_PHONE, BUSINESS_PHONE_CLEAN, WHATSAPP_LINK, BUSINESS_LAT, BUSINESS_LNG,
-} from '../lib/config';
+import { useBusiness } from '../lib/siteConfig';
 
 const MAPS_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
 
@@ -74,6 +72,7 @@ const railItem = 'w-[44%] shrink-0 snap-start sm:w-[30%] lg:w-auto';
 const primaryImage = (p?: Product) => (p?.images?.find((i) => i.isPrimary) || p?.images?.[0])?.url;
 
 const Home = () => {
+  const biz = useBusiness();
   const { t } = useTranslation();
 
   const { data: featuredData, isLoading: featuredLoading } = useQuery({
@@ -118,8 +117,8 @@ const Home = () => {
   const newArrivalsEmpty = !newLoading && (newArrivalsData?.length ?? 0) === 0;
 
   const mapSrc = MAPS_KEY
-    ? `https://www.google.com/maps/embed/v1/place?key=${MAPS_KEY}&q=${BUSINESS_LAT},${BUSINESS_LNG}&zoom=15`
-    : `https://www.google.com/maps?q=${BUSINESS_LAT},${BUSINESS_LNG}&z=15&output=embed`;
+    ? `https://www.google.com/maps/embed/v1/place?key=${MAPS_KEY}&q=${biz.lat},${biz.lng}&zoom=15`
+    : `https://www.google.com/maps?q=${biz.lat},${biz.lng}&z=15&output=embed`;
 
   const values = [
     { icon: Truck, key: 'home.value_delivery' },
@@ -365,7 +364,7 @@ const Home = () => {
               {[
                 { icon: MapPin, node: <EditableText id="home.address" /> },
                 { icon: Clock, node: <EditableText id="home.hours" /> },
-                { icon: Phone, node: <a href={`tel:+${BUSINESS_PHONE_CLEAN}`} className="hover:text-primary">{BUSINESS_PHONE}</a> },
+                { icon: Phone, node: <a href={`tel:+${biz.phoneDigits}`} className="hover:text-primary">{biz.phone}</a> },
               ].map(({ icon: Icon, node }, i) => (
                 <li key={i} className="flex items-center gap-3.5 text-sm">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary"><Icon size={17} /></span>
@@ -374,10 +373,10 @@ const Home = () => {
               ))}
             </ul>
             <div className="mt-8 flex flex-wrap gap-3">
-              <a href={`https://www.google.com/maps/dir/?api=1&destination=${BUSINESS_LAT},${BUSINESS_LNG}`} target="_blank" rel="noopener noreferrer" className="btn btn-dark">
+              <a href={`https://www.google.com/maps/dir/?api=1&destination=${biz.lat},${biz.lng}`} target="_blank" rel="noopener noreferrer" className="btn btn-dark">
                 <EditableText id="home.get_directions" /> <ArrowRight size={16} />
               </a>
-              <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="btn bg-[#1f8f4e] text-white hover:bg-[#197a42]">
+              <a href={biz.whatsappLink} target="_blank" rel="noopener noreferrer" className="btn bg-[#1f8f4e] text-white hover:bg-[#197a42]">
                 <MessageCircle size={16} /> <EditableText id="home.whatsapp_us" />
               </a>
             </div>

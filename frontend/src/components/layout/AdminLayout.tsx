@@ -1,6 +1,6 @@
 import { Outlet, NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, Package, Calendar, Users, Warehouse, FileText, LogOut, Menu, X, ExternalLink, MessageCircle, Bell, BellOff, BellRing } from 'lucide-react';
+import { LayoutDashboard, Package, Calendar, Users, Warehouse, FileText, LogOut, Menu, X, ExternalLink, MessageCircle, Bell, BellOff, BellRing, Settings } from 'lucide-react';
 import { useAdminAlerts } from '../../lib/useAdminAlerts';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../store';
@@ -15,6 +15,7 @@ const navItems = [
   { to: '/admin/customers', icon: Users, labelKey: 'admin.nav_customers', fallback: 'Customers' },
   { to: '/admin/inventory', icon: Warehouse, labelKey: 'admin.nav_inventory', fallback: 'Inventory' },
   { to: '/admin/content', icon: FileText, labelKey: 'admin.nav_content', fallback: 'Content' },
+  { to: '/admin/settings', icon: Settings, labelKey: 'admin.nav_settings', fallback: 'Settings' },
 ];
 
 /** The four sections the owner uses most get a bottom tab bar on phones. */

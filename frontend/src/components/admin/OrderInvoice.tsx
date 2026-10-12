@@ -1,8 +1,6 @@
 import { Reservation } from '../../types';
 import { formatDate } from '../../lib/utils';
-import {
-  BUSINESS_ADDRESS, BUSINESS_EMAIL, BUSINESS_FULL_NAME, BUSINESS_NAME, BUSINESS_PHONE, WEBSITE_URL,
-} from '../../lib/config';
+import { useBusiness } from '../../lib/siteConfig';
 
 const money = (value: number | null | undefined) =>
   value == null ? '—' : `${Math.round(value).toLocaleString()} RWF`;
@@ -34,6 +32,7 @@ const specLine = (item: Reservation['items'][number]): string => {
  * Deliberately plain black-on-white: this is a document, not a screen.
  */
 const OrderInvoice = ({ order }: { order: Reservation }) => {
+  const biz = useBusiness();
   const address = order.deliveryAddress;
   const payment = order.payments?.[0];
   const goods = order.subtotal ?? order.items.reduce((sum, i) => sum + (i.totalPrice ?? 0), 0);
@@ -42,12 +41,12 @@ const OrderInvoice = ({ order }: { order: Reservation }) => {
     <div id="print-area" className="bg-white text-black p-8 text-[13px] leading-relaxed">
       <header className="flex justify-between items-start gap-8 border-b border-black/20 pb-5 mb-6">
         <div>
-          <h1 className="text-xl font-bold tracking-tight">{BUSINESS_NAME}</h1>
-          <p className="text-[11px] text-black/60">{BUSINESS_FULL_NAME}</p>
+          <h1 className="text-xl font-bold tracking-tight">{biz.name}</h1>
+          <p className="text-[11px] text-black/60">{biz.legalName}</p>
           <p className="text-[11px] text-black/60 mt-2">
-            {BUSINESS_ADDRESS}<br />
-            {BUSINESS_PHONE} · {BUSINESS_EMAIL}<br />
-            {WEBSITE_URL.replace(/^https?:\/\//, '')}
+            {biz.address}<br />
+            {biz.phone} · {biz.email}<br />
+            {biz.website.replace(/^https?:\/\//, '')}
           </p>
         </div>
         <div className="text-right">
@@ -82,7 +81,7 @@ const OrderInvoice = ({ order }: { order: Reservation }) => {
           ) : order.visitDate ? (
             <p>{formatDate(order.visitDate)}{order.visitTime ? ` at ${order.visitTime}` : ''}</p>
           ) : (
-            <p>Collection from {BUSINESS_ADDRESS}</p>
+            <p>Collection from {biz.address}</p>
           )}
         </div>
       </section>
@@ -148,7 +147,7 @@ const OrderInvoice = ({ order }: { order: Reservation }) => {
         {order.notes && <p><strong>Customer notes:</strong> {order.notes}</p>}
         {order.adminNotes && <p><strong>Note to customer:</strong> {order.adminNotes}</p>}
         <p className="pt-2">
-          Prices are in Rwandan Francs. Thank you for shopping with {BUSINESS_NAME}.
+          Prices are in Rwandan Francs. Thank you for shopping with {biz.name}.
         </p>
       </section>
     </div>

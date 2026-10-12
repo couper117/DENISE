@@ -6,10 +6,11 @@ import { User as UserIcon, Lock, Eye, EyeOff } from 'lucide-react';
 import { authApi } from '../../lib/api';
 import { useAuthStore } from '../../store';
 import { User } from '../../types';
-import { WHATSAPP_LINK } from '../../lib/config';
+import { useBusiness } from '../../lib/siteConfig';
 import Seo from '../../components/Seo';
 
 const Login = () => {
+  const biz = useBusiness();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -74,7 +75,7 @@ const Login = () => {
             <div>
               <div className="mb-1.5 flex items-center justify-between gap-2">
                 <label htmlFor="login-password" className="text-sm font-medium">{t('auth.password')}</label>
-                <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-primary">
+                <a href={biz.whatsappLink} target="_blank" rel="noopener noreferrer" className="text-xs text-muted-foreground hover:text-primary">
                   {t('auth.forgot_help', { defaultValue: 'Forgot it? Ask us on WhatsApp' })}
                 </a>
               </div>

@@ -94,9 +94,9 @@ const AdminMessages = () => {
         <h1 className="section-title">{t('admin.nav_messages', { defaultValue: 'Messages' })}</h1>
       </div>
 
-      <div className="grid h-[calc(100svh-15rem)] min-h-[28rem] overflow-hidden rounded-2xl border border-border bg-card lg:h-[calc(100vh-12rem)] lg:grid-cols-[20rem_1fr]">
+      <div className="grid grid-cols-1 h-[calc(100svh-15rem)] min-h-[28rem] overflow-hidden rounded-2xl border border-border bg-card lg:h-[calc(100vh-12rem)] lg:grid-cols-[20rem_1fr]">
         {/* ── Conversation list ── */}
-        <div className={cn('flex min-h-0 flex-col border-border lg:border-r', activeId && 'hidden lg:flex')}>
+        <div className={cn('flex min-h-0 min-w-0 flex-col border-border lg:border-r', activeId && 'hidden lg:flex')}>
           <div className="flex gap-1 border-b border-border p-2">
             {(['OPEN', 'CLOSED'] as const).map((f) => (
               <button key={f} type="button" onClick={() => setFilter(f)}
@@ -135,7 +135,7 @@ const AdminMessages = () => {
         </div>
 
         {/* ── Conversation ── */}
-        <div className={cn('min-h-0 flex-col', activeId ? 'flex' : 'hidden lg:flex')}>
+        <div className={cn('min-h-0 min-w-0 flex-col', activeId ? 'flex' : 'hidden lg:flex')}>
           {!active ? (
             <div className="flex flex-1 items-center justify-center p-8 text-sm text-muted-foreground">
               {t('admin.chat_pick', { defaultValue: 'Choose a conversation to read and reply.' })}
