@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useMutation } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   AlertCircle, Building2, Calendar, Check, CheckCircle2, ChevronRight, Clock, CreditCard,
   Loader2, Mail, MapPin, MessageSquare, Package, Phone, ShieldCheck, Smartphone, Store, Truck, User, ShoppingBag, ChevronDown,
 } from 'lucide-react';
-import { useCartStore } from '../store';
-import { paymentsApi, reservationsApi } from '../lib/api';
+import { useBuyNowStore, useCartStore } from '../store';
+import { useFreshPrices } from '../lib/useFreshPrices';
+import { deliveryApi, paymentsApi, reservationsApi } from '../lib/api';
 import { CartItem, DeliveryType, FulfillmentType, PaymentMethod, Reservation } from '../types';
 import { describeConfiguration } from '../lib/productOptions';
 import { generateTimeSlots, getMinReservationDate, cn } from '../lib/utils';
@@ -104,7 +105,24 @@ const Checkout = () => {
   const tr = (key: string, fallback: string, opts?: Record<string, unknown>) =>
     t(key, { defaultValue: fallback, ...opts });
   const navigate = useNavigate();
-  const { items, subtotal, discount, hasQuotedItems, clearCart } = useCartStore();
+  // "Buy now" opens /checkout?buy=now with its own one-item basket; the cart
+  // is only used (and only emptied) for a normal checkout.
+  const [searchParams] = useSearchParams();
+  const cartBasket = useCartStore();
+  const buyNowBasket = useBuyNowStore();
+  const isBuyNow = searchParams.get('buy') === 'now' && buyNowBasket.items.length > 0;
+  const basket = isBuyNow ? buyNowBasket : cartBasket;
+  const { items, subtotal, discount, hasQuotedItems, clearCart } = basket;
+  const repricedNames = useFreshPrices(items, basket.refreshProducts);
+
+  // Delivery fees come from the same zones the server charges from, so the
+  // total shown here is the total the order is saved with.
+  const { data: zones } = useQuery({
+    queryKey: ['delivery-zones'],
+    queryFn: () => deliveryApi.getZones().then((r) => r.data.data as { province: string; baseFee: number }[]),
+    staleTime: 10 * 60 * 1000,
+  });
+  const zoneFee = (province: string) => zones?.find((z) => z.province === province)?.baseFee ?? getDeliveryFee(province);
   const identity = useCustomerIdentity();
 
   const [step, setStep] = useState<Step>('delivery');
@@ -219,7 +237,7 @@ const Checkout = () => {
 
   const deliveryFee = useMemo(() => {
     if (!isDelivery || !form.province) return 0;
-    return getDeliveryFee(form.province) + (form.deliveryType === 'SAME_DAY' ? SAME_DAY_SURCHARGE : 0);
+    return zoneFee(form.province) + (form.deliveryType === 'SAME_DAY' ? SAME_DAY_SURCHARGE : 0);
   }, [isDelivery, form.province, form.deliveryType]);
 
   const grandTotal = goods + deliveryFee;
@@ -304,6 +322,7 @@ const Checkout = () => {
   };
 
   // ── Order creation ────────────────────────────────────────────────────────
+  const queryClient = useQueryClient();
   const createMutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
       reservationsApi.create(payload).then((r) => r.data.data as Reservation),
@@ -320,9 +339,24 @@ const Checkout = () => {
         startMobileMoneyPayment(order);
       }
     },
-    onError: () => {
+    onError: (err: unknown) => {
       // Released so the customer can genuinely retry.
       submittingRef.current = false;
+      const response = (err as { response?: { status?: number; data?: { code?: string; data?: { totalAmount?: number } } } })?.response;
+      if (response?.status === 409 && response.data?.code === 'PRICE_CHANGED') {
+        // The server's price differs from the one shown. Nothing was saved:
+        // reload current prices and delivery fees, show the new total and let
+        // the customer place the order again knowingly.
+        queryClient.invalidateQueries({ queryKey: ['product'] });
+        queryClient.invalidateQueries({ queryKey: ['delivery-zones'] });
+        setStep('review');
+        toast({
+          title: tr('checkout.price_changed_title', 'The total has been updated'),
+          description: tr('checkout.price_changed_desc', 'A price changed since you added this item. Nothing was charged — please check the new total and place your order again.'),
+          variant: 'error',
+        });
+        return;
+      }
       toast({
         title: tr('checkout.error_title', 'We could not place your order'),
         description: tr('checkout.error_desc', 'Nothing was charged and your cart is safe. Please try again.'),
@@ -360,6 +394,8 @@ const Checkout = () => {
         : undefined,
       scheduledDeliveryDate:
         isDelivery && form.deliveryType === 'SCHEDULED' ? form.scheduledDate : undefined,
+      // The total on screen; the server refuses to save a different one.
+      expectedTotal: grandTotal,
       // Only the configuration travels — the server re-prices every line.
       items: items.map((line) => ({
         productId: line.product.id,
@@ -614,6 +650,21 @@ const Checkout = () => {
             );
           })}
         </ol>
+
+        {/* Say it plainly when a price moved, or when only one item is being
+            bought — never let the total change without a reason on screen. */}
+        {repricedNames.length > 0 && (
+          <div role="status" className="mb-4 flex items-start gap-2.5 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            <span>{tr('checkout.prices_updated', 'The shop has updated the price of: {{names}}. The totals below use the current price.', { names: repricedNames.join(', ') })}</span>
+          </div>
+        )}
+        {isBuyNow && (
+          <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-sm">
+            <span>{tr('checkout.buy_now_only', 'You are buying only this item. Your cart has not changed.')}</span>
+            <Link to="/cart" className="shrink-0 font-medium text-primary hover:underline">{tr('nav.cart', 'Cart')}</Link>
+          </div>
+        )}
 
         {/* Phones: the summary folds into one bar at the top instead of sitting
             below the whole form. */}

@@ -904,7 +904,11 @@
     "pay_retry": "Resend payment request",
     "pay_dial_fallback": "Or pay by dialing",
     "show_summary": "Show order summary",
-    "hide_summary": "Hide order summary"
+    "hide_summary": "Hide order summary",
+    "prices_updated": "The shop has updated the price of: {{names}}. The totals below use the current price.",
+    "buy_now_only": "You are buying only this item. Your cart has not changed.",
+    "price_changed_title": "The total has been updated",
+    "price_changed_desc": "A price changed since you added this item. Nothing was charged — please check the new total and place your order again."
   },
   "curtain": {
     "window_width": "Window width",
@@ -985,7 +989,8 @@
     "arr_LAYERED": "Day curtain behind, night curtain in front",
     "arr_DAY_CENTER": "Night curtains at the sides, day curtain in the middle",
     "arr_NIGHT_CENTER": "Day curtains at the sides, night curtain in the middle",
-    "arr_SIDE_BY_SIDE": "Night and day curtain side by side"
+    "arr_SIDE_BY_SIDE": "Night and day curtain side by side",
+    "added_view_cart": "Added — view cart"
   },
   "reviews": {
     "verified": "Verified",

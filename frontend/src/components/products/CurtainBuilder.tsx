@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -286,7 +287,17 @@ const CurtainBuilder = ({ product, onAdd }: CurtainBuilderProps) => {
     goTo(STEPS[n]);
   };
 
+  // What exactly would be added; used to stop the same set being added twice
+  // by a second tap (each add creates a new set, which doubled the cart).
+  const signature = JSON.stringify(lines.map((l) => [l.product.id, l.config, l.quantity]));
+  const [addedSignature, setAddedSignature] = useState<string | null>(null);
+  const alreadyAdded = addedSignature === signature;
+
   const submit = (buyNow: boolean) => {
+    if (!buyNow) {
+      if (alreadyAdded) return;
+      setAddedSignature(signature);
+    }
     const setId = newSetId();
     onAdd(lines.map(({ product: p, config, quantity }) => ({ product: p, config: { ...config, setId }, quantity })), buyNow);
   };
@@ -581,9 +592,15 @@ const CurtainBuilder = ({ product, onAdd }: CurtainBuilderProps) => {
           {hasQuoted && <p className="mt-2 text-xs text-muted-foreground">{tr('config.quote_note', 'This item is priced on request. Add it to your cart and our team will confirm the price before any payment.')}</p>}
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            <button type="button" onClick={() => submit(false)} disabled={!product.isAvailable} className="btn btn-primary w-full py-3.5">
-              <ShoppingBag size={17} /> {tr('curtain.add_set', 'Add to cart')}
-            </button>
+            {alreadyAdded ? (
+              <Link to="/cart" className="btn btn-outline w-full py-3.5">
+                <Check size={17} className="text-green-600" /> {tr('curtain.added_view_cart', 'Added — view cart')}
+              </Link>
+            ) : (
+              <button type="button" onClick={() => submit(false)} disabled={!product.isAvailable} className="btn btn-primary w-full py-3.5">
+                <ShoppingBag size={17} /> {tr('curtain.add_set', 'Add to cart')}
+              </button>
+            )}
             <button type="button" onClick={() => submit(true)} disabled={!product.isAvailable} className="btn btn-dark w-full py-3.5">
               <Zap size={17} /> {tr('products.buy_now', 'Buy Now')}
             </button>

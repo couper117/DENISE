@@ -904,7 +904,11 @@
     "pay_retry": "Tinda lisusu lisenginya ya kofuta",
     "pay_dial_fallback": "To futa na kobeta code",
     "show_summary": "Lakisa bokuse ya commande",
-    "hide_summary": "Bomba bokuse"
+    "hide_summary": "Bomba bokuse",
+    "prices_updated": "Magazini ebongoli ntalo ya: {{names}}. Ntalo mobimba awa na nse ezali ya sikoyo.",
+    "buy_now_only": "Ozali kosomba se eloko oyo. Panier na yo ebongwani te.",
+    "price_changed_title": "Ntalo mobimba ebongolami",
+    "price_changed_desc": "Ntalo ebongwani banda obakisaki eloko oyo. Mbongo ezwami te — talá ntalo mobimba ya sika mpe tinda commande lisusu."
   },
   "curtain": {
     "window_width": "Bonene ya lininisa",
@@ -985,7 +989,8 @@
     "arr_LAYERED": "Rido ya moi na nsima, rido ya butu na liboso",
     "arr_DAY_CENTER": "Ba rido ya butu na ba ngambo, rido ya moi na katikati",
     "arr_NIGHT_CENTER": "Ba rido ya moi na ba ngambo, rido ya butu na katikati",
-    "arr_SIDE_BY_SIDE": "Rido ya butu mpe ya moi pembeni na pembeni"
+    "arr_SIDE_BY_SIDE": "Rido ya butu mpe ya moi pembeni na pembeni",
+    "added_view_cart": "Ebakisami — talá panier"
   },
   "reviews": {
     "verified": "Endimami",

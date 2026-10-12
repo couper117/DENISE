@@ -8,7 +8,7 @@ import {
   Smartphone, MessageCircle, ChevronDown, X, Expand,
 } from 'lucide-react';
 import { productsApi, reviewsApi, wishlistApi } from '../lib/api';
-import { useAuthStore, useCartStore } from '../store';
+import { makeLine, useAuthStore, useBuyNowStore, useCartStore } from '../store';
 import { Product, ProductReview } from '../types';
 import { Configuration, curtainRole, detectKind } from '../lib/productOptions';
 import { WHATSAPP_LINK } from '../lib/config';
@@ -82,6 +82,7 @@ const ProductDetail = () => {
   const { slug } = useParams<{ slug: string }>();
   const { t } = useTranslation();
   const { addLine, updateLine, items } = useCartStore();
+  const startBuyNow = useBuyNowStore((s) => s.start);
   const { isAuthenticated } = useAuthStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -155,19 +156,20 @@ const ProductDetail = () => {
     toast({ title: t('cart.added', { defaultValue: 'Added to cart' }), description: product.name, variant: 'success' });
   };
 
-  // Buy now: add the configured line, then jump straight to checkout. Existing
-  // cart items still come along — it's the same basket, just a faster path.
+  // Buy now checks out just this item, in its own basket; the cart is left
+  // untouched. (It used to be added to the cart and the whole cart charged.)
   const handleBuyNow = (config: Configuration, quantity: number) => {
-    addLine(product, config, quantity);
-    navigate('/checkout');
+    startBuyNow([makeLine(product, config, quantity)]);
+    navigate('/checkout?buy=now');
   };
 
   const handleBuilt = (lines: BuiltLine[], buyNow: boolean) => {
-    lines.forEach((l) => addLine(l.product, l.config, l.quantity));
     if (buyNow) {
-      navigate('/checkout');
+      startBuyNow(lines.map((l) => makeLine(l.product, l.config, l.quantity)));
+      navigate('/checkout?buy=now');
       return;
     }
+    lines.forEach((l) => addLine(l.product, l.config, l.quantity));
     toast({
       title: t('cart.added', { defaultValue: 'Added to cart' }),
       description: lines.map((l) => l.product.name).join(' + '),

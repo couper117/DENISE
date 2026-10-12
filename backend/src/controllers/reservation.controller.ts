@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { Prisma } from '@prisma/client';
 import prisma from '../config/database';
+import { getDeliveryFee } from '../utils/delivery';
 import { generateReservationNumber, getPaginationParams, buildPaginationResponse } from '../utils/helpers';
 import { notifyReservationCreated, notifyStatusUpdate, notifyPaymentDue } from '../services/notification.service';
 import { AuthenticatedRequest } from '../types';
@@ -36,7 +37,7 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       notes, measurementOption, items,
       paymentMethod, mobileMoneyPhone,
       deliveryType, deliveryAddress,
-      scheduledDeliveryDate,
+      scheduledDeliveryDate, expectedTotal,
     } = req.body;
 
     const mode = fulfillmentType || 'RESERVATION';
@@ -64,7 +65,10 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       const zone = await prisma.deliveryZone.findFirst({
         where: { province: deliveryAddress.province, isActive: true },
       });
-      deliveryFeeAmount = zone ? zone.baseFee : 5000;
+      // No zone row → the same built-in fee table the checkout page shows.
+      // (This used to fall back to a flat 5,000, so Kigali orders shown at
+      // 2,000 RWF delivery were saved at 5,000.)
+      deliveryFeeAmount = zone ? zone.baseFee : getDeliveryFee(deliveryAddress.province);
       if (deliveryType === 'SAME_DAY') deliveryFeeAmount = (deliveryFeeAmount || 0) + 1000;
     }
 
@@ -151,6 +155,22 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
     const subtotal = Math.round(goodsTotal);
     const discount = Math.max(0, Math.round(listTotal) - subtotal);
     const totalAmount = subtotal + (deliveryFeeAmount || 0);
+
+    // The customer agreed to the total on their screen. If the server's own
+    // price differs (a price changed since they added the item, a stale cart),
+    // nothing is saved: the checkout shows the current total and asks again.
+    // A customer is never charged an amount they were not shown.
+    const expected = expectedTotal === undefined || expectedTotal === null || expectedTotal === '' ? null : Number(expectedTotal);
+    if (expected !== null && Number.isFinite(expected) && Math.abs(expected - totalAmount) >= 1) {
+      if (deliveryAddressId) await prisma.deliveryAddress.delete({ where: { id: deliveryAddressId } }).catch(() => {});
+      res.status(409).json({
+        success: false,
+        code: 'PRICE_CHANGED',
+        message: 'The total has changed since this page was loaded. Please review the new total.',
+        data: { totalAmount, subtotal, deliveryFee: deliveryFeeAmount ?? 0, expectedTotal: expected },
+      });
+      return;
+    }
 
     // ── Persist reservation, payment and stock changes atomically ──────────
     const reservation = await prisma.$transaction(async (tx) => {

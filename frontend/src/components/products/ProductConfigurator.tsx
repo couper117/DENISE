@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check, Info, Minus, Plus, Ruler, ShoppingBag, AlertCircle, Zap } from 'lucide-react';
 import { Product } from '../../types';
@@ -147,8 +147,13 @@ const ProductConfigurator = ({
     action(config, quantity);
   };
 
+  // A double tap must not add the item twice; one add per 1.5 s.
+  const lastAddRef = useRef(0);
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const now = Date.now();
+    if (now - lastAddRef.current < 1500) return;
+    lastAddRef.current = now;
     runValidated(onSubmit);
   };
 

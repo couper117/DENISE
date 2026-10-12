@@ -1,7 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowRight, MessageCircle, Minus, Pencil, Plus, Ruler, ShieldCheck, ShoppingBag, Trash2, Truck } from 'lucide-react';
+import { AlertCircle, ArrowRight, MessageCircle, Minus, Pencil, Plus, Ruler, ShieldCheck, ShoppingBag, Trash2, Truck } from 'lucide-react';
 import { useCartStore } from '../store';
 import { CartItem } from '../types';
 import { describeConfiguration, fieldsFor, MAX_QUANTITY } from '../lib/productOptions';
@@ -12,6 +12,7 @@ import { EditableText } from '../cms';
 import { cn } from '../lib/utils';
 import { categoryLabel } from '../lib/catalog';
 import { WHATSAPP_LINK } from '../lib/config';
+import { useFreshPrices } from '../lib/useFreshPrices';
 
 const money = (value: number, currency = 'RWF') => `${value.toLocaleString()} ${currency}`;
 
@@ -102,7 +103,7 @@ const CartLine = ({ item }: { item: CartItem }) => {
             <div className="flex items-center gap-3">
               {/* Fabric and attire are bought by the metre — the metres are the
                   amount, changed through Edit — so no quantity stepper. */}
-              <div className={cn('flex items-center border border-border rounded-lg', soldByMetre && 'hidden')}>
+              <div className={cn('flex items-center border border-border rounded-lg', soldByMetre && item.quantity === 1 && 'hidden')}>
                 <button
                   type="button"
                   onClick={() => setQuantity(item.id, item.quantity - 1)}
@@ -168,7 +169,8 @@ const CartLine = ({ item }: { item: CartItem }) => {
 const Cart = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { items, itemCount, subtotal, discount, hasQuotedItems, clearCart } = useCartStore();
+  const { items, itemCount, subtotal, discount, hasQuotedItems, clearCart, refreshProducts } = useCartStore();
+  const repricedNames = useFreshPrices(items, refreshProducts);
 
   const count = itemCount();
   const goods = subtotal();
@@ -198,6 +200,13 @@ const Cart = () => {
             ← {t('reservation.continue_shopping')}
           </Link>
         </div>
+
+        {repricedNames.length > 0 && (
+          <div role="status" className="mb-5 flex items-start gap-2.5 rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
+            <AlertCircle size={16} className="mt-0.5 shrink-0" />
+            <span>{t('checkout.prices_updated', { defaultValue: 'The shop has updated the price of: {{names}}. The totals below use the current price.', names: repricedNames.join(', ') })}</span>
+          </div>
+        )}
 
         {items.length === 0 ? (
           <div className="bg-card border border-border rounded-2xl p-10 sm:p-16 text-center max-w-xl mx-auto">

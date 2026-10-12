@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { User, CartItem, Product } from '../types';
-import { Configuration, configurationKey, priceConfiguration } from '../lib/productOptions';
+import { Configuration, MAX_METERS, configurationKey, fieldsFor, priceConfiguration } from '../lib/productOptions';
 
 interface AuthState {
   user: User | null;
@@ -70,6 +70,12 @@ interface CartState {
   discount: () => number;
   /** True when at least one line has no price yet — the shop quotes it later. */
   hasQuotedItems: () => boolean;
+  /**
+   * Swap in fresh product data (current prices) and re-price the lines that
+   * use it. Returns the names of products whose line totals changed, so the
+   * page can tell the customer instead of letting checkout surprise them.
+   */
+  refreshProducts: (products: Product[]) => string[];
 }
 
 const priceFields = (product: Product, config: Configuration, quantity: number) => {
@@ -79,6 +85,28 @@ const priceFields = (product: Product, config: Configuration, quantity: number) 
 
 const newLineId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
+/** A ready-priced cart line, for the cart and for a Buy-now checkout. */
+export const makeLine = (product: Product, config: Configuration, quantity = 1): CartItem => {
+  const qty = Math.max(1, Math.floor(quantity) || 1);
+  return { id: newLineId(), product, config, quantity: qty, addedAt: new Date().toISOString(), ...priceFields(product, config, qty) };
+};
+
+/** Shared by both baskets: re-price lines against fresh product rows. */
+const refreshLines = (items: CartItem[], products: Product[]) => {
+  const byId = new Map(products.map((p) => [p.id, p]));
+  const changed = new Set<string>();
+  const next = items.map((line) => {
+    const fresh = byId.get(line.product.id);
+    if (!fresh) return line;
+    const priced = priceFields(fresh, line.config, line.quantity);
+    if (priced.lineTotal !== line.lineTotal) changed.add(fresh.name);
+    return { ...line, product: fresh, ...priced };
+  });
+  return { next, changed: [...changed] };
+};
+
+const round1 = (n: number) => Math.round(n * 10) / 10;
+
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
@@ -86,6 +114,25 @@ export const useCartStore = create<CartState>()(
 
       addLine: (product, config, quantity = 1) => {
         const qty = Math.max(1, Math.floor(quantity) || 1);
+
+        // Goods sold by the metre: adding the same fabric again adds metres
+        // (3 m + 3 m = one line of 6 m). Bumping a quantity instead charged
+        // for 6 m while the cart still read "3 m" — it looked like the price
+        // had doubled by itself.
+        if (fieldsFor(product).meters && config.meters) {
+          const sameExceptMeters = (c: Configuration) => configurationKey(product.id, { ...c, meters: undefined });
+          const target = sameExceptMeters(config);
+          const existing = get().items.find((i) => i.product.id === product.id && sameExceptMeters(i.config) === target);
+          if (existing) {
+            const meters = Math.min(MAX_METERS, round1((existing.config.meters ?? 0) * existing.quantity + config.meters * qty));
+            get().updateLine(existing.id, { ...existing.config, meters }, 1);
+            return existing.id;
+          }
+          const line = makeLine(product, { ...config, meters: Math.min(MAX_METERS, round1(config.meters * qty)) }, 1);
+          set((state) => ({ items: [...state.items, line] }));
+          return line.id;
+        }
+
         const key = configurationKey(product.id, config);
         const existing = get().items.find((i) => configurationKey(i.product.id, i.config) === key);
         if (existing) {
@@ -126,6 +173,12 @@ export const useCartStore = create<CartState>()(
       subtotal: () => get().items.reduce((sum, i) => sum + (i.lineTotal ?? 0), 0),
       discount: () => Math.max(0, get().items.reduce((sum, i) => sum + ((i.listTotal ?? 0) - (i.lineTotal ?? 0)), 0)),
       hasQuotedItems: () => get().items.some((i) => i.lineTotal == null),
+
+      refreshProducts: (products) => {
+        const { next, changed } = refreshLines(get().items, products);
+        set({ items: next });
+        return changed;
+      },
     }),
     {
       name: 'denise-cart',
@@ -191,5 +244,41 @@ export const useThemeStore = create<ThemeState>()(
       setLanguage: (language) => set({ language }),
     }),
     { name: 'denise-theme' }
+  )
+);
+
+/**
+ * "Buy now" checks out only the item the customer just chose. It used to add
+ * the item to the cart and open checkout with the whole cart, so anything left
+ * from an earlier visit was charged too and the total looked inflated. This
+ * basket lives in sessionStorage (one tab, gone when it closes); the cart is
+ * left exactly as it was. Same read API as the cart so checkout can use either.
+ */
+interface BuyNowState {
+  items: CartItem[];
+  start: (lines: CartItem[]) => void;
+  clearCart: () => void;
+  subtotal: () => number;
+  discount: () => number;
+  hasQuotedItems: () => boolean;
+  refreshProducts: (products: Product[]) => string[];
+}
+
+export const useBuyNowStore = create<BuyNowState>()(
+  persist(
+    (set, get) => ({
+      items: [],
+      start: (lines) => set({ items: lines }),
+      clearCart: () => set({ items: [] }),
+      subtotal: () => get().items.reduce((sum, i) => sum + (i.lineTotal ?? 0), 0),
+      discount: () => Math.max(0, get().items.reduce((sum, i) => sum + ((i.listTotal ?? 0) - (i.lineTotal ?? 0)), 0)),
+      hasQuotedItems: () => get().items.some((i) => i.lineTotal == null),
+      refreshProducts: (products) => {
+        const { next, changed } = refreshLines(get().items, products);
+        set({ items: next });
+        return changed;
+      },
+    }),
+    { name: 'denise-buy-now', storage: createJSONStorage(() => sessionStorage) }
   )
 );

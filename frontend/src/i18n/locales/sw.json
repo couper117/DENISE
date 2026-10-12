@@ -904,7 +904,11 @@
     "pay_retry": "Tuma ombi la malipo tena",
     "pay_dial_fallback": "Au lipa kwa kupiga namba",
     "show_summary": "Onyesha muhtasari wa oda",
-    "hide_summary": "Ficha muhtasari"
+    "hide_summary": "Ficha muhtasari",
+    "prices_updated": "Duka limesasisha bei ya: {{names}}. Jumla zilizo hapa chini zinatumia bei ya sasa.",
+    "buy_now_only": "Unanunua bidhaa hii pekee. Kikapu chako hakijabadilika.",
+    "price_changed_title": "Jumla imesasishwa",
+    "price_changed_desc": "Bei imebadilika tangu uongeze bidhaa hii. Hakuna kilichotozwa — tafadhali angalia jumla mpya kisha uweke oda tena."
   },
   "curtain": {
     "window_width": "Upana wa dirisha",
@@ -985,7 +989,8 @@
     "arr_LAYERED": "Pazia la mchana nyuma, pazia la usiku mbele",
     "arr_DAY_CENTER": "Mapazia ya usiku pembeni, pazia la mchana katikati",
     "arr_NIGHT_CENTER": "Mapazia ya mchana pembeni, pazia la usiku katikati",
-    "arr_SIDE_BY_SIDE": "Pazia la usiku na la mchana kando kwa kando"
+    "arr_SIDE_BY_SIDE": "Pazia la usiku na la mchana kando kwa kando",
+    "added_view_cart": "Imeongezwa — tazama kikapu"
   },
   "reviews": {
     "verified": "Imethibitishwa",

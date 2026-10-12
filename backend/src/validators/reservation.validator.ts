@@ -35,6 +35,7 @@ export const createReservationRules = rules(
   body('paymentMethod').optional({ values: 'falsy' }).isIn(PAYMENT_METHODS).withMessage(`paymentMethod must be one of: ${PAYMENT_METHODS.join(', ')}`),
   optionalPhoneField('mobileMoneyPhone', 'Mobile money phone'),
   body('deliveryType').optional({ values: 'falsy' }).isIn(DELIVERY_TYPES).withMessage(`deliveryType must be one of: ${DELIVERY_TYPES.join(', ')}`),
+  body('expectedTotal').optional({ values: 'null' }).isFloat({ min: 0, max: 1_000_000_000 }).withMessage('expectedTotal must be a number'),
   body('scheduledDeliveryDate').optional({ values: 'falsy' }).isISO8601().withMessage('scheduledDeliveryDate must be a valid date'),
 
   // Bounded so a single request cannot ask the handler to create an unlimited

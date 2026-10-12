@@ -904,7 +904,11 @@
     "pay_retry": "Ongera wohereze ubusabe bwo kwishyura",
     "pay_dial_fallback": "Cyangwa wishyure ukanze kode",
     "show_summary": "Reba incamake y'itumiza",
-    "hide_summary": "Hisha incamake"
+    "hide_summary": "Hisha incamake",
+    "prices_updated": "Iduka ryahinduye igiciro cya: {{names}}. Igiteranyo kiri hasi gikoresha igiciro gishya.",
+    "buy_now_only": "Urimo kugura iki gicuruzwa gusa. Agatebo kawe ntikahindutse.",
+    "price_changed_title": "Igiteranyo cyavuguruwe",
+    "price_changed_desc": "Igiciro cyahindutse kuva wongeramo iki gicuruzwa. Nta mafaranga yakuwe — reba igiteranyo gishya maze wongere utumize."
   },
   "curtain": {
     "window_width": "Ubugari bw'idirishya",
@@ -985,7 +989,8 @@
     "arr_LAYERED": "Irido rya ku manywa inyuma, irya nijoro imbere",
     "arr_DAY_CENTER": "Amarido ya nijoro ku mpande, irya ku manywa hagati",
     "arr_NIGHT_CENTER": "Amarido ya ku manywa ku mpande, irya nijoro hagati",
-    "arr_SIDE_BY_SIDE": "Irido rya nijoro n'irya ku manywa biri iruhande"
+    "arr_SIDE_BY_SIDE": "Irido rya nijoro n'irya ku manywa biri iruhande",
+    "added_view_cart": "Byongewemo — reba agatebo"
   },
   "reviews": {
     "verified": "Byemejwe",

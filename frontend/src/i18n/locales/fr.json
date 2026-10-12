@@ -904,7 +904,11 @@
     "pay_retry": "Renvoyer la demande de paiement",
     "pay_dial_fallback": "Ou payez en composant le code",
     "show_summary": "Voir le récapitulatif",
-    "hide_summary": "Masquer le récapitulatif"
+    "hide_summary": "Masquer le récapitulatif",
+    "prices_updated": "La boutique a mis à jour le prix de : {{names}}. Les totaux ci-dessous utilisent le prix actuel.",
+    "buy_now_only": "Vous achetez uniquement cet article. Votre panier n’a pas changé.",
+    "price_changed_title": "Le total a été mis à jour",
+    "price_changed_desc": "Un prix a changé depuis l’ajout de cet article. Rien n’a été débité — vérifiez le nouveau total et passez à nouveau votre commande."
   },
   "curtain": {
     "window_width": "Largeur de la fenêtre",
@@ -985,7 +989,8 @@
     "arr_LAYERED": "Rideau du jour derrière, rideau de nuit devant",
     "arr_DAY_CENTER": "Rideaux de nuit sur les côtés, rideau du jour au milieu",
     "arr_NIGHT_CENTER": "Rideaux du jour sur les côtés, rideau de nuit au milieu",
-    "arr_SIDE_BY_SIDE": "Rideau de nuit et rideau du jour côte à côte"
+    "arr_SIDE_BY_SIDE": "Rideau de nuit et rideau du jour côte à côte",
+    "added_view_cart": "Ajouté — voir le panier"
   },
   "reviews": {
     "verified": "Vérifié",
