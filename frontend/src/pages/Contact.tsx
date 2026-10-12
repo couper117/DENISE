@@ -1,12 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { MapPin, Phone, Mail, Clock, MessageCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import {
   BUSINESS_PHONE, BUSINESS_PHONE_CLEAN, BUSINESS_EMAIL,
   BUSINESS_HOURS, WHATSAPP_LINK, BUSINESS_LAT, BUSINESS_LNG,
 } from '../lib/config';
 import Seo from '../components/Seo';
+import ChatBox from '../components/chat/ChatBox';
 import Breadcrumbs from '../components/Breadcrumbs';
 import { EditableText } from '../cms';
 
@@ -17,6 +19,14 @@ const LAT = -1.9441;
 const LNG = 30.0619;
 
 const Contact = () => {
+  // Arriving with #chat (the phone tab bar's Chat button): scroll to the chat
+  // once the page has rendered — the router resets scroll to the top first.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (hash !== '#chat') return;
+    const id = setTimeout(() => document.getElementById('chat')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 350);
+    return () => clearTimeout(id);
+  }, [hash]);
   const { t } = useTranslation();
 
   const contactItems = [
@@ -37,6 +47,9 @@ const Contact = () => {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-12">
         <EditableText id="contact.title" as="h1" className="font-serif text-4xl font-bold mb-3" />
         <EditableText id="contact.subtitle" as="p" className="text-muted-foreground max-w-lg mx-auto" />
+        <a href="#chat" className="btn btn-primary mt-6">
+          <MessageCircle size={17} /> {t('chat.title', { defaultValue: 'Chat with us' })}
+        </a>
       </motion.div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -96,14 +109,19 @@ const Contact = () => {
               <MapPin size={48} className="text-primary/60" />
               <div>
                 <p className="font-semibold text-foreground">DENISE Textile – Kigali, Rwanda</p>
-                <p className="text-sm text-muted-foreground mt-1">Click to open in Google Maps</p>
+                <p className="text-sm text-muted-foreground mt-1">{t('contact.map_open', { defaultValue: 'Click to open in Google Maps' })}</p>
               </div>
               <span className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium">
-                Get Directions →
+                {t('home.get_directions')} →
               </span>
             </a>
           )}
         </motion.div>
+      </div>
+
+      {/* Website chat — answered from the admin inbox. */}
+      <div className="mx-auto mt-12 max-w-3xl">
+        <ChatBox hours={BUSINESS_HOURS} />
       </div>
     </div>
   );

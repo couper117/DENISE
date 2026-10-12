@@ -710,3 +710,44 @@ model SiteSetting {
 
   updatedBy User? @relation("SiteSettingEditor", fields: [updatedById], references: [id], onDelete: SetNull)
 }
+
+// ─── Website chat (Contact page ↔ admin inbox) ────────────────────────────────
+// A visitor holds the conversation's random `token` in their browser; that
+// token is the only way to read or write it from the public site. Admins see
+// every conversation in the admin inbox.
+enum ChatSender {
+  CUSTOMER
+  ADMIN
+}
+
+model ChatConversation {
+  id                 String   @id @default(uuid())
+  token              String   @unique
+  customerName       String
+  customerPhone      String?
+  status             String   @default("OPEN") // OPEN | CLOSED
+  adminUnread        Int      @default(0)
+  customerUnread     Int      @default(0)
+  lastMessageAt      DateTime @default(now())
+  lastMessagePreview String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  messages ChatMessage[]
+
+  @@index([lastMessageAt])
+  @@index([status])
+}
+
+model ChatMessage {
+  id             String     @id @default(uuid())
+  conversationId String
+  sender         ChatSender
+  body           String
+  authorId       String?
+  createdAt      DateTime   @default(now())
+
+  conversation ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+}

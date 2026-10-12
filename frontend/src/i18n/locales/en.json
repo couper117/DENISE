@@ -384,7 +384,8 @@
     "name": "Your Name",
     "message": "Message",
     "whatsapp": "Chat on WhatsApp",
-    "book_visit": "Book a Shop Visit"
+    "book_visit": "Book a Shop Visit",
+    "map_open": "Click to open in Google Maps"
   },
   "footer": {
     "tagline": "Curtains made to measure, fabrics by the metre and Rwandan traditional attire — from our shop in Kigali to homes across Rwanda.",
@@ -755,7 +756,25 @@
     "close_menu": "Close menu",
     "open_menu": "Open menu",
     "quick_nav": "Quick navigation",
-    "more": "More"
+    "more": "More",
+    "alerts_enable_desktop": "Desktop alerts",
+    "alerts_sound_on": "Order sound is on — click to mute",
+    "alerts_sound_off": "Order sound is off — click to turn on",
+    "alert_new_reservation": "New reservation",
+    "alert_new_order": "New order",
+    "alert_new_message": "New message from {{name}}",
+    "chat_send_failed": "The reply could not be sent",
+    "chat_eyebrow": "Website chat",
+    "nav_messages": "Messages",
+    "chat_open": "Open",
+    "chat_closed": "Closed",
+    "chat_empty": "No conversations yet. Messages from the Contact page appear here.",
+    "chat_pick": "Choose a conversation to read and reply.",
+    "chat_call": "Call",
+    "chat_mark_done": "Mark done",
+    "chat_reopen": "Reopen",
+    "chat_reply_placeholder": "Write a reply…",
+    "chat_send": "Send"
   },
   "cart": {
     "title": "Shopping Cart",
@@ -1063,5 +1082,20 @@
     "desc_COMPLETED_RESERVATION": "Purchase completed. Thank you!",
     "desc_COMPLETED_PICKUP": "Order picked up successfully. Thank you!",
     "desc_COMPLETED_DELIVERY": "Order delivered and completed. Thank you!"
+  },
+  "chat": {
+    "error": "The message could not be sent. Please try again.",
+    "title": "Chat with us",
+    "hours_note": "We reply during opening hours: {{hours}}",
+    "fill_in": "Please write your name and a message.",
+    "name": "Your name",
+    "phone": "Phone (optional)",
+    "message_placeholder": "How can we help? e.g. \"Do you have blackout curtains for a 2.4 m window?\"",
+    "message": "Your message",
+    "start": "Send message",
+    "waiting": "Thanks! Our team will reply here shortly.",
+    "type": "Type a message…",
+    "send": "Send",
+    "new": "Start a new conversation"
   }
 }

@@ -319,7 +319,8 @@
     "name": "Votre Nom",
     "message": "Message",
     "whatsapp": "Chatter sur WhatsApp",
-    "book_visit": "Réserver une Visite"
+    "book_visit": "Réserver une Visite",
+    "map_open": "Cliquez pour ouvrir dans Google Maps"
   },
   "footer": {
     "tagline": "Rideaux sur mesure, tissus au mètre et tenues traditionnelles rwandaises — de notre boutique de Kigali aux foyers de tout le Rwanda.",
@@ -755,7 +756,25 @@
     "close_menu": "Fermer le menu",
     "open_menu": "Ouvrir le menu",
     "quick_nav": "Navigation rapide",
-    "more": "Plus"
+    "more": "Plus",
+    "alerts_enable_desktop": "Alertes sur l’ordinateur",
+    "alerts_sound_on": "Son des commandes activé — cliquez pour couper",
+    "alerts_sound_off": "Son des commandes coupé — cliquez pour l’activer",
+    "alert_new_reservation": "Nouvelle réservation",
+    "alert_new_order": "Nouvelle commande",
+    "alert_new_message": "Nouveau message de {{name}}",
+    "chat_send_failed": "La réponse n’a pas pu être envoyée",
+    "chat_eyebrow": "Chat du site",
+    "nav_messages": "Messages",
+    "chat_open": "Ouvertes",
+    "chat_closed": "Terminées",
+    "chat_empty": "Aucune conversation pour l’instant. Les messages de la page Contact apparaissent ici.",
+    "chat_pick": "Choisissez une conversation pour la lire et répondre.",
+    "chat_call": "Appeler",
+    "chat_mark_done": "Marquer comme terminé",
+    "chat_reopen": "Rouvrir",
+    "chat_reply_placeholder": "Écrire une réponse…",
+    "chat_send": "Envoyer"
   },
   "cart": {
     "title": "Panier",
@@ -1063,5 +1082,20 @@
     "desc_COMPLETED_RESERVATION": "Achat terminé. Merci !",
     "desc_COMPLETED_PICKUP": "Commande retirée avec succès. Merci !",
     "desc_COMPLETED_DELIVERY": "Commande livrée et terminée. Merci !"
+  },
+  "chat": {
+    "error": "Le message n’a pas pu être envoyé. Veuillez réessayer.",
+    "title": "Discutez avec nous",
+    "hours_note": "Nous répondons pendant les heures d’ouverture : {{hours}}",
+    "fill_in": "Veuillez indiquer votre nom et un message.",
+    "name": "Votre nom",
+    "phone": "Téléphone (facultatif)",
+    "message_placeholder": "Comment pouvons-nous vous aider ? ex. « Avez-vous des rideaux occultants pour une fenêtre de 2,4 m ? »",
+    "message": "Votre message",
+    "start": "Envoyer le message",
+    "waiting": "Merci ! Notre équipe vous répondra ici sous peu.",
+    "type": "Écrivez un message…",
+    "send": "Envoyer",
+    "new": "Commencer une nouvelle conversation"
   }
 }

@@ -37,6 +37,7 @@ const AdminReservations = lazy(() => import('./pages/admin/AdminReservations'));
 const AdminCustomers = lazy(() => import('./pages/admin/AdminCustomers'));
 const AdminInventory = lazy(() => import('./pages/admin/AdminInventory'));
 const AdminContent = lazy(() => import('./pages/admin/AdminContent'));
+const AdminMessages = lazy(() => import('./pages/admin/AdminMessages'));
 
 const ProtectedRoute = ({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) => {
   const { isAuthenticated, user } = useAuthStore();
@@ -95,6 +96,7 @@ const App = () => {
             <Route path="customers" element={<AdminCustomers />} />
             <Route path="inventory" element={<AdminInventory />} />
             <Route path="content" element={<AdminContent />} />
+            <Route path="messages" element={<AdminMessages />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />

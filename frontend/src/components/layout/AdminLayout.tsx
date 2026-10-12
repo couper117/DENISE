@@ -1,6 +1,7 @@
 import { Outlet, NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { LayoutDashboard, Package, Calendar, Users, Warehouse, FileText, LogOut, Menu, X, ExternalLink } from 'lucide-react';
+import { LayoutDashboard, Package, Calendar, Users, Warehouse, FileText, LogOut, Menu, X, ExternalLink, MessageCircle, Bell, BellOff, BellRing } from 'lucide-react';
+import { useAdminAlerts } from '../../lib/useAdminAlerts';
 import { useEffect, useState } from 'react';
 import { useAuthStore } from '../../store';
 import { authApi } from '../../lib/api';
@@ -10,13 +11,14 @@ const navItems = [
   { to: '/admin', icon: LayoutDashboard, labelKey: 'admin.nav_dashboard', fallback: 'Dashboard', end: true },
   { to: '/admin/products', icon: Package, labelKey: 'admin.nav_products', fallback: 'Products' },
   { to: '/admin/reservations', icon: Calendar, labelKey: 'admin.nav_reservations', fallback: 'Reservations' },
+  { to: '/admin/messages', icon: MessageCircle, labelKey: 'admin.nav_messages', fallback: 'Messages' },
   { to: '/admin/customers', icon: Users, labelKey: 'admin.nav_customers', fallback: 'Customers' },
   { to: '/admin/inventory', icon: Warehouse, labelKey: 'admin.nav_inventory', fallback: 'Inventory' },
   { to: '/admin/content', icon: FileText, labelKey: 'admin.nav_content', fallback: 'Content' },
 ];
 
 /** The four sections the owner uses most get a bottom tab bar on phones. */
-const tabItems = navItems.slice(0, 4);
+const tabItems = navItems.slice(0, 4); // Dashboard, Products, Reservations, Messages
 
 const AdminLayout = () => {
   const { t } = useTranslation();
@@ -24,6 +26,13 @@ const AdminLayout = () => {
   const { user, logout, refreshToken } = useAuthStore();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const alerts = useAdminAlerts();
+  const badge = (item: (typeof navItems)[number]) =>
+    item.to === '/admin/messages' && alerts.unreadChats > 0 ? (
+      <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground">
+        {alerts.unreadChats > 99 ? '99+' : alerts.unreadChats}
+      </span>
+    ) : null;
 
   // Close the phone menu whenever the admin moves to another section.
   useEffect(() => { setMenuOpen(false); }, [pathname]);
@@ -86,6 +95,7 @@ const AdminLayout = () => {
             )}>
               <Icon size={18} />
               {label(item)}
+              {badge(item)}
             </NavLink>
           );
         })}
@@ -125,7 +135,18 @@ const AdminLayout = () => {
               <p className="hidden text-xs text-muted-foreground sm:block">{t('admin.panel', { defaultValue: 'Administration Panel' })}</p>
               <h2 className="truncate text-sm font-semibold sm:text-base">{current ? label(current) : t('admin.admin_title', { defaultValue: 'DENISE Admin' })}</h2>
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-1.5">
+              {alerts.permission === 'default' && (
+                <button type="button" onClick={alerts.enableDesktop} className="btn btn-outline btn-sm hidden !px-3 sm:inline-flex">
+                  <BellRing size={15} /> {t('admin.alerts_enable_desktop', { defaultValue: 'Desktop alerts' })}
+                </button>
+              )}
+              <button type="button" onClick={alerts.toggleSound} className="icon-btn"
+                aria-pressed={alerts.soundOn}
+                title={alerts.soundOn ? t('admin.alerts_sound_on', { defaultValue: 'Order sound is on — click to mute' }) : t('admin.alerts_sound_off', { defaultValue: 'Order sound is off — click to turn on' })}
+                aria-label={alerts.soundOn ? t('admin.alerts_sound_on', { defaultValue: 'Order sound is on — click to mute' }) : t('admin.alerts_sound_off', { defaultValue: 'Order sound is off — click to turn on' })}>
+                {alerts.soundOn ? <Bell size={18} /> : <BellOff size={18} className="text-muted-foreground" />}
+              </button>
               {viewSite('btn btn-outline btn-sm !px-3')}
             </div>
           </div>
@@ -147,7 +168,14 @@ const AdminLayout = () => {
                 'flex flex-col items-center gap-0.5 px-1 py-2 text-[11px] font-medium transition-colors',
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground',
               )}>
-                <Icon size={20} />
+                <span className="relative">
+                  <Icon size={20} />
+                  {item.to === '/admin/messages' && alerts.unreadChats > 0 && (
+                    <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground ring-2 ring-card">
+                      {alerts.unreadChats > 9 ? '9+' : alerts.unreadChats}
+                    </span>
+                  )}
+                </span>
                 <span className="max-w-full truncate">{label(item)}</span>
               </NavLink>
             );

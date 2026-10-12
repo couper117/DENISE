@@ -1,5 +1,11 @@
 import { Router } from 'express';
 import {
+  listConversations, getConversationAdmin, replyAsAdmin, setConversationStatus, getAdminAlerts,
+} from '../controllers/chat.controller';
+import {
+  adminChatIdRules, adminReplyRules, adminChatStatusRules, adminAlertsRules,
+} from '../validators/chat.validator';
+import {
   getDashboardStats, getCustomers, toggleCustomerStatus,
   updateSiteContent, getSiteContent, updateSEO, getInventory, updateInventory,
   manageBanners, createBanner, getTestimonials, getFAQs,
@@ -29,6 +35,12 @@ const router = Router();
 router.use(authenticate, requireAdmin);
 
 router.get('/dashboard', getDashboardStats);
+// New orders / reservations / chat messages since a time — polled by the admin panel.
+router.get('/alerts', adminAlertsRules, getAdminAlerts);
+router.get('/chats', listConversations);
+router.get('/chats/:id', adminChatIdRules, getConversationAdmin);
+router.post('/chats/:id/messages', adminReplyRules, replyAsAdmin);
+router.put('/chats/:id/status', adminChatStatusRules, setConversationStatus);
 // Every product, hidden ones included, with all images — the storefront
 // listing at GET /api/products only returns what is on sale.
 router.get('/products', listAdminProductsRules, getAdminProducts);

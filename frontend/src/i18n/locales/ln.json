@@ -319,7 +319,8 @@
     "name": "Kombo na Yo",
     "message": "Nsango",
     "whatsapp": "Kosolola na WhatsApp",
-    "book_visit": "Bómba Kotala Boutique"
+    "book_visit": "Bómba Kotala Boutique",
+    "map_open": "Finá mpo ofungola na Google Maps"
   },
   "footer": {
     "tagline": "Barido na bonene, bilamba na metele mpe bilamba ya bonkoko — longwa na magazini na biso na Kigali tii na bandako ya Rwanda mobimba.",
@@ -755,7 +756,25 @@
     "close_menu": "Kanga menu",
     "open_menu": "Fungola menu",
     "quick_nav": "Navigation ya noki",
-    "more": "Mingi koleka"
+    "more": "Mingi koleka",
+    "alerts_enable_desktop": "Bayebisi na ordinateur",
+    "alerts_sound_on": "Lokito ya commande ezali kobeta — finá mpo okanga",
+    "alerts_sound_off": "Lokito ya commande ekangami — finá mpo ofungola",
+    "alert_new_reservation": "Réservation ya sika",
+    "alert_new_order": "Commande ya sika",
+    "alert_new_message": "Nsango ya sika ya {{name}}",
+    "chat_send_failed": "Eyano etindamaki te",
+    "chat_eyebrow": "Lisolo ya site",
+    "nav_messages": "Nsango",
+    "chat_open": "Efungwami",
+    "chat_closed": "Esilisami",
+    "chat_empty": "Lisolo moko te naino. Nsango ya lokasa Sángana na Biso ekomonana awa.",
+    "chat_pick": "Pona lisolo mpo otanga mpe ozongisa eyano.",
+    "chat_call": "Benga",
+    "chat_mark_done": "Tyá ete esili",
+    "chat_reopen": "Fungola lisusu",
+    "chat_reply_placeholder": "Komá eyano…",
+    "chat_send": "Tinda"
   },
   "cart": {
     "title": "Panier",
@@ -1063,5 +1082,20 @@
     "desc_COMPLETED_RESERVATION": "Bosombi esili. Matondi!",
     "desc_COMPLETED_PICKUP": "Commande ezwami malamu. Matondi!",
     "desc_COMPLETED_DELIVERY": "Commande ekomi mpe esili. Matondi!"
+  },
+  "chat": {
+    "error": "Nsango etindamaki te. Meká lisusu.",
+    "title": "Solola na biso",
+    "hours_note": "Tozongisaka eyano na ngonga ya mosala: {{hours}}",
+    "fill_in": "Komá nkombo na yo mpe nsango.",
+    "name": "Nkombo na yo",
+    "phone": "Telefone (ezali na ntina te)",
+    "message_placeholder": "Tokoki kosalisa yo ndenge nini? ndakisa: \"Bozali na barido ya butu mpo na lininisa ya metele 2,4?\"",
+    "message": "Nsango na yo",
+    "start": "Tinda nsango",
+    "waiting": "Matondi! Équipe na biso ekozongisa eyano awa noki.",
+    "type": "Komá nsango…",
+    "send": "Tinda",
+    "new": "Banda lisolo ya sika"
   }
 }

@@ -319,7 +319,8 @@
     "name": "Jina Lako",
     "message": "Ujumbe",
     "whatsapp": "Piga Gumzo WhatsApp",
-    "book_visit": "Hifadhi Ziara ya Duka"
+    "book_visit": "Hifadhi Ziara ya Duka",
+    "map_open": "Bofya kufungua kwenye Google Maps"
   },
   "footer": {
     "tagline": "Mapazia kwa kipimo, vitambaa kwa mita na mavazi ya kitamaduni ya Rwanda — kutoka duka letu Kigali hadi nyumba kote Rwanda.",
@@ -755,7 +756,25 @@
     "close_menu": "Funga menyu",
     "open_menu": "Fungua menyu",
     "quick_nav": "Urambazaji wa haraka",
-    "more": "Zaidi"
+    "more": "Zaidi",
+    "alerts_enable_desktop": "Arifa za kompyuta",
+    "alerts_sound_on": "Sauti ya oda imewashwa — bofya kuzima",
+    "alerts_sound_off": "Sauti ya oda imezimwa — bofya kuwasha",
+    "alert_new_reservation": "Uhifadhi mpya",
+    "alert_new_order": "Oda mpya",
+    "alert_new_message": "Ujumbe mpya kutoka {{name}}",
+    "chat_send_failed": "Jibu halikutumwa",
+    "chat_eyebrow": "Mazungumzo ya tovuti",
+    "nav_messages": "Ujumbe",
+    "chat_open": "Wazi",
+    "chat_closed": "Yamefungwa",
+    "chat_empty": "Bado hakuna mazungumzo. Ujumbe kutoka ukurasa wa Mawasiliano utaonekana hapa.",
+    "chat_pick": "Chagua mazungumzo ili kusoma na kujibu.",
+    "chat_call": "Piga simu",
+    "chat_mark_done": "Weka kama imekamilika",
+    "chat_reopen": "Fungua tena",
+    "chat_reply_placeholder": "Andika jibu…",
+    "chat_send": "Tuma"
   },
   "cart": {
     "title": "Kikapu",
@@ -1063,5 +1082,20 @@
     "desc_COMPLETED_RESERVATION": "Ununuzi umekamilika. Asante!",
     "desc_COMPLETED_PICKUP": "Oda imechukuliwa kwa mafanikio. Asante!",
     "desc_COMPLETED_DELIVERY": "Oda imefikishwa na kukamilika. Asante!"
+  },
+  "chat": {
+    "error": "Ujumbe haukutumwa. Tafadhali jaribu tena.",
+    "title": "Ongea nasi",
+    "hours_note": "Tunajibu wakati wa saa za kazi: {{hours}}",
+    "fill_in": "Tafadhali andika jina lako na ujumbe.",
+    "name": "Jina lako",
+    "phone": "Simu (si lazima)",
+    "message_placeholder": "Tukusaidie nini? mfano: \"Mna mapazia ya kuzuia mwanga kwa dirisha la mita 2.4?\"",
+    "message": "Ujumbe wako",
+    "start": "Tuma ujumbe",
+    "waiting": "Asante! Timu yetu itajibu hapa hivi punde.",
+    "type": "Andika ujumbe…",
+    "send": "Tuma",
+    "new": "Anza mazungumzo mapya"
   }
 }

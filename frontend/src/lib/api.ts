@@ -161,8 +161,21 @@ export const contentApi = {
 };
 
 // Admin
+/** Website chat, visitor side: the conversation token is the only key. */
+export const chatApi = {
+  start: (data: { name: string; phone?: string; message: string }) => api.post('/chat', data),
+  get: (token: string, after?: string) => api.get(`/chat/${token}`, { params: after ? { after } : undefined }),
+  send: (token: string, message: string) => api.post(`/chat/${token}/messages`, { message }),
+};
+
 export const adminApi = {
   getDashboard: () => api.get('/admin/dashboard'),
+  /** New orders, reservations and customer chat messages since a time. */
+  getAlerts: (since?: string) => api.get('/admin/alerts', { params: since ? { since } : undefined }),
+  getChats: (status: 'OPEN' | 'CLOSED' | 'ALL' = 'OPEN') => api.get('/admin/chats', { params: { status } }),
+  getChat: (id: string) => api.get(`/admin/chats/${id}`),
+  replyChat: (id: string, message: string) => api.post(`/admin/chats/${id}/messages`, { message }),
+  setChatStatus: (id: string, status: 'OPEN' | 'CLOSED') => api.put(`/admin/chats/${id}/status`, { status }),
   /** Every product, hidden ones included, with all images (admin only). */
   getProducts: (params?: Record<string, unknown>) => api.get('/admin/products', { params }),
   getCustomers: (params?: Record<string, unknown>) => api.get('/admin/customers', { params }),

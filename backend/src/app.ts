@@ -20,6 +20,7 @@ import deliveryRoutes from './routes/delivery.routes';
 import contentRoutes from './routes/content.routes';
 import cmsRoutes from './routes/cms.routes';
 import mediaRoutes from './routes/media.routes';
+import chatRoutes from './routes/chat.routes';
 import { publishScheduled } from './controllers/cms.controller';
 import { handleWebhook } from './controllers/payments.controller';
 import logger from './utils/logger';
@@ -162,6 +163,7 @@ app.use('/api/delivery', deliveryRoutes);
 app.use('/api', contentRoutes); // public: /api/testimonials, /api/faqs
 app.use('/api/cms', cmsRoutes); // visual CMS: content blocks + site settings
 app.use('/api/media', mediaRoutes); // visual CMS: media library
+app.use('/api/chat', chatRoutes); // website chat (Contact page ↔ admin inbox)
 
 // Sitemap for search engines, built from the catalogue so every product,
 // category and blog post is listed the moment it exists. The storefront

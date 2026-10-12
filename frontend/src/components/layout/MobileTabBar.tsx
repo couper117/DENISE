@@ -1,8 +1,7 @@
-import { NavLink, useLocation } from 'react-router-dom';
+import { Link, NavLink, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Home, LayoutGrid, MessageCircle, ShoppingBag, User } from 'lucide-react';
 import { useAuthStore, useCartStore } from '../../store';
-import { WHATSAPP_LINK } from '../../lib/config';
 import { cn } from '../../lib/utils';
 
 /** Routes where the bar would get in the way of a focused task. */
@@ -42,9 +41,11 @@ const MobileTabBar = () => {
           </span>
           {t('nav.cart')}
         </NavLink>
-        <a href={WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className={cn(item, 'text-[#1f8f4e]')}>
+        {/* The site's own chat (answered from the admin inbox); WhatsApp is
+            still offered on the Contact page. */}
+        <Link to="/contact#chat" className={cn(item, pathname === '/contact' ? 'text-primary' : 'text-[#1f8f4e]')}>
           <MessageCircle size={21} />{t('nav.chat', { defaultValue: 'Chat' })}
-        </a>
+        </Link>
         <NavLink to={isAuthenticated ? '/account/profile' : '/login'} className={tab}>
           <User size={21} />{isAuthenticated ? t('nav.account') : t('nav.login')}
         </NavLink>

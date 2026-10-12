@@ -319,7 +319,8 @@
     "name": "Amazina Yawe",
     "message": "Ubutumwa",
     "whatsapp": "Vugana kuri WhatsApp",
-    "book_visit": "Fata Icyiciro mu Iduka"
+    "book_visit": "Fata Icyiciro mu Iduka",
+    "map_open": "Kanda ufungure muri Google Maps"
   },
   "footer": {
     "tagline": "Amarido adodwa ku gipimo, imyenda igurwa kuri metero n'imyambaro gakondo — kuva mu iduka ryacu i Kigali kugera mu ngo zo mu Rwanda hose.",
@@ -755,7 +756,25 @@
     "close_menu": "Funga menu",
     "open_menu": "Fungura menu",
     "quick_nav": "Kujya vuba",
-    "more": "Ibindi"
+    "more": "Ibindi",
+    "alerts_enable_desktop": "Imenyesha kuri mudasobwa",
+    "alerts_sound_on": "Ijwi ry'amatumiza rirafunguye — kanda urifunge",
+    "alerts_sound_off": "Ijwi ry'amatumiza rirafunze — kanda urifungure",
+    "alert_new_reservation": "Ifatwa rishya",
+    "alert_new_order": "Itumiza rishya",
+    "alert_new_message": "Ubutumwa bushya bwa {{name}}",
+    "chat_send_failed": "Igisubizo nticyoherejwe",
+    "chat_eyebrow": "Ikiganiro cy'urubuga",
+    "nav_messages": "Ubutumwa",
+    "chat_open": "Bifunguye",
+    "chat_closed": "Byarangiye",
+    "chat_empty": "Nta biganiro birahari. Ubutumwa bwo ku rupapuro rwa Twandikire buzaza hano.",
+    "chat_pick": "Hitamo ikiganiro usome kandi usubize.",
+    "chat_call": "Hamagara",
+    "chat_mark_done": "Byarangiye",
+    "chat_reopen": "Ongera ufungure",
+    "chat_reply_placeholder": "Andika igisubizo…",
+    "chat_send": "Ohereza"
   },
   "cart": {
     "title": "Agatebo",
@@ -1063,5 +1082,20 @@
     "desc_COMPLETED_RESERVATION": "Kugura byarangiye. Murakoze!",
     "desc_COMPLETED_PICKUP": "Itumiza ryafashwe neza. Murakoze!",
     "desc_COMPLETED_DELIVERY": "Itumiza ryagejejweho kandi rirarangiye. Murakoze!"
+  },
+  "chat": {
+    "error": "Ubutumwa ntibwoherejwe. Ongera ugerageze.",
+    "title": "Tuganire",
+    "hours_note": "Dusubiza mu masaha y'akazi: {{hours}}",
+    "fill_in": "Andika izina ryawe n'ubutumwa.",
+    "name": "Izina ryawe",
+    "phone": "Telefoni (si ngombwa)",
+    "message_placeholder": "Twagufasha iki? urugero: \"Mufite amarido ya nijoro y'idirishya rya metero 2,4?\"",
+    "message": "Ubutumwa bwawe",
+    "start": "Ohereza ubutumwa",
+    "waiting": "Murakoze! Itsinda ryacu rirabasubiza hano vuba.",
+    "type": "Andika ubutumwa…",
+    "send": "Ohereza",
+    "new": "Tangira ikiganiro gishya"
   }
 }
