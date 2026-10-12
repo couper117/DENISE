@@ -112,6 +112,36 @@ every push to `main` of github.com/couper117/DENISE:
   indexing), Google Business Profile, reviews, real product photos/names,
   confirm the Facebook/Instagram URLs in `frontend/src/lib/config.ts`.
 
+### Prices — what the customer sees is what is charged (Oct 2026)
+- Checkout sends `expectedTotal`; the server answers **409 PRICE_CHANGED**
+  (nothing saved) when its own total differs, and checkout reloads prices and
+  asks again. Do not remove this — it is the guarantee against "the price
+  changed by itself".
+- Cart and checkout re-read current product prices (`lib/useFreshPrices.ts`)
+  and show a notice when a line changed. Fabric/attire re-added merges metres
+  (no hidden quantity). Buy now checks out only its item from
+  `useBuyNowStore` (sessionStorage, `/checkout?buy=now`); the cart is untouched.
+- Delivery: server and checkout both use the delivery zones, falling back to
+  the same built-in table (the server used to fall back to a flat 5,000).
+
+### Chat and admin alerts
+- `ChatConversation` / `ChatMessage` (migration `website_chat`). Public:
+  `POST /api/chat`, `GET|POST /api/chat/:token…` — the random token in the
+  visitor's localStorage is the only key. Admin: `/api/admin/chats…`.
+- `GET /api/admin/alerts?since=` is polled every 15 s by `useAdminAlerts`
+  (chime, toast, tab-title count, optional desktop notification). Works while
+  an admin tab is open; it is not phone push.
+
+### Admin → Settings (business details)
+- `lib/siteConfig.ts` (`useBusiness()`): name, legal name, logo, phone,
+  WhatsApp, email, address, hours, map, socials, MoMo/Airtel numbers, payment
+  method switches, bank details, same-day surcharge — from `SiteSetting`
+  public keys, falling back to `lib/config.ts`. Validated server-side in
+  `cms.controller.ts` (`BUSINESS_SETTING_RULES`). Province delivery prices are
+  `DeliveryZone` rows. Never read business constants from config.ts directly
+  in components any more — use `useBusiness()`.
+- Still static: the shop details in `index.html` JSON-LD (SEO) and SMS texts.
+
 ### Open
 - Paypack webhook must point to
   `https://denise-api.vercel.app/api/payments/webhook` (owner was asked).
